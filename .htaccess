@@ -1,0 +1,26 @@
+# Отключить листинг директорий
+Options -Indexes
+
+# Включить mod_rewrite
+RewriteEngine On
+
+# Исключение для директории install
+RewriteCond %{REQUEST_URI} ^/install
+RewriteRule ^ - [L]
+
+# Исключение для директории admin (там свой index.php)
+RewriteCond %{REQUEST_URI} ^/admin
+RewriteRule ^ - [L]
+
+# Защита системных файлов
+<FilesMatch "^(config\.php|database\.sql|install\.lock)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# === РАЗРЕШИТЬ ДОСТУП К СУЩЕСТВУЮЩИМ ФАЙЛАМ ===
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# === ВСЁ ОСТАЛЬНОЕ НА index.php ===
+RewriteRule ^ index.php [QSA,L]

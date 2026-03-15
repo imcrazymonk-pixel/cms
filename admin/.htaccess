@@ -1,0 +1,14 @@
+# Админ-панель
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Если файл существует - отдаём его (CSS, JS, изображения)
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+    
+    # Всё остальное на admin/index.php
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Отключить листинг директорий
+Options -Indexes

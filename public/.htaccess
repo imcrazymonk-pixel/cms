@@ -1,0 +1,13 @@
+# Включить mod_rewrite
+RewriteEngine On
+
+# Админка обрабатывается корневым index.php
+RewriteCond %{REQUEST_URI} ^/public/admin
+RewriteRule ^(.*)$ /index.php [QSA,L]
+
+# Если запрос к существующему файлу или директории - отдаём его
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Иначе перенаправляем на index.php
+RewriteRule ^(.*)$ index.php [QSA,L]
