@@ -36,7 +36,16 @@ class User
      */
     public function getAll(): array
     {
-        return $this->db->fetchAll("SELECT id, login, email, role, created_at FROM users ORDER BY id");
+        return $this->db->fetchAll("
+            SELECT u.id, u.login, u.email, u.role, u.created_at,
+                   COUNT(DISTINCT p.id) AS posts_count,
+                   COUNT(DISTINCT c.id) AS comments_count
+            FROM users u
+            LEFT JOIN posts p ON u.id = p.user_id
+            LEFT JOIN comments c ON u.id = c.user_id
+            GROUP BY u.id, u.login, u.email, u.role, u.created_at
+            ORDER BY u.id
+        ");
     }
 
     /**
