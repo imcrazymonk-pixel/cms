@@ -164,7 +164,7 @@ class TemplateEngine
         // Определяем базовый путь (тема или корень)
         $basePath = $this->getThemePath();
 
-        // Ищем шаблон в базовой директории
+        // Ищем шаблон в базовой директории темы
         $templatePath = $basePath . '/' . $template;
         if (file_exists($templatePath)) {
             return $templatePath;
@@ -176,9 +176,16 @@ class TemplateEngine
             return $layoutPath;
         }
 
+        // Для шаблонов страниц (page/xxx) ищем в templates/page/
+        if (strpos($template, 'page/') === 0) {
+            $pageTemplate = $this->templatePath . '/page/' . str_replace('page/', '', $template);
+            if (file_exists($pageTemplate)) {
+                return $pageTemplate;
+            }
+        }
+
         // Дополнительные пути для поиска
         $paths = [
-            $this->templatePath . '/page/' . $template,
             $this->templatePath . '/pages/' . $template,
         ];
 
