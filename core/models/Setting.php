@@ -42,7 +42,24 @@ class Setting
      */
     public function set(string $key, string $value): bool
     {
-        return $this->db->update('settings', ['setting_value' => $value], 'setting_key = :key', ['key' => $key]) > 0;
+        $db = Database::getInstance();
+        
+        // Проверяем, существует ли настройка
+        $existing = $db->fetch(
+            "SELECT id FROM settings WHERE setting_key = :key",
+            ['key' => $key]
+        );
+        
+        if ($existing) {
+            // Обновляем существующую
+            return $db->update('settings', ['setting_value' => $value], 'setting_key = :key', ['key' => $key]) > 0;
+        } else {
+            // Создаём новую
+            return $db->insert('settings', [
+                'setting_key' => $key,
+                'setting_value' => $value
+            ]) > 0;
+        }
     }
 
     /**

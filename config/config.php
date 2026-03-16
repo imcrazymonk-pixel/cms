@@ -1,7 +1,7 @@
 <?php
 /**
  * Конфигурационный файл CMS
- * Сгенерирован установщиком 2026-03-13 19:34:39
+ * Сгенерирован установщиком 2026-03-16 08:41:55
  */
 
 // Доступ к базе данных
@@ -16,12 +16,12 @@ define('SITE_NAME', 'Моя CMS');
 define('SITE_URL', 'http://' . $_SERVER['HTTP_HOST']);
 define('ADMIN_EMAIL', 'ilhar2k@ya.ru');
 
-// Пути к директориям (если не определены в index.php)
-if (!defined('ROOT_PATH')) define('ROOT_PATH', dirname(dirname(__DIR__)));
-if (!defined('PUBLIC_PATH')) define('PUBLIC_PATH', ROOT_PATH . '/public');
-if (!defined('ADMIN_PATH')) define('ADMIN_PATH', ROOT_PATH . '/admin');
-if (!defined('CORE_PATH')) define('CORE_PATH', ROOT_PATH . '/core');
-if (!defined('TEMPLATES_PATH')) define('TEMPLATES_PATH', ROOT_PATH . '/templates');
+// Пути к директориям
+defined('ROOT_PATH') or define('ROOT_PATH', dirname(dirname(__DIR__)));
+defined('PUBLIC_PATH') or define('PUBLIC_PATH', ROOT_PATH . '/public');
+defined('ADMIN_PATH') or define('ADMIN_PATH', ROOT_PATH . '/admin');
+defined('CORE_PATH') or define('CORE_PATH', ROOT_PATH . '/core');
+defined('TEMPLATES_PATH') or define('TEMPLATES_PATH', ROOT_PATH . '/templates');
 
 // Настройки сессии
 define('SESSION_LIFETIME', 3600);

@@ -1,7 +1,7 @@
 <?php
 /**
  * Шаблонизатор CMS
- * Поддержка: переменные, partials, layout, кэширование
+ * Поддержка: переменные, partials, layout, кэширование, темы
  */
 
 class TemplateEngine
@@ -13,6 +13,7 @@ class TemplateEngine
     private ?string $currentSection = null;
     private string $cachePath;
     private bool $cacheEnabled;
+    private ?string $activeTheme = null;
     private static ?TemplateEngine $instance = null;
 
     public function __construct(string $templatePath = null, ?string $cachePath = null)
@@ -27,6 +28,30 @@ class TemplateEngine
 
         // Сохраняем экземпляр для доступа из шаблонов
         self::$instance = $this;
+    }
+
+    /**
+     * Установить активную тему
+     */
+    public function setTheme(string $theme): self
+    {
+        $this->activeTheme = $theme;
+        return $this;
+    }
+
+    /**
+     * Получить путь к активной теме
+     */
+    public function getThemePath(): string
+    {
+        if ($this->activeTheme && file_exists($this->templatePath . '/themes/' . $this->activeTheme)) {
+            return $this->templatePath . '/themes/' . $this->activeTheme;
+        }
+        // По умолчанию используем тему 'default'
+        if (file_exists($this->templatePath . '/themes/default')) {
+            return $this->templatePath . '/themes/default';
+        }
+        return $this->templatePath;
     }
 
     /**
@@ -136,8 +161,24 @@ class TemplateEngine
             $template .= '.php';
         }
 
+        // Определяем базовый путь (тема или корень)
+        $basePath = $this->getThemePath();
+
+        // Ищем шаблон в базовой директории
+        $templatePath = $basePath . '/' . $template;
+        if (file_exists($templatePath)) {
+            return $templatePath;
+        }
+
+        // Для layout ищем в папке layouts темы
+        $layoutPath = $basePath . '/layouts/' . basename($template);
+        if (file_exists($layoutPath)) {
+            return $layoutPath;
+        }
+
+        // Дополнительные пути для поиска
         $paths = [
-            $this->templatePath . '/' . $template,
+            $this->templatePath . '/page/' . $template,
             $this->templatePath . '/pages/' . $template,
         ];
 
@@ -147,7 +188,8 @@ class TemplateEngine
             }
         }
 
-        return $this->templatePath . '/' . $template;
+        // Если ничего не найдено, возвращаем путь к теме по умолчанию
+        return $basePath . '/' . $template;
     }
 
     private function renderTemplate(string $templateFile, ?string $compiledFile = null): string

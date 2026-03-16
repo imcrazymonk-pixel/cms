@@ -78,12 +78,49 @@
 </form>
 
 <script>
+// Транслитерация кириллицы в латиницу
+function transliterate(word) {
+    const transliteration = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd',
+        'е': 'e', 'ё': 'yo', 'ж': 'zh', 'з': 'z', 'и': 'i',
+        'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n',
+        'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
+        'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'c', 'ч': 'ch',
+        'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '',
+        'э': 'e', 'ю': 'yu', 'я': 'ya',
+        'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D',
+        'Е': 'E', 'Ё': 'Yo', 'Ж': 'Zh', 'З': 'Z', 'И': 'I',
+        'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N',
+        'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T',
+        'У': 'U', 'Ф': 'F', 'Х': 'H', 'Ц': 'C', 'Ч': 'Ch',
+        'Ш': 'Sh', 'Щ': 'Sch', 'Ъ': '', 'Ы': 'Y', 'Ь': '',
+        'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+        '№': ''
+    };
+    
+    let result = '';
+    for (let i = 0; i < word.length; i++) {
+        result += transliteration[word[i]] || word[i];
+    }
+    return result;
+}
+
 // Автогенерация slug из заголовка
-document.getElementById('title')?.addEventListener('input', function() {
-    const slugInput = document.getElementById('slug');
-    if (slugInput && !slugInput.value) {
-        let slug = this.value.toLowerCase()
-            .replace(/[^a-zа-яё0-9\s-]/gi, '')
+const titleInput = document.getElementById('title');
+const slugInput = document.getElementById('slug');
+let userEditedSlug = false;
+
+// Отслеживаем ручное редактирование slug
+slugInput?.addEventListener('input', function() {
+    userEditedSlug = true;
+});
+
+// Генерируем slug только если пользователь не редактировал его вручную
+titleInput?.addEventListener('input', function() {
+    if (slugInput && !userEditedSlug) {
+        let slug = transliterate(this.value)
+            .toLowerCase()
+            .replace(/[^a-z0-9\s-]/g, '')
             .replace(/\s+/g, '-')
             .replace(/-+/g, '-')
             .trim();

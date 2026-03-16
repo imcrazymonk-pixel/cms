@@ -39,6 +39,20 @@
     </div>
 
     <div class="settings-section">
+        <h3>🎨 Внешний вид</h3>
+
+        <div class="form-group">
+            <label for="active_theme">Тема оформления</label>
+            <select id="active_theme" name="settings[active_theme]" class="form-control">
+                <option value="default" <?= (($settings['active_theme'] ?? '') === 'default') ? 'selected' : '' ?>>📄 Классическая (Default)</option>
+                <option value="modern" <?= (($settings['active_theme'] ?? '') === 'modern') ? 'selected' : '' ?>>🚀 Современная (Modern)</option>
+                <option value="minimal" <?= (($settings['active_theme'] ?? '') === 'minimal') ? 'selected' : '' ?>>📝 Минимализм (Minimal)</option>
+            </select>
+            <small class="form-hint">Выберите тему для всего сайта</small>
+        </div>
+    </div>
+
+    <div class="settings-section">
         <h3>🔧 Дополнительные настройки</h3>
 
         <div class="form-group">

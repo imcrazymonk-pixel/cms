@@ -29,6 +29,14 @@ function loadMenuItems(string $location = 'main', string $currentUri = ''): arra
 }
 
 /**
+ * Получить footer меню
+ */
+function loadFooterMenu(): array
+{
+    return loadMenuItems('footer', '');
+}
+
+/**
  * Получить SEO настройки
  */
 function getSeoSettings(): array
@@ -41,6 +49,25 @@ function getSeoSettings(): array
         'description' => $data['site_description'] ?? $data['meta_description'] ?? '',
         'keywords' => $data['meta_keywords'] ?? '',
     ];
+}
+
+/**
+ * Получить активную тему
+ */
+function getActiveTheme(): string
+{
+    $setting = new Setting();
+    return $setting->get('active_theme') ?: 'default';
+}
+
+/**
+ * Создать TemplateEngine с активной темой
+ */
+function createTemplate(): TemplateEngine
+{
+    $template = new TemplateEngine();
+    $template->setTheme(getActiveTheme());
+    return $template;
 }
 
 // ============================================
@@ -169,7 +196,7 @@ $router->get('', function() {
     $homePage = $page->getHomePage();
 
     if ($homePage) {
-        $template = new TemplateEngine();
+        $template = createTemplate();
         $template->set('title', $homePage['title']);
         $template->set('seo', [
             'title' => $homePage['title'],
@@ -178,8 +205,12 @@ $router->get('', function() {
         ]);
         $template->set('page', $homePage);
         $template->set('menuItems', loadMenuItems('main', ''));
+        $template->set('footerMenu', loadFooterMenu());
+        
+        // Используем шаблон из БД или default
+        $templateName = 'page/' . ($homePage['template'] ?? 'default');
         $template->setLayout('layouts/main');
-        $template->display('page');
+        $template->display($templateName);
         return;
     }
 
@@ -188,12 +219,13 @@ $router->get('', function() {
     $categories = $category->getAll();
     $seoSettings = getSeoSettings();
 
-    $template = new TemplateEngine();
+    $template = createTemplate();
     $template->set('title', 'Главная');
     $template->set('seo', $seoSettings);
     $template->set('posts', $posts);
     $template->set('categories', $categories);
     $template->set('menuItems', loadMenuItems('main', ''));
+    $template->set('footerMenu', loadFooterMenu());
     $template->setLayout('layouts/main');
     $template->display('index');
 });
@@ -205,7 +237,7 @@ $router->get('post/{slug}', function($slug) {
 
     if (!$postEntity) {
         http_response_code(404);
-        $template = new TemplateEngine();
+        $template = createTemplate();
         $template->set('title', 'Страница не найдена');
         $template->set('seo', ['title' => 'Страница не найдена']);
         $template->display('errors/404');
@@ -214,7 +246,7 @@ $router->get('post/{slug}', function($slug) {
 
     $post->incrementViews($postEntity['id']);
 
-    $template = new TemplateEngine();
+    $template = createTemplate();
     $template->set('title', $postEntity['title']);
     $template->set('seo', [
         'title' => $postEntity['title'],
@@ -227,6 +259,7 @@ $router->get('post/{slug}', function($slug) {
     $template->set('relatedPosts', $post->getRelated($postEntity['category_id'], $postEntity['id']));
     $template->set('ogImage', $postEntity['image'] ?? '');
     $template->set('menuItems', loadMenuItems('main', 'post/' . $postEntity['slug']));
+    $template->set('footerMenu', loadFooterMenu());
     $template->setLayout('layouts/main');
     $template->display('post');
 });
@@ -238,14 +271,14 @@ $router->get('category/{slug}', function($slug) {
 
     if (!$categoryEntity) {
         http_response_code(404);
-        $template = new TemplateEngine();
+        $template = createTemplate();
         $template->set('title', 'Страница не найдена');
         $template->set('seo', ['title' => 'Страница не найдена']);
         $template->display('errors/404');
         return;
     }
 
-    $template = new TemplateEngine();
+    $template = createTemplate();
     $template->set('title', 'Категория: ' . $categoryEntity['name']);
     $template->set('seo', [
         'title' => 'Категория: ' . $categoryEntity['name'],
@@ -255,6 +288,7 @@ $router->get('category/{slug}', function($slug) {
     $template->set('category', $categoryEntity);
     $template->set('posts', $category->getPosts($categoryEntity['id']));
     $template->set('menuItems', loadMenuItems('main', 'category/' . $slug));
+    $template->set('footerMenu', loadFooterMenu());
     $template->setLayout('layouts/main');
     $template->display('category');
 });
@@ -266,14 +300,14 @@ $router->get('page/{slug}', function($slug) {
 
     if (!$pageEntity) {
         http_response_code(404);
-        $template = new TemplateEngine();
+        $template = createTemplate();
         $template->set('title', 'Страница не найдена');
         $template->set('seo', ['title' => 'Страница не найдена']);
         $template->display('errors/404');
         return;
     }
 
-    $template = new TemplateEngine();
+    $template = createTemplate();
     $template->set('title', $pageEntity['title']);
     $template->set('seo', [
         'title' => $pageEntity['title'],
@@ -282,8 +316,12 @@ $router->get('page/{slug}', function($slug) {
     ]);
     $template->set('page', $pageEntity);
     $template->set('menuItems', loadMenuItems('main', 'page/' . $slug));
+    $template->set('footerMenu', loadFooterMenu());
     $template->setLayout('layouts/main');
-    $template->display('page');
+    
+    // Используем шаблон из БД или default
+    $templateName = 'page/' . ($pageEntity['template'] ?? 'default');
+    $template->display($templateName);
 });
 
 // Универсальный роутинг для статических страниц (красивые URL без префикса /page/)
@@ -293,14 +331,14 @@ $router->get('{slug}', function($slug) {
 
     if (!$pageEntity) {
         http_response_code(404);
-        $template = new TemplateEngine();
+        $template = createTemplate();
         $template->set('title', 'Страница не найдена');
         $template->set('seo', ['title' => 'Страница не найдена']);
         $template->display('errors/404');
         return;
     }
 
-    $template = new TemplateEngine();
+    $template = createTemplate();
     $template->set('title', $pageEntity['title']);
     $template->set('seo', [
         'title' => $pageEntity['title'],
@@ -309,8 +347,12 @@ $router->get('{slug}', function($slug) {
     ]);
     $template->set('page', $pageEntity);
     $template->set('menuItems', loadMenuItems('main', $slug));
+    $template->set('footerMenu', loadFooterMenu());
     $template->setLayout('layouts/main');
-    $template->display('page');
+    
+    // Используем шаблон из БД или default
+    $templateName = 'page/' . ($pageEntity['template'] ?? 'default');
+    $template->display($templateName);
 });
 
 $router->get('blog', function() {

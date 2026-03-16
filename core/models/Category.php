@@ -33,7 +33,13 @@ class Category
      */
     public function getAll(): array
     {
-        return $this->db->fetchAll("SELECT id, name, slug, description FROM categories ORDER BY name");
+        return $this->db->fetchAll("
+            SELECT c.id, c.name, c.slug, c.description, COUNT(p.id) AS posts_count
+            FROM categories c
+            LEFT JOIN posts p ON c.id = p.category_id
+            GROUP BY c.id, c.name, c.slug, c.description
+            ORDER BY c.name
+        ");
     }
 
     /**

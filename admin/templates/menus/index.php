@@ -68,8 +68,63 @@
 </table>
 
 <script>
+// Транслитерация кириллицы в латиницу
+function transliterate(word) {
+    const transliteration = {
+        'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd',
+        'е': 'e', 'ё': 'yo', 'ж': 'zh', 'з': 'z', 'и': 'i',
+        'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n',
+        'о': 'o', 'п': 'p', 'р': 'r', 'с': 's', 'т': 't',
+        'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'c', 'ч': 'ch',
+        'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '',
+        'э': 'e', 'ю': 'yu', 'я': 'ya',
+        'А': 'A', 'Б': 'B', 'В': 'V', 'Г': 'G', 'Д': 'D',
+        'Е': 'E', 'Ё': 'Yo', 'Ж': 'Zh', 'З': 'Z', 'И': 'I',
+        'Й': 'Y', 'К': 'K', 'Л': 'L', 'М': 'M', 'Н': 'N',
+        'О': 'O', 'П': 'P', 'Р': 'R', 'С': 'S', 'Т': 'T',
+        'У': 'U', 'Ф': 'F', 'Х': 'H', 'Ц': 'C', 'Ч': 'Ch',
+        'Ш': 'Sh', 'Щ': 'Sch', 'Ъ': '', 'Ы': 'Y', 'Ь': '',
+        'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
+        '№': ''
+    };
+    
+    let result = '';
+    for (let i = 0; i < word.length; i++) {
+        result += transliteration[word[i]] || word[i];
+    }
+    return result;
+}
+
 function toggleMenuForm() {
     const form = document.getElementById('menu-form');
     form.style.display = form.style.display === 'none' ? 'block' : 'none';
 }
+
+// Автогенерация URL из названия пункта меню
+let userEditedUrl = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const nameInput = document.querySelector('#menu-form input[name="name"]');
+    const urlInput = document.querySelector('#menu-form input[name="url"]');
+    
+    if (nameInput && urlInput) {
+        // Отслеживаем ручное редактирование URL
+        urlInput.addEventListener('input', function() {
+            userEditedUrl = true;
+        });
+        
+        // Генерируем URL только если пользователь не редактировал его вручную
+        nameInput.addEventListener('input', function() {
+            if (!userEditedUrl) {
+                let slug = transliterate(this.value)
+                    .toLowerCase()
+                    .replace(/[^a-z0-9\s-]/g, '')
+                    .replace(/\s+/g, '-')
+                    .replace(/-+/g, '-')
+                    .trim();
+                urlInput.value = '/' + slug;
+            }
+        });
+    }
+});
 </script>

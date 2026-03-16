@@ -89,11 +89,11 @@ define('SITE_URL', 'http://' . \$_SERVER['HTTP_HOST']);
 define('ADMIN_EMAIL', '" . addslashes($adminEmail) . "');
 
 // Пути к директориям
-define('ROOT_PATH', dirname(dirname(__DIR__)));
-define('PUBLIC_PATH', ROOT_PATH . '/public');
-define('ADMIN_PATH', ROOT_PATH . '/admin');
-define('CORE_PATH', ROOT_PATH . '/core');
-define('TEMPLATES_PATH', ROOT_PATH . '/templates');
+defined('ROOT_PATH') or define('ROOT_PATH', dirname(dirname(__DIR__)));
+defined('PUBLIC_PATH') or define('PUBLIC_PATH', ROOT_PATH . '/public');
+defined('ADMIN_PATH') or define('ADMIN_PATH', ROOT_PATH . '/admin');
+defined('CORE_PATH') or define('CORE_PATH', ROOT_PATH . '/core');
+defined('TEMPLATES_PATH') or define('TEMPLATES_PATH', ROOT_PATH . '/templates');
 
 // Настройки сессии
 define('SESSION_LIFETIME', 3600);

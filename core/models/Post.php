@@ -17,6 +17,7 @@ class Post
      */
     public function getPublishedPosts(int $limit = 10): array
     {
+        $limit = (int) $limit;
         return $this->db->fetchAll("
             SELECT p.*, c.name as category_name, u.login as author
             FROM posts p
@@ -24,8 +25,8 @@ class Post
             LEFT JOIN users u ON p.user_id = u.id
             WHERE p.status = 'published'
             ORDER BY p.created_at DESC
-            LIMIT :limit
-        ", ['limit' => $limit]);
+            LIMIT {$limit}
+        ");
     }
 
     /**
@@ -152,9 +153,9 @@ class Post
      */
     public function getRecent(int $limit = 5): array
     {
+        $limit = (int) $limit;
         return $this->db->fetchAll(
-            "SELECT id, title, slug, status, created_at FROM posts ORDER BY created_at DESC LIMIT :limit",
-            ['limit' => $limit]
+            "SELECT id, title, slug, status, created_at FROM posts ORDER BY created_at DESC LIMIT {$limit}"
         );
     }
 }

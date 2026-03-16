@@ -145,13 +145,17 @@ class Router
     private function notFound()
     {
         http_response_code(404);
-        
-        if (file_exists(TEMPLATES_PATH . '/errors/404.html')) {
-            echo file_get_contents(TEMPLATES_PATH . '/errors/404.html');
+
+        // Ищем 404 в активной теме или в default
+        $themePath = TEMPLATES_PATH . '/themes/default/errors/404.php';
+        if (file_exists($themePath)) {
+            include $themePath;
+        } elseif (file_exists(TEMPLATES_PATH . '/errors/404.php')) {
+            include TEMPLATES_PATH . '/errors/404.php';
         } else {
             echo '<h1>404 - Страница не найдена</h1>';
         }
-        
+
         return null;
     }
 

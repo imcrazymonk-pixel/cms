@@ -54,17 +54,12 @@
                         <?php if (!empty($menuItems)): ?>
                             <?php foreach ($menuItems as $item): ?>
                             <li>
-                                <a href="<?= TemplateEngine::e($item['url']) ?>" 
+                                <a href="<?= TemplateEngine::e($item['url']) ?>"
                                    class="<?= !empty($item['active']) ? 'active' : '' ?>">
                                     <?= TemplateEngine::e($item['label']) ?>
                                 </a>
                             </li>
                             <?php endforeach; ?>
-                        <?php else: ?>
-                        <li><a href="<?= TemplateEngine::url() ?>" class="<?= TemplateEngine::isActive('') ?>">Главная</a></li>
-                        <li><a href="/about">О нас</a></li>
-                        <li><a href="/contacts">Контакты</a></li>
-                        <li><a href="/blog">Блог</a></li>
                         <?php endif; ?>
                     </ul>
                 </nav>

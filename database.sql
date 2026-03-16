@@ -179,14 +179,5 @@ INSERT INTO settings (setting_key, setting_value) VALUES
 ('posts_per_page', '10'),
 ('site_description', 'Сайт на собственной CMS'),
 ('meta_description', ''),
-('meta_keywords', '');
-
--- Меню по умолчанию
-INSERT INTO menus (name, url, location) VALUES
-('Главная', '/', 'main'),
-('Блог', '/blog', 'main'),
-('О нас', '/about', 'main'),
-('Контакты', '/contacts', 'main'),
-('Главная (футер)', '/', 'footer'),
-('О нас (футер)', '/about', 'footer'),
-('Контакты (футер)', '/contacts', 'footer');
+('meta_keywords', ''),
+('active_theme', 'default');
