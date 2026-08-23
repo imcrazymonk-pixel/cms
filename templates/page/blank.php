@@ -14,6 +14,9 @@
     <?php if (!empty($seo['description'])): ?>
     <meta name="description" content="<?= TemplateEngine::e($seo['description']) ?>">
     <?php endif; ?>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= TemplateEngine::asset('css/style.css') ?>">
 </head>
 <body class="blank-page-body">
