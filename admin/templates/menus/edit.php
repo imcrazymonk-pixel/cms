@@ -1,11 +1,12 @@
 <div class="page-header-actions">
     <h2>Редактировать пункт меню</h2>
-    <a href="/admin/menus" class="btn btn-secondary">← Назад к меню</a>
+    <a href="/admin/menus" class="btn btn-secondary"><?= icon('back') ?> Назад к меню</a>
 </div>
 
 <?php if (Session::get('menu_errors')): ?>
 <div class="alert alert-error">
-    <ul>
+    <?= icon('error') ?>
+    <ul style="display:inline;margin:0;padding:0 0 0 8px;list-style:none;">
         <?php foreach (Session::flash('menu_errors') as $error): ?>
         <li><?= TemplateEngine::e($error) ?></li>
         <?php endforeach; ?>
@@ -39,7 +40,7 @@
     </div>
 
     <div class="form-actions">
-        <button type="submit" class="btn btn-primary">💾 Сохранить</button>
+        <button type="submit" class="btn btn-primary"><?= icon('save') ?> Сохранить</button>
         <a href="/admin/menus" class="btn btn-secondary">Отмена</a>
     </div>
 </form>

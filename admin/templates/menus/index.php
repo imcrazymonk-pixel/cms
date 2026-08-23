@@ -4,15 +4,15 @@
 </div>
 
 <?php if (Request::get('success') === 'created'): ?>
-<div class="alert alert-success">Пункт меню добавлен</div>
+<div class="alert alert-success"><?= icon('success') ?> Пункт меню добавлен</div>
 <?php elseif (Request::get('success') === 'deleted'): ?>
-<div class="alert alert-info">Пункт меню удалён</div>
+<div class="alert alert-info"><?= icon('info') ?> Пункт меню удалён</div>
 <?php elseif (Request::get('success') === 'updated'): ?>
-<div class="alert alert-success">Пункт меню обновлён</div>
+<div class="alert alert-success"><?= icon('success') ?> Пункт меню обновлён</div>
 <?php endif; ?>
 
 <?php if (Session::get('menu_error')): ?>
-<div class="alert alert-error"><?= Session::flash('menu_error') ?></div>
+<div class="alert alert-error"><?= icon('error') ?> <?= Session::flash('menu_error') ?></div>
 <?php endif; ?>
 
 <!-- Форма добавления -->
@@ -25,7 +25,7 @@
             <option value="main">Главное меню</option>
             <option value="footer">Футер</option>
         </select>
-        <button type="submit" class="btn btn-success">Добавить</button>
+        <button type="submit" class="btn btn-success"><?= icon('add') ?> Добавить</button>
         <button type="button" class="btn btn-secondary" onclick="toggleMenuForm()">Отмена</button>
     </form>
 </div>
@@ -45,8 +45,8 @@
             <?php foreach ($menus as $menuItem): ?>
             <tr>
                 <td><?= $menuItem['id'] ?></td>
-                <td><?= TemplateEngine::e($menuItem['name']) ?></td>
-                <td><?= TemplateEngine::e($menuItem['url']) ?></td>
+                <td><strong><?= TemplateEngine::e($menuItem['name']) ?></strong></td>
+                <td><code><?= TemplateEngine::e($menuItem['url']) ?></code></td>
                 <td>
                     <span class="badge badge-<?= $menuItem['location'] ?>">
                         <?= $menuItem['location'] === 'main' ? 'Главное' : 'Футер' ?>
@@ -55,7 +55,7 @@
                 <td class="actions">
                     <a href="/admin/menus/edit/<?= $menuItem['id'] ?>" class="btn btn-sm btn-primary" title="Редактировать"><?= icon('edit') ?></a>
                     <a href="/admin/menus/delete/<?= $menuItem['id'] ?>" class="btn btn-sm btn-danger"
-                       onclick="return confirm('Удалить пункт меню?')" title="Удалить">🗑️</a>
+                       onclick="return confirm('Удалить пункт меню?')" title="Удалить"><?= icon('delete') ?></a>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -66,7 +66,7 @@
                         <div class="empty-icon"><?= icon('menus') ?></div>
                         <h3>Пунктов меню пока нет</h3>
                         <p>Добавьте первый пункт меню для навигации по сайту</p>
-                        <button class="btn btn-primary" onclick="document.getElementById('add-form').style.display='block'"><?= icon('add') ?> Добавить пункт</button>
+                        <button class="btn btn-primary" onclick="toggleMenuForm()"><?= icon('add') ?> Добавить пункт</button>
                     </div>
                 </td>
             </tr>
