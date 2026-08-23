@@ -32,6 +32,14 @@
     --text-muted: var(--neutral-400);
     --border-light: var(--neutral-200);
     --border-subtle: rgba(0, 0, 0, 0.06);
+
+    /* Legacy aliases (for backward compat) */
+    --gray-100: var(--neutral-100);
+    --gray-200: var(--neutral-200);
+    --gray-300: var(--neutral-300);
+    --gray-600: var(--neutral-500);
+    --gray-700: var(--neutral-600);
+    --gray-900: var(--neutral-800);
 }
 
 * {
@@ -260,38 +268,52 @@ body {
 }
 
 /* ============================================
-   Stats Cards
+   Dashboard Stats
    ============================================ */
 
-.dashboard-stats {
+.stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
     margin-bottom: 30px;
 }
 
 .stat-card {
-    background: white;
-    border-radius: 12px;
-    padding: 25px;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    padding: 20px 24px;
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    transition:
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast);
 }
 
+.stat-card:hover {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-2px);
+}
+
+/* Color accents per card type */
+.stat-card-posts .stat-icon { color: var(--brand-500); background: var(--brand-50); }
+.stat-card-comments .stat-icon { color: var(--blue-500); background: var(--blue-50); }
+.stat-card-users .stat-icon { color: var(--green-500); background: var(--green-50); }
+.stat-card-categories .stat-icon { color: var(--amber-500); background: var(--amber-50); }
+
 .stat-icon {
-    font-size: 40px;
-    width: 60px;
-    height: 60px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--gray-100);
-    border-radius: 12px;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
 }
 
-.stat-info {
+.stat-body {
     display: flex;
     flex-direction: column;
 }
@@ -299,12 +321,28 @@ body {
 .stat-value {
     font-size: 28px;
     font-weight: 700;
-    color: var(--gray-900);
+    color: var(--text-primary);
+    line-height: 1.1;
 }
 
 .stat-label {
-    font-size: 14px;
-    color: var(--gray-600);
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+    .stat-card {
+        padding: 16px;
+    }
+    .stat-value {
+        font-size: 22px;
+    }
 }
 
 /* ============================================

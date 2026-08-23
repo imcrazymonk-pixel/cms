@@ -1,31 +1,31 @@
-<div class="dashboard-stats">
-    <div class="stat-card">
+<div class="stats-grid">
+    <div class="stat-card stat-card-posts">
         <div class="stat-icon"><?= icon('posts', 'icon-lg') ?></div>
-        <div class="stat-info">
+        <div class="stat-body">
             <span class="stat-value"><?= $stats['posts'] ?? 0 ?></span>
             <span class="stat-label">Постов</span>
         </div>
     </div>
-    
-    <div class="stat-card">
+
+    <div class="stat-card stat-card-comments">
         <div class="stat-icon"><?= icon('message', 'icon-lg') ?></div>
-        <div class="stat-info">
+        <div class="stat-body">
             <span class="stat-value"><?= $stats['comments'] ?? 0 ?></span>
             <span class="stat-label">Комментариев</span>
         </div>
     </div>
-    
-    <div class="stat-card">
+
+    <div class="stat-card stat-card-users">
         <div class="stat-icon"><?= icon('users', 'icon-lg') ?></div>
-        <div class="stat-info">
+        <div class="stat-body">
             <span class="stat-value"><?= $stats['users'] ?? 0 ?></span>
             <span class="stat-label">Пользователей</span>
         </div>
     </div>
-    
-    <div class="stat-card">
+
+    <div class="stat-card stat-card-categories">
         <div class="stat-icon"><?= icon('categories', 'icon-lg') ?></div>
-        <div class="stat-info">
+        <div class="stat-body">
             <span class="stat-value"><?= $stats['categories'] ?? 0 ?></span>
             <span class="stat-label">Категорий</span>
         </div>
