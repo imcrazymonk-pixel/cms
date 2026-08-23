@@ -77,8 +77,26 @@
         
         <main class="admin-content">
             <header class="admin-header">
-                <h1 class="page-title"><?= $title ?? 'Панель управления' ?></h1>
+                <div>
+                    <p class="breadcrumbs">
+                        <a href="/admin">Главная</a>
+                        <?php if (!empty($breadcrumbs)): ?>
+                            <?php foreach ($breadcrumbs as $crumb): ?>
+                                <span class="breadcrumb-sep">/</span>
+                                <?php if (!empty($crumb['url'])): ?>
+                                    <a href="<?= $crumb['url'] ?>"><?= TemplateEngine::e($crumb['title']) ?></a>
+                                <?php else: ?>
+                                    <span><?= TemplateEngine::e($crumb['title']) ?></span>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <span class="breadcrumb-current"><?= $title ?? 'Панель управления' ?></span>
+                        <?php endif; ?>
+                    </p>
+                    <h1 class="page-title"><?= $title ?? 'Панель управления' ?></h1>
+                </div>
                 <div class="user-info">
+                    <span class="user-avatar"><?= strtoupper(substr($user['login'] ?? 'A', 0, 1)) ?></span>
                     <span class="user-name"><?= $user['login'] ?? 'Администратор' ?></span>
                 </div>
             </header>
