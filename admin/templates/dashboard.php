@@ -71,7 +71,14 @@
                     <?php endforeach; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="5" class="text-center">Постов пока нет</td>
+                        <td colspan="5" class="text-center">
+                            <div class="empty-state">
+                                <div class="empty-icon"><?= icon('posts') ?></div>
+                                <h3>Постов пока нет</h3>
+                                <p>Создайте первый пост в разделе &laquo;Посты&raquo;</p>
+                                <a href="/admin/posts/create" class="btn btn-primary"><?= icon('add') ?> Создать пост</a>
+                            </div>
+                        </td>
                     </tr>
                 <?php endif; ?>
             </tbody>

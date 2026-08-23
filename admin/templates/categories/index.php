@@ -57,7 +57,14 @@
             <?php endforeach; ?>
         <?php else: ?>
             <tr>
-                <td colspan="6" class="text-center">Категорий пока нет</td>
+                <td colspan="6" class="text-center">
+                    <div class="empty-state">
+                        <div class="empty-icon"><?= icon('categories') ?></div>
+                        <h3>Категорий пока нет</h3>
+                        <p>Создайте первую категорию, чтобы упорядочить контент</p>
+                        <a href="/admin/categories/create" class="btn btn-primary"><?= icon('add') ?> Создать категорию</a>
+                    </div>
+                </td>
             </tr>
         <?php endif; ?>
     </tbody>

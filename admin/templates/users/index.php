@@ -70,7 +70,14 @@
             <?php endforeach; ?>
         <?php else: ?>
             <tr>
-                <td colspan="7" class="text-center">Пользователей не найдено</td>
+                <td colspan="7" class="text-center">
+                    <div class="empty-state">
+                        <div class="empty-icon"><?= icon('users') ?></div>
+                        <h3>Пользователей пока нет</h3>
+                        <p>Пригласите первого пользователя или создайте вручную</p>
+                        <a href="/admin/users/create" class="btn btn-primary"><?= icon('add') ?> Добавить пользователя</a>
+                    </div>
+                </td>
             </tr>
         <?php endif; ?>
     </tbody>

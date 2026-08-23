@@ -61,7 +61,14 @@
             <?php endforeach; ?>
         <?php else: ?>
             <tr>
-                <td colspan="5" class="text-center">Пунктов меню пока нет</td>
+                <td colspan="5" class="text-center">
+                    <div class="empty-state">
+                        <div class="empty-icon"><?= icon('menus') ?></div>
+                        <h3>Пунктов меню пока нет</h3>
+                        <p>Добавьте первый пункт меню для навигации по сайту</p>
+                        <button class="btn btn-primary" onclick="document.getElementById('add-form').style.display='block'"><?= icon('add') ?> Добавить пункт</button>
+                    </div>
+                </td>
             </tr>
         <?php endif; ?>
     </tbody>

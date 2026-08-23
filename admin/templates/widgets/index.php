@@ -58,7 +58,11 @@
     <h3>Установленные виджеты</h3>
 
     <?php if (empty($widgets)): ?>
-    <p style="color: var(--text-light);">Виджетов пока нет. Добавьте первый выше.</p>
+    <div class="empty-state">
+        <div class="empty-icon"><?= icon('widgets') ?></div>
+        <h3>Виджетов пока нет</h3>
+        <p>Добавьте первый виджет, используя форму выше</p>
+    </div>
     <?php else: ?>
     <?php foreach ($areas as $areaKey => $areaLabel): $areaWidgets = array_filter($widgets, fn($w) => $w['area'] === $areaKey); ?>
     <?php if (empty($areaWidgets)) continue; ?>

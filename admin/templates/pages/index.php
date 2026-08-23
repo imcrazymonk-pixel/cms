@@ -54,7 +54,14 @@
             <?php endforeach; ?>
         <?php else: ?>
             <tr>
-                <td colspan="6" class="text-center">Страниц не найдено</td>
+                <td colspan="6" class="text-center">
+                    <div class="empty-state">
+                        <div class="empty-icon"><?= icon('pages') ?></div>
+                        <h3>Страниц пока нет</h3>
+                        <p>Создайте первую страницу для статического контента</p>
+                        <a href="/admin/pages/create" class="btn btn-primary"><?= icon('add') ?> Создать страницу</a>
+                    </div>
+                </td>
             </tr>
         <?php endif; ?>
     </tbody>

@@ -20,7 +20,12 @@
     <?php endforeach; ?>
 </div>
 <?php else: ?>
-<div class="alert alert-info">Медиафайлов пока нет. Загрузите первое изображение.</div>
+<div class="empty-state">
+    <div class="empty-icon"><?= icon('media') ?></div>
+    <h3>Медиафайлов пока нет</h3>
+    <p>Загрузите первое изображение, чтобы использовать его в контенте</p>
+    <button class="btn btn-primary" onclick="document.getElementById('upload-form').style.display='block'"><?= icon('add') ?> Загрузить файл</button>
+</div>
 <?php endif; ?>
 
 <style>
