@@ -1,0 +1,1679 @@
+/* Section‑specific styles */
+
+/* ============ SECTION ============ */
+.section {
+  padding: 5rem 0;
+  position: relative;
+  z-index: 1;
+}
+
+.section-title {
+  text-align: center;
+  font-size: 2rem;
+  font-weight: 400;
+  margin-bottom: 3rem;
+  color: var(--text-primary);
+}
+
+/* ============ HEADER ============ */
+.header {
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 1000;
+}
+.header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0;
+  gap: 1rem;
+}
+
+.logo-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+.logo-link:hover {
+  text-decoration: none;
+}
+.logo-icon {
+  flex-shrink: 0;
+}
+.logo {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  margin: 0;
+}
+.logo-accent {
+  color: var(--text-primary);
+}
+
+.nav ul {
+  display: flex;
+  gap: 1.75rem;
+  list-style: none;
+}
+.nav a {
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+  position: relative;
+}
+.nav a::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent-primary);
+  transition: width 0.2s;
+}
+.nav a:hover {
+  color: var(--accent-primary);
+}
+.nav a:hover::after {
+  width: 100%;
+}
+
+.header-cta {
+  font-size: 0.85rem;
+  padding: 0.5rem 1.2rem;
+  white-space: nowrap;
+}
+
+.burger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+.burger span {
+  width: 26px;
+  height: 2.5px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.burger.open span:nth-child(1) {
+  transform: translateY(7.5px) rotate(45deg);
+}
+.burger.open span:nth-child(2) {
+  opacity: 0;
+}
+.burger.open span:nth-child(3) {
+  transform: translateY(-7.5px) rotate(-45deg);
+}
+
+/* ============ TAGLINE ============ */
+.tagline {
+  position: relative;
+  z-index: 1;
+  padding: 7rem 0 1rem;
+  text-align: center;
+}
+.tagline-title {
+  font-size: clamp(1.4rem, 4.5vw, 4.2rem);
+  font-weight: 400;
+  line-height: 1.15;
+  color: var(--text-primary);
+  letter-spacing: 0.01em;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.tagline-accent {
+  color: var(--accent-primary);
+}
+.tagline-subtitle {
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  color: var(--text-secondary);
+  max-width: 640px;
+  margin: 1.5rem auto 0;
+  line-height: 1.6;
+}
+/* Переносы подзаголовка: каждая строка — блок-span (.sub-line).
+   На десктопе 2 строки, на самых маленьких (≤480px) — 3 строки. */
+.sub-line {
+  display: block;
+  white-space: nowrap;
+}
+.sub-mobile {
+  display: none;
+}
+@media (max-width: 480px) {
+  .sub-mobile {
+    display: block;
+  }
+  .sub-desktop {
+    display: none;
+  }
+}
+.tagline-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+.tagline-actions .btn {
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+}
+/* Кнопки всегда в одну строку на мобильных и планшетах.
+   flex-wrap: nowrap + flex:1 убирают «прыжки» между 1 и 2 строками при смене
+   ширины вьюпорта. Широкий диапазон (до 767px) покрывает и телефоны, у которых
+   в настройках Android «Размер экрана»/«Шрифт» сдвигают CSS-вьюпорт (например,
+   «минимум» даёт ~500px вместо 412px).
+   font-size через clamp() масштабируется плавно вместе с экраном. */
+@media (max-width: 767px) {
+  .tagline-actions {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+  .tagline-actions .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0.6rem 0.35rem;
+    font-size: clamp(0.68rem, 3.6vw, 0.8rem);
+  }
+}
+.tagline .hero-benefits {
+  max-width: 900px;
+  margin: 2rem auto 0;
+}
+
+/* ============ HERO ============ */
+.hero {
+  min-height: 70vh;
+  padding-top: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  text-align: left;
+  position: relative;
+  z-index: 99;
+}
+.hero .container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+}
+.hero-content {
+  flex: 1;
+  max-width: 580px;
+  position: relative;
+  z-index: 2;
+}
+.hero-title {
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 400;
+  line-height: 1.15;
+  margin-bottom: 1rem;
+}
+.hero-subtitle {
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.hero-actions .btn {
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+}
+
+/* Hero visual – CSS globe */
+.hero-visual {
+  flex-shrink: 0;
+  width: 480px;
+  height: 480px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  animation: globeFloat 7s ease-in-out infinite;
+}
+/* Атмосфера планеты рисуется в canvas (js/planet.js → drawAtmosphere) */
+.hero-visual .globe {
+  z-index: 1;
+}
+
+/* Левая колонка hero: панель серверов. Ширина совпадает с той, что панель
+   получает на малых экранах (см. @media ≤1024: max-width: 380px). */
+.hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  flex-shrink: 0;
+  width: 380px;
+}
+
+/* ============ HERO SERVER PANEL ============ */
+/* Фиксированная высота: карточка сервера появляется внутри, а список серверов
+   сжимается (flex: 1), поэтому панель не «прыгает» при выборе сервера.
+   630px: запас под 4 строки лога (72px) и ~2 дополнительные строки списка. */
+.hero-server-panel {
+  width: 100%;
+  height: 630px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 1.25rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+.server-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+.server-panel-head h3 {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--text-primary);
+}
+.server-count {
+  font-size: 0.7rem;
+  color: var(--success-bright);
+  background: rgba(0, 255, 150, 0.12);
+  border: 1px solid rgba(0, 255, 150, 0.25);
+  padding: 1px 8px;
+  border-radius: 12px;
+}
+.server-list {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  scrollbar-width: thin;
+}
+
+/* --- Разворачивание выбранного сервера в списке --- */
+.server-row-main {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+.server-row-detail {
+  display: none;
+  flex: 1 1 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(0, 240, 255, 0.25);
+}
+.server-row.active .server-row-detail {
+  display: flex;
+}
+.server-row-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.server-row-connect {
+  padding: 3px 14px;
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+.server-tag {
+  font-size: 0.58rem;
+  color: var(--text-secondary);
+  background: rgba(168, 85, 247, 0.12);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  border-radius: 7px;
+  padding: 0 5px;
+  line-height: 1.4;
+}
+
+/* --- Блоки панели серверов: телеметрия / монитор сети --- */
+.panel-block {
+  border-top: 1px solid rgba(168, 85, 247, 0.15);
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  flex-shrink: 0;
+}
+.panel-block-title {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+/* Сворачиваемые блоки (details/summary): убираем маркер, добавляем шеврон.
+   Явно скрываем контент, когда details закрыт (иначе авторские display-стили
+   внутренних элементов перекрывают UA-правило скрытия). */
+.panel-block:not([open]) > :not(summary) {
+  display: none;
+}
+.panel-block > summary {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.panel-block > summary::-webkit-details-marker {
+  display: none;
+}
+.panel-block > summary::before {
+  content: "▾";
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+.panel-block[open] > summary::before {
+  transform: rotate(180deg);
+}
+.panel-block > summary .live-dot {
+  margin-left: auto;
+}
+.panel-block > summary:hover {
+  color: var(--text-primary);
+}
+.telemetry-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  padding: 3px 0;
+}
+.setting-value {
+  color: var(--info);
+  font-weight: 600;
+  font-size: 0.78rem;
+}
+.telemetry-bar {
+  height: 6px;
+  border-radius: 6px;
+  background: rgba(148, 163, 184, 0.15);
+  overflow: hidden;
+  margin: 6px 0;
+}
+.telemetry-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--info), var(--accent-blue));
+  border-radius: 6px;
+  transition: width 0.4s ease;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+}
+.telemetry-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+.telemetry-meta b {
+  color: var(--text-primary);
+}
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+  animation: liveBlink 1.6s ease-in-out infinite;
+}
+@keyframes liveBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.net-log {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 0.66rem;
+  line-height: 1.7;
+  color: var(--terminal);
+  /* Резерв ровно под 4 строки лога (~18px каждая), чтобы блок не «прыгал»,
+     когда появляется 4-я строка. */
+  min-height: 72px;
+}
+.net-log-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.net-log-time {
+  color: var(--text-muted);
+}
+.net-log-line.fresh {
+  color: var(--terminal-bright);
+  transition: color 0.5s;
+}
+.server-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+  border: 1px solid transparent;
+}
+.server-row:hover {
+  background: rgba(168, 85, 247, 0.1);
+}
+.server-row:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+}
+.server-row.active {
+  background: rgba(168, 85, 247, 0.18);
+  border-color: var(--accent-primary);
+}
+.server-flag {
+  width: 22px;
+  height: 16px;
+  border-radius: 2px;
+  object-fit: cover;
+  flex-shrink: 0;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}
+.server-name {
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Город — менее заметным, чем страна */
+.server-city {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: 6px;
+}
+.server-ping {
+  font-size: 0.72rem;
+  color: var(--success);
+  font-weight: 600;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+/* Недоступные серверы: строка серая, вместо отклика — красное «n/a» */
+.server-ping-offline {
+  color: var(--danger);
+  font-weight: 600;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+.server-row.offline .server-name {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.server-row.offline .server-city {
+  color: var(--text-muted);
+  opacity: 0.75;
+}
+.server-row.offline .server-flag {
+  opacity: 0.45;
+  filter: grayscale(0.8);
+}
+.server-row.offline .server-row-detail {
+  opacity: 0.6;
+}
+.server-offline-label {
+  font-size: 0.68rem;
+  color: var(--danger);
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background: rgba(248, 113, 113, 0.08);
+  border-radius: 7px;
+  padding: 2px 10px;
+  line-height: 1.5;
+  display: inline-block;
+}
+.server-row.offline:hover {
+  background: transparent;
+}
+.server-panel-note {
+  margin-top: 0.6rem;
+  font-size: 0.66rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* --- Поиск и флаги в панели серверов --- */
+.server-search-wrap {
+  position: relative;
+}
+.server-search {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 0.5rem;
+  padding: 5px 10px;
+  padding-right: 26px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-size: 0.78rem;
+  outline: none;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.server-search:focus {
+  border-color: rgba(0, 240, 255, 0.5);
+  box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.15);
+}
+.server-search::placeholder {
+  color: var(--text-secondary);
+}
+/* Кнопка очистки поиска (показывается только при введённом тексте) */
+.server-search-clear {
+  position: absolute;
+  right: 6px;
+  top: 3px;
+  width: 20px;
+  height: 20px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 0.7rem;
+}
+.server-search-clear:hover {
+  color: var(--text-primary);
+}
+.server-search-clear .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.globe {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1px solid rgba(130, 190, 255, 0.25);
+  position: relative;
+  /* overflow: hidden убран: контент планеты клипается в canvas (js/planet.js),
+     а свечение атмосферы рисуется за пределами диска и не должно обрезаться */
+}
+#planetCanvas {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 140%;
+  height: 140%;
+  transform: translate(-50%, -50%);
+  display: block;
+}
+.globe::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 50%;
+  background:
+    /* Лёгкая фиолетовая подсветка по краям — связь с брендом */
+    radial-gradient(
+      circle at 50% 50%,
+      rgba(168, 85, 247, 0) 45%,
+      rgba(168, 85, 247, 0.14) 100%
+    ),
+    /* Сетка широт/долгот поверх карты */
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 15px,
+      rgba(168, 85, 247, 0.06) 15px,
+      rgba(168, 85, 247, 0.06) 16px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 15px,
+      rgba(168, 85, 247, 0.05) 15px,
+      rgba(168, 85, 247, 0.05) 16px
+    );
+  /* Сетка и подсветка гаснут к краям — сферический объём */
+  -webkit-mask-image: radial-gradient(
+    circle at 50% 42%,
+    #000 55%,
+    rgba(0, 0, 0, 0.35) 78%,
+    transparent 96%
+  );
+  mask-image: radial-gradient(
+    circle at 50% 42%,
+    #000 55%,
+    rgba(0, 0, 0, 0.35) 78%,
+    transparent 96%
+  );
+}
+/* Спекулярный блик — глянцевое отражение света */
+.globe::after {
+  content: "";
+  position: absolute;
+  top: 13%;
+  left: 19%;
+  width: 34%;
+  height: 18%;
+  z-index: 2;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.16), transparent);
+  filter: blur(3px);
+  transform: rotate(-18deg);
+}
+@keyframes globeFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+/* ============ PLANET LABELS ============ */
+.planet-labels {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+}
+.planet-label {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  pointer-events: auto;
+  cursor: default;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.planet-label .dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--info);
+  box-shadow: 0 0 6px var(--info);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.planet-label .planet-label-text {
+  position: absolute;
+  top: 2px;
+  white-space: nowrap;
+  padding: 1px 4px;
+  font-family: ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.7),
+    0 0 8px rgba(0, 0, 0, 0.45);
+  transition:
+    color 0.2s ease,
+    text-shadow 0.2s ease,
+    left 0.35s ease,
+    top 0.35s ease;
+}
+.planet-label:hover .planet-label-text {
+  color: #fff;
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.8),
+    0 0 12px rgba(0, 240, 255, 0.9);
+}
+.planet-label .planet-label-ping {
+  display: none;
+  margin-left: 5px;
+  padding: 0 3px;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  color: var(--success);
+  text-shadow: 0 0 6px rgba(52, 211, 153, 0.6);
+}
+/* Недоступные серверы: серая точка, приглушённая подпись */
+.planet-label.offline .dot {
+  background: var(--text-muted);
+  box-shadow: none;
+}
+.planet-label.offline .planet-label-text {
+  color: rgba(255, 255, 255, 0.5);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+.planet-label.offline .planet-label-ping {
+  color: var(--danger);
+  text-shadow: 0 0 6px rgba(248, 113, 113, 0.5);
+}
+/* Выбранный сервер перекрывает оффлайн-затемнение */
+.planet-label.selected.offline .planet-label-text {
+  color: var(--danger);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.85),
+    0 0 14px rgba(248, 113, 113, 0.8);
+}
+.planet-label.selected.offline .dot {
+  background: var(--danger);
+  box-shadow:
+    0 0 10px var(--danger),
+    0 0 24px rgba(248, 113, 113, 0.8);
+}
+.planet-label:hover .planet-label-ping {
+  display: inline;
+}
+.planet-label:hover .dot {
+  transform: scale(1.8);
+  box-shadow:
+    0 0 10px var(--info),
+    0 0 22px rgba(0, 240, 255, 0.7);
+}
+/* Выбранный сервер: подпись и точка подсвечены, чтобы выбранный город не
+   путался с соседним (например Санкт-Петербург с Хельсинки) */
+.planet-label.selected .dot {
+  transform: scale(2.4);
+  background: var(--info);
+  box-shadow:
+    0 0 10px var(--info),
+    0 0 24px rgba(0, 240, 255, 0.9);
+}
+.planet-label.selected .planet-label-text {
+  color: var(--info);
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.85),
+    0 0 14px rgba(0, 240, 255, 0.9);
+}
+.planet-label.selected .planet-label-ping {
+  display: inline;
+  color: var(--success-bright);
+}
+
+/* ============ PLANET TOOLTIP ============ */
+.planet-tooltip {
+  position: fixed;
+  z-index: 5000;
+  pointer-events: none;
+  display: none;
+  min-width: 200px;
+  background: rgba(7, 13, 27, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 240, 255, 0.35);
+  border-radius: 10px;
+  padding: 10px 12px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.65),
+    0 0 20px rgba(0, 240, 255, 0.18);
+  font-family: ui-monospace, "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+}
+.planet-tooltip .tt-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 1px;
+  letter-spacing: 0.04em;
+}
+.planet-tooltip .tt-sub {
+  font-size: 9px;
+  color: rgba(140, 240, 255, 0.75);
+  margin-bottom: 7px;
+  letter-spacing: 0.08em;
+}
+.planet-tooltip table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.planet-tooltip td {
+  padding: 2.5px 0;
+  font-size: 9.5px;
+  vertical-align: top;
+}
+.planet-tooltip td:first-child {
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding-right: 10px;
+  white-space: nowrap;
+}
+.planet-tooltip td:last-child {
+  color: var(--text-soft);
+  text-align: right;
+}
+.planet-tooltip .tt-status {
+  color: var(--success);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.planet-tooltip .tt-status::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+.planet-tooltip .tt-status-offline {
+  color: var(--danger);
+}
+.planet-tooltip .tt-status-offline::before {
+  background: var(--danger);
+  box-shadow: 0 0 6px var(--danger);
+}
+.planet-tooltip .tt-ping {
+  font-weight: 600;
+}
+.planet-tooltip .tt-note {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+  font-size: 8px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+/* ============ FEATURES ============ */
+.features .grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+.feature-card {
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+.feature-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+.feature-card h3 {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+.feature-card p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* ============ HOW IT WORKS ============ */
+.how-it-works .steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+.step-number {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  background: var(--accent-primary);
+  color: #fff;
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+.step-content h3 {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+}
+.step-content p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* ============ FOOTER ============ */
+.footer {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  padding: 2rem 0;
+  text-align: center;
+  z-index: 1;
+  position: relative;
+}
+.footer-nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.footer-nav a {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+.footer-nav a:hover {
+  color: var(--accent-primary);
+}
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.copyright {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* ============ GLASS CARD ============ */
+.glass-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+.glass-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px -10px var(--accent-glow);
+  border-color: var(--accent-primary);
+}
+
+/* --- Новая секция: Статистика --- */
+.stats-section {
+  padding-top: 2rem;
+  margin-top: 0;
+  position: relative;
+  z-index: 5;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 30px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-item {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-number {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* --- Секция: Сервисы (Список) --- */
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+  margin-top: 30px;
+}
+
+#services .section-title + p {
+  text-align: center;
+  color: var(--text-secondary);
+  max-width: 640px;
+  margin: -1.5rem auto 2rem;
+  line-height: 1.6;
+}
+
+.service-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.service-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.service-status {
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.service-status.available {
+  background: rgba(0, 255, 150, 0.15);
+  color: var(--success-bright);
+}
+
+.services-note {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 15px;
+  text-align: center;
+  opacity: 0.6;
+}
+
+/* --- Секция: Технологии --- */
+.tech-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  margin-top: 30px;
+}
+
+.tech-block {
+  padding: 25px;
+  text-align: center;
+}
+
+.tech-block h3 {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--accent-primary);
+}
+
+.tech-block p {
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* --- Секция: FAQ --- */
+.faq-list {
+  max-width: 800px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.faq-item {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.faq-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.faq-item summary {
+  font-weight: 600;
+  padding: 15px 0;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq-item summary::after {
+  content: "+";
+  font-size: 1.5rem;
+  color: var(--accent-primary);
+  transition: 0.3s ease;
+}
+
+.faq-item[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.faq-item p {
+  padding: 0 0 15px 0;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* --- Иконки в карточках технологий --- */
+.tech-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.tech-icon svg {
+  width: 48px;
+  height: 48px;
+}
+
+/* --- Мини-сетка выгод в герое --- */
+.hero-benefits {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+  margin-top: 28px;
+}
+.hero-benefit {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+.hero-benefit i,
+.hero-benefit .icon {
+  color: var(--accent-primary);
+  margin-top: 2px;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* Inline SVG-иконки (замена Font Awesome) */
+.icon {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;
+  display: inline-block;
+  vertical-align: -0.125em;
+}
+
+/* ============ TRIAL SECTION ============ */
+.trial-card {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 3rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.trial-card::before {
+  content: "";
+  position: absolute;
+  top: -50%;
+  left: -10%;
+  width: 120%;
+  height: 200%;
+  background: radial-gradient(
+    circle,
+    rgba(0, 255, 150, 0.08) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+.trial-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 255, 150, 0.12);
+  color: var(--success-bright);
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+  border: 1px solid rgba(0, 255, 150, 0.25);
+}
+.trial-title {
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-weight: 400;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+.trial-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  max-width: 640px;
+  margin: 0 auto 2rem;
+}
+.trial-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+.trial-step {
+  text-align: center;
+  padding: 1rem;
+}
+.trial-step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0, 255, 150, 0.15);
+  color: var(--success-bright);
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(0, 255, 150, 0.3);
+}
+.trial-step h4 {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.3rem;
+  color: var(--text-primary);
+}
+.trial-step p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.trial-note {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin-top: 1rem;
+}
+
+/* ============ REFERRAL SECTION ============ */
+.referral-intro {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 2.5rem;
+  color: var(--text-secondary);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+.referral-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto 2.5rem;
+}
+.referral-card {
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+.referral-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--accent-primary);
+  margin-bottom: 0.5rem;
+  line-height: 1;
+}
+.referral-card h3 {
+  font-family: "Inter", system-ui, sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+.referral-card p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.referral-cta {
+  text-align: center;
+}
+
+/* ============ REVIEWS SECTION ============ */
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.review-card {
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.review-stars {
+  color: var(--star);
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+}
+.review-text {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  flex-grow: 1;
+}
+.review-author {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+.review-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(
+    135deg,
+    var(--accent-primary),
+    var(--accent-secondary, var(--accent-secondary))
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+.review-name {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+.review-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+/* ============ LEGAL NOTE ============ */
+.legal-note {
+  max-width: 800px;
+  margin: 2rem auto 0;
+  padding: 1.25rem 1.5rem;
+  background: rgba(168, 85, 247, 0.06);
+  border: 1px solid rgba(168, 85, 247, 0.15);
+  border-radius: 12px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  text-align: center;
+}
+.legal-note strong {
+  color: var(--text-primary);
+}
+
+/* ============ SCROLL REVEAL ============ */
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.animate-on-scroll.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --- Адаптивность (Медиа-запросы) --- */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+    padding: 20px;
+  }
+
+  .tech-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .services-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .stat-number {
+    font-size: 1.8rem;
+  }
+
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 1024px) {
+  .hero .container {
+    flex-direction: column;
+    text-align: center;
+  }
+  .hero-content {
+    max-width: 100%;
+  }
+  .hero-actions {
+    justify-content: center;
+  }
+  .hero-visual {
+    /* На планшетах и телефонах колонка: планета первой, панели ниже */
+    order: -1;
+    width: 380px;
+    height: 380px;
+  }
+  .hero-left {
+    width: 100%;
+    max-width: 380px;
+  }
+}
+
+@media (max-width: 768px) {
+  .section {
+    padding: 3rem 0;
+  }
+  .section-title {
+    font-size: 1.6rem;
+    margin-bottom: 2rem;
+  }
+  .nav {
+    display: flex;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: auto;
+    flex-direction: column;
+    width: 240px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 12px 12px;
+    padding: 1rem;
+    transform: translateX(100%);
+    opacity: 0;
+    transition:
+      transform 0.35s ease,
+      opacity 0.35s ease;
+    pointer-events: none;
+  }
+  .nav.open {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .nav ul {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .nav a {
+    display: block;
+    padding: 0.5rem 0;
+  }
+  .burger {
+    display: flex;
+  }
+  .header-cta {
+    display: none;
+  }
+  .hero-badge {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+  }
+  .hero-visual {
+    width: 280px;
+    height: 280px;
+  }
+  .trial-steps {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  .referral-grid {
+    grid-template-columns: 1fr;
+  }
+  .reviews-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-title {
+    font-size: 1.7rem;
+  }
+  .hero-visual {
+    width: 200px;
+    height: 200px;
+  }
+  .hero-badge {
+    font-size: 0.75rem;
+    padding: 4px 12px;
+  }
+  .hero-benefits {
+    grid-template-columns: 1fr;
+  }
+  .step {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
+
+/* ============ MOBILE HARDENING ============ */
+/* Не даём мобильным браузерам автоматически увеличивать шрифт */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Быстрые тапы без задержки и без зума по двойному нажатию */
+.btn,
+a,
+.server-row,
+.planet-label,
+.burger {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Не оставляем «залипший» hover после тапа на сенсорных экранах */
+@media (hover: none) {
+  .planet-label:hover .planet-label-ping {
+    display: none;
+  }
+  .planet-label:hover .dot {
+    transform: none;
+    box-shadow: 0 0 6px var(--info);
+  }
+  .planet-label:hover .planet-label-text {
+    color: rgba(255, 255, 255, 0.92);
+    text-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.7),
+      0 0 8px rgba(0, 0, 0, 0.45);
+  }
+  .server-row:hover {
+    background: transparent;
+  }
+  .btn-primary:hover,
+  .btn-outline:hover {
+    background-color: var(--accent-primary);
+    box-shadow: 0 4px 15px var(--accent-glow);
+  }
+}
+
+/* Отступы под «чёлки» iPhone (notch) в landscape */
+@supports (padding: max(0px)) {
+  .header .container,
+  .footer .container {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
+/* Подписи планеты мельче и аккуратнее на маленьких экранах */
+@media (max-width: 480px) {
+  .planet-label .planet-label-text {
+    font-size: 8px;
+  }
+}
+
+

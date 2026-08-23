@@ -48,6 +48,14 @@
                     <span class="nav-icon">⚙️</span>
                     <span>Настройки</span>
                 </a>
+                <a href="/admin/theme" class="nav-item <?= TemplateEngine::isActive('admin/theme') ?>">
+                    <span class="nav-icon">🎨</span>
+                    <span>Темы</span>
+                </a>
+                <a href="/admin/widgets" class="nav-item <?= TemplateEngine::isActive('admin/widgets') ?>">
+                    <span class="nav-icon">🧩</span>
+                    <span>Виджеты</span>
+                </a>
             </nav>
             
             <div class="sidebar-footer">
@@ -96,8 +104,8 @@
             language: 'ru',
             language_url: '/admin/js/tinymce-lang-ru.js',
             height: 500,
-            plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
-            toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
+            plugins: 'anchor autolink charmap code codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+            toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap code | removeformat',
             content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 16px }',
             images_upload_url: '/admin/media/upload',
             automatic_uploads: true,

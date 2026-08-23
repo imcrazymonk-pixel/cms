@@ -217,3 +217,133 @@ function log_message(string $message, string $level = 'info'): void
     
     file_put_contents($logFile, $logEntry, FILE_APPEND);
 }
+
+/**
+ * Получить настройку темы (активной) с кэшированием в рамках запроса.
+ * Ключ может быть указан без префикса ('hero_title') — тогда он будет
+ * разрешён в '<имя_темы>_hero_title', или с префиксом ('hexaveil_hero_title').
+ * @param string $key Ключ настройки
+ * @param string $default Значение по умолчанию
+ * @return string
+ */
+function theme_setting(string $key, string $default = ''): string
+{
+    static $settings = null;
+
+    if ($settings === null) {
+        try {
+            $settings = (new Setting())->getAll();
+        } catch (\Throwable $e) {
+            $settings = [];
+        }
+    }
+
+    $prefix = $settings['active_theme'] ?? 'default';
+    $fullKey = (strpos($key, $prefix . '_') === 0) ? $key : $prefix . '_' . $key;
+
+    return (string)($settings[$fullKey] ?? $default);
+}
+
+/**
+ * Имя активной темы
+ * @return string
+ */
+function active_theme_name(): string
+{
+    static $theme = null;
+
+    if ($theme === null) {
+        try {
+            $theme = (new Setting())->get('active_theme') ?: 'default';
+        } catch (\Throwable $e) {
+            $theme = 'default';
+        }
+    }
+
+    return $theme;
+}
+
+/**
+ * Конфигурация темы (из templates/themes/{тема}/theme.php)
+ * @param string $theme Имя темы (пусто = активная)
+ * @return array
+ */
+function get_theme_config(string $theme = ''): array
+{
+    static $cache = [];
+
+    $theme = $theme ?: active_theme_name();
+    if (isset($cache[$theme])) {
+        return $cache[$theme];
+    }
+
+    $file = TEMPLATES_PATH . '/themes/' . $theme . '/theme.php';
+    $config = [];
+    if (file_exists($file)) {
+        $loaded = require $file;
+        if (is_array($loaded)) {
+            $config = $loaded;
+        }
+    }
+
+    $cache[$theme] = $config;
+    return $config;
+}
+
+// ============================================
+// Хуки (actions & filters) — обёртки над Hooks
+// ============================================
+
+function add_action(string $tag, callable $callback, int $priority = 10): void
+{
+    Hooks::addAction($tag, $callback, $priority);
+}
+
+function do_action(string $tag, ...$args): void
+{
+    Hooks::doAction($tag, ...$args);
+}
+
+function add_filter(string $tag, callable $callback, int $priority = 10): void
+{
+    Hooks::addFilter($tag, $callback, $priority);
+}
+
+function apply_filters(string $tag, $value, ...$args)
+{
+    return Hooks::applyFilters($tag, $value, ...$args);
+}
+
+// ============================================
+// Виджеты
+// ============================================
+
+/**
+ * Вывести область виджетов темы
+ * @param string $area Имя области (header, footer, sidebar ...)
+ * @return string
+ */
+function render_widget_area(string $area): string
+{
+    try {
+        $widgets = (new Widget())->getAllByArea($area);
+    } catch (\Throwable $e) {
+        return '';
+    }
+
+    if (!$widgets) {
+        return apply_filters('widget_area_html', '', $area);
+    }
+
+    $html = '';
+    foreach ($widgets as $widget) {
+        $html .= '<div class="widget widget-' . TemplateEngine::e($area) . '">';
+        if (!empty($widget['title'])) {
+            $html .= '<h4 class="widget-title">' . TemplateEngine::e($widget['title']) . '</h4>';
+        }
+        $html .= apply_filters('widget_content', $widget['content'] ?? '', $widget);
+        $html .= '</div>';
+    }
+
+    return apply_filters('widget_area_html', $html, $area);
+}

@@ -28,6 +28,7 @@ class Autoloader
             'Request' => CORE_PATH . '/Request.php',
             'Session' => CORE_PATH . '/Session.php',
             'Auth' => CORE_PATH . '/Auth.php',
+            'Hooks' => CORE_PATH . '/Hooks.php',
         ];
 
         if (isset($classMap[$class])) {

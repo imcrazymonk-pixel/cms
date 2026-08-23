@@ -61,7 +61,7 @@ class AdminPostsController
         $slug = trim(Request::post('slug', ''));
         $content = Request::post('content', '');
         $excerpt = trim(Request::post('excerpt', ''));
-        $category_id = (int) Request::post('category_id', 0);
+        $category_id = $this->resolveCategoryId(Request::post('category_id', 0));
         $status = Request::post('status', 'draft');
         $image = trim(Request::post('image', ''));
 
@@ -148,7 +148,7 @@ class AdminPostsController
         $slug = trim(Request::post('slug', ''));
         $content = Request::post('content', '');
         $excerpt = trim(Request::post('excerpt', ''));
-        $category_id = (int) Request::post('category_id', 0);
+        $category_id = $this->resolveCategoryId(Request::post('category_id', 0));
         $status = Request::post('status', 'draft');
         $image = trim(Request::post('image', ''));
 
@@ -199,5 +199,19 @@ class AdminPostsController
         $this->post->delete($id);
 
         redirect('/admin/posts?success=deleted');
+    }
+
+    /**
+     * Проверить, что категория существует; вернуть её ID или null,
+     * чтобы не нарушать внешний ключ posts.category_id.
+     */
+    private function resolveCategoryId($categoryId)
+    {
+        $id = (int) $categoryId;
+        if ($id <= 0) {
+            return null;
+        }
+        $category = (new Category())->getById($id);
+        return $category ? $id : null;
     }
 }

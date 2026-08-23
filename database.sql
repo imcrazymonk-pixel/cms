@@ -146,6 +146,19 @@ CREATE TABLE IF NOT EXISTS media (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
+-- Виджеты
+-- ============================================
+CREATE TABLE IF NOT EXISTS widgets (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    area VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL DEFAULT '',
+    content TEXT NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_area (area)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
 -- Внешние ключи
 -- ============================================
 

@@ -175,6 +175,18 @@ $router->post('admin/media/delete', [$mediaController, 'delete']);
 $router->get('admin/settings', [$settingsController, 'index']);
 $router->post('admin/settings/update', [$settingsController, 'update']);
 
+// Темы (менеджер + настройки активной темы)
+$router->get('admin/theme', [$themeController, 'index']);
+$router->post('admin/theme/update', [$themeController, 'update']);
+$router->post('admin/theme/activate', [$themeController, 'activate']);
+$router->post('admin/theme/upload', [$themeController, 'upload']);
+
+// Виджеты
+$router->get('admin/widgets', [$widgetsController, 'index']);
+$router->post('admin/widgets/store', [$widgetsController, 'store']);
+$router->post('admin/widgets/update/{id}', [$widgetsController, 'update']);
+$router->get('admin/widgets/delete/{id}', [$widgetsController, 'delete']);
+
 // Меню
 $router->get('admin/menus', [$menusController, 'index']);
 $router->post('admin/menus/store', [$menusController, 'store']);

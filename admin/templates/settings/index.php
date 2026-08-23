@@ -44,9 +44,26 @@
         <div class="form-group">
             <label for="active_theme">Тема оформления</label>
             <select id="active_theme" name="settings[active_theme]" class="form-control">
-                <option value="default" <?= (($settings['active_theme'] ?? '') === 'default') ? 'selected' : '' ?>>📄 Классическая (Default)</option>
-                <option value="modern" <?= (($settings['active_theme'] ?? '') === 'modern') ? 'selected' : '' ?>>🚀 Современная (Modern)</option>
-                <option value="minimal" <?= (($settings['active_theme'] ?? '') === 'minimal') ? 'selected' : '' ?>>📝 Минимализм (Minimal)</option>
+                <?php
+                // Список тем формируется автоматически из папки templates/themes
+                $themesDir = TEMPLATES_PATH . '/themes';
+                $themes = [];
+                if (is_dir($themesDir)) {
+                    $themes = array_values(array_filter(scandir($themesDir), function ($d) use ($themesDir) {
+                        return $d !== '.' && $d !== '..' && is_dir($themesDir . '/' . $d);
+                    }));
+                }
+                $themeLabels = [
+                    'default'  => '📄 Классическая (Default)',
+                    'modern'   => '🚀 Современная (Modern)',
+                    'minimal'  => '📝 Минимализм (Minimal)',
+                    'hexaveil' => '🌐 HexaVeil (лендинг)',
+                ];
+                foreach ($themes as $themeName):
+                    $themeLabel = $themeLabels[$themeName] ?? $themeName;
+                ?>
+                <option value="<?= TemplateEngine::e($themeName) ?>" <?= (($settings['active_theme'] ?? '') === $themeName) ? 'selected' : '' ?>><?= TemplateEngine::e($themeLabel) ?></option>
+                <?php endforeach; ?>
             </select>
             <small class="form-hint">Выберите тему для всего сайта</small>
         </div>

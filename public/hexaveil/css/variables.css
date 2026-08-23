@@ -1,0 +1,32 @@
+:root {
+  /* Backgrounds */
+  --bg-primary: #0a0a1a;
+  --bg-secondary: #18181b;
+  --bg-glass: rgba(24, 24, 27, 0.6);
+
+  /* Accents */
+  --accent-primary: #a855f7;
+  --accent-glow: rgba(168, 85, 247, 0.4);
+  --accent-secondary: #c084fc;
+  --accent-blue: #3b82f6;
+  --accent-orange: #fb923c;
+
+  /* Text */
+  --text-primary: #fafafa;
+  --text-secondary: #a1a1aa;
+  --text-muted: #64748b;
+  --text-soft: #d7f5ff;
+
+  /* Borders */
+  --border-color: rgba(168, 85, 247, 0.2);
+
+  /* Semantic status colors */
+  --success: #34d399;
+  --success-bright: #00ff96;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #00f0ff;
+  --terminal: #7dd3fc;
+  --terminal-bright: #e0f2fe;
+  --star: #ffb800;
+}

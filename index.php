@@ -44,6 +44,29 @@ require_once CORE_PATH . '/helpers.php';
 // Инициализация сессии
 Session::init();
 
+// ============================================
+// Загрузка плагинов и функций активной темы
+// ============================================
+
+$pluginsDir = ROOT_PATH . '/plugins';
+if (is_dir($pluginsDir)) {
+    foreach (glob($pluginsDir . '/*.php') ?: [] as $pluginFile) {
+        require_once $pluginFile;
+    }
+}
+
+try {
+    $themeFunctionsFile = TEMPLATES_PATH . '/themes/' . active_theme_name() . '/functions.php';
+    if (file_exists($themeFunctionsFile)) {
+        require_once $themeFunctionsFile;
+    }
+} catch (\Throwable $e) {
+    // Тема может отсутствовать — не критично
+}
+
+// Событие после инициализации темы/плагинов
+do_action('after_setup_theme');
+
 // Инициализация роутера
 $router = new Router();
 
@@ -59,6 +82,8 @@ if (file_exists(ROOT_PATH . '/install.lock') && file_exists(ROOT_PATH . '/config
     require_once ADMIN_PATH . '/controllers/MediaController.php';
     require_once ADMIN_PATH . '/controllers/SettingsController.php';
     require_once ADMIN_PATH . '/controllers/MenusController.php';
+    require_once ADMIN_PATH . '/controllers/ThemeController.php';
+    require_once ADMIN_PATH . '/controllers/WidgetsController.php';
 
     $postsController = new AdminPostsController();
     $categoriesController = new AdminCategoriesController();
@@ -67,6 +92,8 @@ if (file_exists(ROOT_PATH . '/install.lock') && file_exists(ROOT_PATH . '/config
     $mediaController = new AdminMediaController();
     $settingsController = new AdminSettingsController();
     $menusController = new AdminMenusController();
+    $themeController = new AdminThemeController();
+    $widgetsController = new AdminWidgetsController();
 }
 
 // ============================================
