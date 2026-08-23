@@ -42,6 +42,12 @@
     --gray-900: var(--neutral-800);
 }
 
+/* Global focus ring */
+:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -720,6 +726,47 @@ body {
 }
 .icon-lg { width: 1.5em; height: 1.5em; }
 .icon-sm { width: 1em; height: 1em; }
+
+/* ============================================
+   Empty States
+   ============================================ */
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    max-width: 360px;
+    margin: 0 auto;
+}
+
+.empty-state .empty-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-subtle);
+    border-radius: var(--radius-lg);
+    color: var(--text-muted);
+}
+.empty-state .empty-icon .icon {
+    width: 32px;
+    height: 32px;
+}
+
+.empty-state h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
 
 /* ============================================
     Actions column
