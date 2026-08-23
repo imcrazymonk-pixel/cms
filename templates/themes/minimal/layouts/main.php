@@ -10,6 +10,23 @@
     <meta name="description" content="<?= TemplateEngine::e($seo['description']) ?>">
     <?php endif; ?>
 
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="<?= $seo['title'] ?? ($title ?? SITE_NAME) ?>">
+    <meta property="og:url" content="<?= SITE_URL . ($_SERVER['REQUEST_URI'] ?? '') ?>">
+    <?php if (!empty($seo['description'])): ?>
+    <meta property="og:description" content="<?= TemplateEngine::e($seo['description']) ?>">
+    <?php endif; ?>
+    <?php if (!empty($ogImage)): ?>
+    <meta property="og:image" content="<?= SITE_URL . $ogImage ?>">
+    <?php endif; ?>
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <?php if (!empty($ogImage)): ?>
+    <meta name="twitter:image" content="<?= SITE_URL . $ogImage ?>">
+    <?php endif; ?>
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

@@ -23,6 +23,12 @@
     <?php if (!empty($ogImage)): ?>
     <meta property="og:image" content="<?= SITE_URL . $ogImage ?>">
     <?php endif; ?>
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <?php if (!empty($ogImage)): ?>
+    <meta name="twitter:image" content="<?= SITE_URL . $ogImage ?>">
+    <?php endif; ?>
     
     <!-- Canonical URL -->
     <link rel="canonical" href="<?= SITE_URL . ($_SERVER['REQUEST_URI'] ?? '') ?>">
