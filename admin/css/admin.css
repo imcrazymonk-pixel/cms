@@ -2,6 +2,10 @@
    Админ-панель CMS
    ============================================ */
 
+html {
+    scroll-behavior: smooth;
+}
+
 :root {
     /* Layout */
     --sidebar-width: 260px;
@@ -46,6 +50,31 @@
 :focus-visible {
     outline: 2px solid var(--primary);
     outline-offset: 2px;
+}
+
+/* ============================================
+   Accessibility: Skip Link
+   ============================================ */
+
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    padding: 12px 24px;
+    background: var(--primary);
+    color: white;
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: top var(--transition-fast);
+}
+
+.skip-link:focus {
+    top: 0;
+    outline: none;
 }
 
 * {

@@ -14,6 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
 </head>
 <body>
+    <a href="#main-content" class="skip-link">Перейти к содержимому</a>
     <div class="admin-wrapper">
         <aside class="admin-sidebar">
             <div class="sidebar-header">
@@ -75,7 +76,7 @@
             </div>
         </aside>
         
-        <main class="admin-content">
+        <main class="admin-content" id="main-content">
             <header class="admin-header">
                 <div>
                     <p class="breadcrumbs">
