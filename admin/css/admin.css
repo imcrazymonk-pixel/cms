@@ -382,52 +382,67 @@ body {
 }
 
 /* ============================================
-   Tables
+   Data Tables
    ============================================ */
 
 .data-table {
     width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 8px;
+    border-collapse: separate;
+    border-spacing: 0;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
     overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
 }
 
 .data-table thead {
-    background: var(--gray-100);
+    background: var(--bg-body);
 }
 
 .data-table th,
 .data-table td {
-    padding: 15px;
+    padding: 12px 16px;
     text-align: left;
-    border-bottom: 1px solid var(--gray-200);
+    border-bottom: 1px solid var(--border-light);
+    font-size: 14px;
 }
 
 .data-table th {
     font-weight: 600;
-    color: var(--gray-700);
-    font-size: 13px;
+    color: var(--text-secondary);
+    font-size: 12px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.05em;
+}
+
+.data-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.data-table tbody tr {
+    transition: background var(--transition-fast);
 }
 
 .data-table tbody tr:hover {
-    background: var(--gray-100);
+    background: var(--bg-subtle);
 }
 
 .data-table a {
     color: var(--primary);
     text-decoration: none;
+    font-weight: 500;
 }
 
 .data-table a:hover {
-    text-decoration: underline;
+    color: var(--primary-hover);
 }
 
 .table-footer {
-    padding: 15px;
-    border-top: 1px solid var(--gray-200);
+    padding: 12px 16px;
+    border-top: 1px solid var(--border-light);
+    display: flex;
+    justify-content: flex-end;
 }
 
 .text-center {
@@ -686,7 +701,9 @@ body {
 
 .actions {
     display: flex;
-    gap: 5px;
+    gap: 4px;
+    align-items: center;
+    white-space: nowrap;
 }
 
 /* ============================================
@@ -727,6 +744,6 @@ body {
     
     .data-table th,
     .data-table td {
-        padding: 10px;
+        padding: 10px 12px;
     }
 }
