@@ -16,59 +16,59 @@
     <div class="admin-wrapper">
         <aside class="admin-sidebar">
             <div class="sidebar-header">
-                <a href="/admin" class="admin-logo">📊 <?= SITE_NAME ?></a>
+                <a href="/admin" class="admin-logo"><?= icon('dashboard') ?> <?= SITE_NAME ?></a>
             </div>
             
             <nav class="sidebar-nav">
                 <a href="/admin" class="nav-item <?= TemplateEngine::isActive('admin') ?>">
-                    <span class="nav-icon">🏠</span>
+                    <?= icon('dashboard') ?>
                     <span>Дашборд</span>
                 </a>
                 <a href="/admin/posts" class="nav-item <?= TemplateEngine::isActive('admin/posts') ?>">
-                    <span class="nav-icon">📝</span>
+                    <?= icon('posts') ?>
                     <span>Посты</span>
                 </a>
                 <a href="/admin/categories" class="nav-item <?= TemplateEngine::isActive('admin/categories') ?>">
-                    <span class="nav-icon">📁</span>
+                    <?= icon('categories') ?>
                     <span>Категории</span>
                 </a>
                 <a href="/admin/pages" class="nav-item <?= TemplateEngine::isActive('admin/pages') ?>">
-                    <span class="nav-icon">📄</span>
+                    <?= icon('pages') ?>
                     <span>Страницы</span>
                 </a>
                 <a href="/admin/menus" class="nav-item <?= TemplateEngine::isActive('admin/menus') ?>">
-                    <span class="nav-icon">📋</span>
+                    <?= icon('menus') ?>
                     <span>Меню</span>
                 </a>
                 <a href="/admin/media" class="nav-item <?= TemplateEngine::isActive('admin/media') ?>">
-                    <span class="nav-icon">🖼️</span>
+                    <?= icon('media') ?>
                     <span>Медиа</span>
                 </a>
                 <a href="/admin/users" class="nav-item <?= TemplateEngine::isActive('admin/users') ?>">
-                    <span class="nav-icon">👥</span>
+                    <?= icon('users') ?>
                     <span>Пользователи</span>
                 </a>
                 <a href="/admin/settings" class="nav-item <?= TemplateEngine::isActive('admin/settings') ?>">
-                    <span class="nav-icon">⚙️</span>
+                    <?= icon('settings') ?>
                     <span>Настройки</span>
                 </a>
                 <a href="/admin/theme" class="nav-item <?= TemplateEngine::isActive('admin/theme') ?>">
-                    <span class="nav-icon">🎨</span>
+                    <?= icon('theme') ?>
                     <span>Темы</span>
                 </a>
                 <a href="/admin/widgets" class="nav-item <?= TemplateEngine::isActive('admin/widgets') ?>">
-                    <span class="nav-icon">🧩</span>
+                    <?= icon('widgets') ?>
                     <span>Виджеты</span>
                 </a>
             </nav>
             
             <div class="sidebar-footer">
                 <a href="/" class="nav-item" target="_blank">
-                    <span class="nav-icon">🌐</span>
+                    <?= icon('external') ?>
                     <span>На сайт</span>
                 </a>
                 <a href="/admin/logout" class="nav-item logout">
-                    <span class="nav-icon">🚪</span>
+                    <?= icon('logout') ?>
                     <span>Выйти</span>
                 </a>
             </div>

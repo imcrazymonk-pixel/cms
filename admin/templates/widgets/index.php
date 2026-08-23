@@ -16,7 +16,7 @@
 </div>
 
 <div class="settings-section">
-    <h3><?= $editWidget ? '✏️ Редактирование виджета #' . $editWidget['id'] : '➕ Новый виджет' ?></h3>
+    <h3><?= $editWidget ? 'Редактирование виджета #' . $editWidget['id'] : 'Новый виджет' ?></h3>
 
     <form method="POST" action="<?= $editWidget ? '/admin/widgets/update/' . $editWidget['id'] : '/admin/widgets/store' ?>">
         <?= csrf_field() ?>
@@ -47,7 +47,7 @@
                    value="<?= (int)($editWidget['sort_order'] ?? 0) ?>" min="0" max="999" style="max-width:120px;">
         </div>
 
-        <button type="submit" class="btn btn-primary"><?= $editWidget ? '💾 Сохранить' : '➕ Добавить' ?></button>
+        <button type="submit" class="btn btn-primary"><?= $editWidget ? icon('save') . ' Сохранить' : icon('add') . ' Добавить' ?></button>
         <?php if ($editWidget): ?>
         <a href="/admin/widgets" class="btn">Отмена</a>
         <?php endif; ?>
@@ -79,8 +79,8 @@
                 <td><?= TemplateEngine::e($widget['title'] ?: '(без заголовка)') ?></td>
                 <td><?= (int)$widget['sort_order'] ?></td>
                 <td>
-                    <a href="/admin/widgets?edit=<?= $widget['id'] ?>" class="btn btn-sm">✏️</a>
-                    <a href="/admin/widgets/delete/<?= $widget['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Удалить виджет?');">🗑️</a>
+                    <a href="/admin/widgets?edit=<?= $widget['id'] ?>" class="btn btn-sm"><?= icon('edit') ?></a>
+                    <a href="/admin/widgets/delete/<?= $widget['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Удалить виджет?');"><?= icon('delete') ?></a>
                 </td>
             </tr>
             <?php endforeach; ?>

@@ -57,7 +57,7 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
 
 <!-- ================= Менеджер тем ================= -->
 <div class="settings-section">
-    <h3>🗂️ Установленные темы</h3>
+    <h3>Установленные темы</h3>
 
     <div class="themes-grid">
         <?php foreach ($themes as $theme): ?>
@@ -84,7 +84,7 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
 
 <!-- ================= Загрузка темы ================= -->
 <div class="settings-section">
-    <h3>📦 Установить тему из .zip</h3>
+    <h3>Установить тему из .zip</h3>
     <form method="POST" action="/admin/theme/upload" enctype="multipart/form-data">
         <?= csrf_field() ?>
         <div class="form-group">
@@ -95,13 +95,13 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
                 <code>public/</code> со статикой. Распакуется в <code>templates/themes/</code> и <code>public/</code>.
             </small>
         </div>
-        <button type="submit" class="btn btn-primary">📦 Загрузить и установить</button>
+        <button type="submit" class="btn btn-primary"><?= icon('add') ?> Загрузить и установить</button>
     </form>
 </div>
 
 <!-- ================= Настройки активной темы ================= -->
 <div class="settings-section">
-    <h3>🎨 Настройки активной темы: <?= TemplateEngine::e($themeConfig['name'] ?? $themeName) ?></h3>
+    <h3>Настройки активной темы: <?= TemplateEngine::e($themeConfig['name'] ?? $themeName) ?></h3>
 
     <?php if (empty($themeConfig['options'])): ?>
     <p style="color: var(--text-light);">
@@ -121,7 +121,7 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
         <?php endforeach; ?>
 
         <div class="form-actions">
-            <button type="submit" class="btn btn-primary">💾 Сохранить настройки</button>
+            <button type="submit" class="btn btn-primary"><?= icon('save') ?> Сохранить настройки</button>
         </div>
     </form>
     <?php endif; ?>

@@ -1,6 +1,6 @@
 <div class="page-header-actions">
     <h2>Пользователи</h2>
-    <button type="button" class="btn btn-primary" onclick="toggleUserForm()">➕ Добавить пользователя</button>
+    <button type="button" class="btn btn-primary" onclick="toggleUserForm()"><?= icon('add') ?> Добавить пользователя</button>
 </div>
 
 <?php if (Request::get('success') === 'created'): ?>
@@ -53,7 +53,7 @@
                 <td><?= TemplateEngine::e($userItem['email']) ?></td>
                 <td>
                     <span class="badge badge-<?= $userItem['role'] ?>">
-                        <?= $userItem['role'] === 'admin' ? '👑 Администратор' : ($userItem['role'] === 'editor' ? '✏️ Редактор' : '📝 Автор') ?>
+                        <?= $userItem['role'] === 'admin' ? 'Администратор' : ($userItem['role'] === 'editor' ? 'Редактор' : 'Автор') ?>
                     </span>
                 </td>
                 <td><?= $userItem['posts_count'] ?></td>
@@ -61,7 +61,7 @@
                 <td class="actions">
                     <?php if ($userItem['id'] != Auth::id()): ?>
                     <a href="/admin/users/delete/<?= $userItem['id'] ?>" class="btn btn-sm btn-danger"
-                       onclick="return confirm('Удалить пользователя?')" title="Удалить">🗑️</a>
+                       onclick="return confirm('Удалить пользователя?')" title="Удалить"><?= icon('delete') ?></a>
                     <?php else: ?>
                     <span class="text-muted">Вы</span>
                     <?php endif; ?>

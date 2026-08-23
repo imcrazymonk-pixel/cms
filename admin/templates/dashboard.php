@@ -1,6 +1,6 @@
 <div class="dashboard-stats">
     <div class="stat-card">
-        <div class="stat-icon">📝</div>
+        <div class="stat-icon"><?= icon('posts', 'icon-lg') ?></div>
         <div class="stat-info">
             <span class="stat-value"><?= $stats['posts'] ?? 0 ?></span>
             <span class="stat-label">Постов</span>
@@ -8,7 +8,7 @@
     </div>
     
     <div class="stat-card">
-        <div class="stat-icon">💬</div>
+        <div class="stat-icon"><?= icon('message', 'icon-lg') ?></div>
         <div class="stat-info">
             <span class="stat-value"><?= $stats['comments'] ?? 0 ?></span>
             <span class="stat-label">Комментариев</span>
@@ -16,7 +16,7 @@
     </div>
     
     <div class="stat-card">
-        <div class="stat-icon">👥</div>
+        <div class="stat-icon"><?= icon('users', 'icon-lg') ?></div>
         <div class="stat-info">
             <span class="stat-value"><?= $stats['users'] ?? 0 ?></span>
             <span class="stat-label">Пользователей</span>
@@ -24,7 +24,7 @@
     </div>
     
     <div class="stat-card">
-        <div class="stat-icon">📁</div>
+        <div class="stat-icon"><?= icon('categories', 'icon-lg') ?></div>
         <div class="stat-info">
             <span class="stat-value"><?= $stats['categories'] ?? 0 ?></span>
             <span class="stat-label">Категорий</span>
@@ -34,7 +34,7 @@
 
 <div class="dashboard-sections">
     <div class="dashboard-section">
-        <h2>📋 Последние посты</h2>
+        <h2><?= icon('posts') ?> Последние посты</h2>
         <table class="data-table">
             <thead>
                 <tr>
@@ -62,9 +62,9 @@
                         </td>
                         <td><?= format_date($post['created_at'], 'd.m.Y') ?></td>
                         <td class="actions">
-                            <a href="/admin/posts/edit/<?= $post['id'] ?>" class="btn btn-sm btn-primary" title="Редактировать">✏️</a>
+                            <a href="/admin/posts/edit/<?= $post['id'] ?>" class="btn btn-sm btn-primary" title="Редактировать"><?= icon('edit') ?></a>
                             <?php if (!empty($post['slug'])): ?>
-                            <a href="/post/<?= $post['slug'] ?>" class="btn btn-sm btn-info" target="_blank" title="Просмотр">👁️</a>
+                            <a href="/post/<?= $post['slug'] ?>" class="btn btn-sm btn-info" target="_blank" title="Просмотр"><?= icon('eye') ?></a>
                             <?php endif; ?>
                         </td>
                     </tr>
@@ -82,19 +82,19 @@
     </div>
     
     <div class="dashboard-section">
-        <h2>⚡ Быстрые действия</h2>
+        <h2><?= icon('settings') ?> Быстрые действия</h2>
         <div class="quick-actions">
             <a href="/admin/posts/create" class="btn btn-primary">
-                <span>📝</span> Новый пост
+                <?= icon('posts') ?> Новый пост
             </a>
             <a href="/admin/categories" class="btn btn-secondary">
-                <span>📁</span> Категории
+                <?= icon('categories') ?> Категории
             </a>
             <a href="/admin/media" class="btn btn-secondary">
-                <span>🖼️</span> Медиафайлы
+                <?= icon('media') ?> Медиафайлы
             </a>
             <a href="/admin/settings" class="btn btn-secondary">
-                <span>⚙️</span> Настройки
+                <?= icon('settings') ?> Настройки
             </a>
         </div>
     </div>

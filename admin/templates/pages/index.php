@@ -1,6 +1,6 @@
 <div class="page-header-actions">
     <h2>Страницы</h2>
-    <a href="/admin/pages/create" class="btn btn-primary">➕ Добавить страницу</a>
+    <a href="/admin/pages/create" class="btn btn-primary"><?= icon('add') ?> Добавить страницу</a>
 </div>
 
 <?php if (Request::get('success') === 'created'): ?>
@@ -45,8 +45,8 @@
                     </label>
                 </td>
                 <td class="actions">
-                    <a href="/admin/pages/edit/<?= $page['id'] ?>" class="btn btn-sm btn-primary" title="Редактировать">✏️</a>
-                    <a href="/page/<?= $page['slug'] ?>" class="btn btn-sm btn-info" target="_blank" title="Просмотр">👁️</a>
+                    <a href="/admin/pages/edit/<?= $page['id'] ?>" class="btn btn-sm btn-primary" title="Редактировать"><?= icon('edit') ?></a>
+                    <a href="/page/<?= $page['slug'] ?>" class="btn btn-sm btn-info" target="_blank" title="Просмотр"><?= icon('eye') ?></a>
                     <a href="/admin/pages/delete/<?= $page['id'] ?>" class="btn btn-sm btn-danger"
                        onclick="return confirm('Удалить страницу?')" title="Удалить">🗑️</a>
                 </td>

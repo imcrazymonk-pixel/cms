@@ -40,6 +40,7 @@ require_once CORE_PATH . '/Autoloader.php';
 Autoloader::register();
 
 require_once CORE_PATH . '/helpers.php';
+require_once CORE_PATH . '/helpers_icons.php';
 
 // Инициализация сессии
 Session::init();

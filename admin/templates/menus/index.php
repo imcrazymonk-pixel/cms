@@ -1,6 +1,6 @@
 <div class="page-header-actions">
     <h2>Меню</h2>
-    <button type="button" class="btn btn-primary" onclick="toggleMenuForm()">➕ Добавить пункт</button>
+    <button type="button" class="btn btn-primary" onclick="toggleMenuForm()"><?= icon('add') ?> Добавить пункт</button>
 </div>
 
 <?php if (Request::get('success') === 'created'): ?>
@@ -49,11 +49,11 @@
                 <td><?= TemplateEngine::e($menuItem['url']) ?></td>
                 <td>
                     <span class="badge badge-<?= $menuItem['location'] ?>">
-                        <?= $menuItem['location'] === 'main' ? '📍 Главное' : '📍 Футер' ?>
+                        <?= $menuItem['location'] === 'main' ? 'Главное' : 'Футер' ?>
                     </span>
                 </td>
                 <td class="actions">
-                    <a href="/admin/menus/edit/<?= $menuItem['id'] ?>" class="btn btn-sm btn-primary" title="Редактировать">✏️</a>
+                    <a href="/admin/menus/edit/<?= $menuItem['id'] ?>" class="btn btn-sm btn-primary" title="Редактировать"><?= icon('edit') ?></a>
                     <a href="/admin/menus/delete/<?= $menuItem['id'] ?>" class="btn btn-sm btn-danger"
                        onclick="return confirm('Удалить пункт меню?')" title="Удалить">🗑️</a>
                 </td>

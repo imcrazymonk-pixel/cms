@@ -1,6 +1,6 @@
 <div class="page-header-actions">
     <h2>Все посты</h2>
-    <a href="/admin/posts/create" class="btn btn-primary">➕ Добавить пост</a>
+    <a href="/admin/posts/create" class="btn btn-primary"><?= icon('add') ?> Добавить пост</a>
 </div>
 
 <div class="filters">
@@ -48,14 +48,14 @@
                 <td><?= TemplateEngine::e($post['category_name'] ?? '—') ?></td>
                 <td>
                     <span class="badge badge-<?= $post['status'] ?>">
-                        <?= $post['status'] === 'published' ? '✓ Опубликован' : ($post['status'] === 'draft' ? '📝 Черновик' : '🗄️ Архив') ?>
+                        <?= $post['status'] === 'published' ? 'Опубликован' : ($post['status'] === 'draft' ? 'Черновик' : 'Архив') ?>
                     </span>
                 </td>
                 <td><?= format_date($post['created_at'], 'd.m.Y') ?></td>
                 <td><?= $post['views'] ?></td>
                 <td class="actions">
-                    <a href="/admin/posts/edit/<?= $post['id'] ?>" class="btn btn-sm btn-primary" title="Редактировать">✏️</a>
-                    <a href="/post/<?= $post['slug'] ?>" class="btn btn-sm btn-info" target="_blank" title="Просмотр">👁️</a>
+                    <a href="/admin/posts/edit/<?= $post['id'] ?>" class="btn btn-sm btn-primary" title="Редактировать"><?= icon('edit') ?></a>
+                    <a href="/post/<?= $post['slug'] ?>" class="btn btn-sm btn-info" target="_blank" title="Просмотр"><?= icon('eye') ?></a>
                     <a href="/admin/posts/delete/<?= $post['id'] ?>" class="btn btn-sm btn-danger" 
                        onclick="return confirm('Удалить пост?')" title="Удалить">🗑️</a>
                 </td>

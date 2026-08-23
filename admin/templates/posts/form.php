@@ -1,6 +1,6 @@
 <div class="page-header-actions">
     <h2><?= isset($post['id']) ? 'Редактировать пост' : 'Новый пост' ?></h2>
-    <a href="/admin/posts" class="btn btn-secondary">← Назад к списку</a>
+    <a href="/admin/posts" class="btn btn-secondary"><?= icon('back') ?> Назад к списку</a>
 </div>
 
 <form method="POST" action="<?= isset($post['id']) ? '/admin/posts/update/' . $post['id'] : '/admin/posts/store' ?>" 
@@ -45,9 +45,9 @@
             <div class="form-group">
                 <label for="status">Статус</label>
                 <select id="status" name="status" class="form-control">
-                    <option value="draft" <?= (($post['status'] ?? 'draft') === 'draft') ? 'selected' : '' ?>>📝 Черновик</option>
-                    <option value="published" <?= (($post['status'] ?? '') === 'published') ? 'selected' : '' ?>>✓ Опубликован</option>
-                    <option value="archived" <?= (($post['status'] ?? '') === 'archived') ? 'selected' : '' ?>>🗄️ Архив</option>
+                    <option value="draft" <?= (($post['status'] ?? 'draft') === 'draft') ? 'selected' : '' ?>>Черновик</option>
+                    <option value="published" <?= (($post['status'] ?? '') === 'published') ? 'selected' : '' ?>>Опубликован</option>
+                    <option value="archived" <?= (($post['status'] ?? '') === 'archived') ? 'selected' : '' ?>>Архив</option>
                 </select>
             </div>
             
@@ -69,7 +69,7 @@
             
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary btn-block">
-                    <?= isset($post['id']) ? '💾 Сохранить' : '➕ Создать' ?>
+                    <?= isset($post['id']) ? icon('save') . ' Сохранить' : icon('add') . ' Создать' ?>
                 </button>
                 <a href="/admin/posts" class="btn btn-secondary btn-block">Отмена</a>
             </div>

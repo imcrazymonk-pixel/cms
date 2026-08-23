@@ -1,6 +1,6 @@
 <div class="page-header-actions">
     <h2>Категории</h2>
-    <button type="button" class="btn btn-primary" onclick="toggleCategoryForm()">➕ Добавить категорию</button>
+    <button type="button" class="btn btn-primary" onclick="toggleCategoryForm()"><?= icon('add') ?> Добавить категорию</button>
 </div>
 
 <?php if (Request::get('success') === 'created'): ?>
@@ -49,7 +49,7 @@
                 <td><?= TemplateEngine::e($cat['description']) ?></td>
                 <td><?= $cat['posts_count'] ?></td>
                 <td class="actions">
-                    <button type="submit" form="update-cat-<?= $cat['id'] ?>" class="btn btn-sm btn-primary" title="Сохранить">✏️</button>
+                    <button type="submit" form="update-cat-<?= $cat['id'] ?>" class="btn btn-sm btn-primary" title="Сохранить"><?= icon('edit') ?></button>
                     <a href="/admin/categories/delete/<?= $cat['id'] ?>" class="btn btn-sm btn-danger"
                        onclick="return confirm('Удалить категорию?')" title="Удалить">🗑️</a>
                 </td>

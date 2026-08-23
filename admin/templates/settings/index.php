@@ -1,6 +1,6 @@
 <div class="page-header-actions">
     <h2>Настройки</h2>
-    <button type="button" class="btn btn-primary" onclick="document.getElementById('settings-form').submit()">💾 Сохранить</button>
+    <button type="button" class="btn btn-primary" onclick="document.getElementById('settings-form').submit()"><?= icon('save') ?> Сохранить</button>
 </div>
 
 <?php if (Request::get('success') === 'updated'): ?>
@@ -11,7 +11,7 @@
     <?= csrf_field() ?>
 
     <div class="settings-section">
-        <h3>📌 Основные настройки</h3>
+        <h3>Основные настройки</h3>
 
         <div class="form-group">
             <label for="site_name">Название сайта</label>
@@ -39,7 +39,7 @@
     </div>
 
     <div class="settings-section">
-        <h3>🎨 Внешний вид</h3>
+        <h3>Внешний вид</h3>
 
         <div class="form-group">
             <label for="active_theme">Тема оформления</label>
@@ -70,7 +70,7 @@
     </div>
 
     <div class="settings-section">
-        <h3>🔧 Дополнительные настройки</h3>
+        <h3>Дополнительные настройки</h3>
 
         <div class="form-group">
             <label for="meta_description">Описание сайта (Meta Description)</label>
@@ -87,15 +87,23 @@
 
 <style>
 .settings-section {
-    background: var(--gray-100);
-    padding: 20px;
-    border-radius: 8px;
+    background: var(--bg-card);
+    padding: 20px 24px;
+    border-radius: var(--radius-md);
     margin-bottom: 20px;
+    border: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
 }
 .settings-section h3 {
     margin-top: 0;
     margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid var(--gray-300);
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 </style>

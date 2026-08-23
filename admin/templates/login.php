@@ -9,7 +9,7 @@
 <body class="login-page">
     <div class="login-container">
         <div class="login-box">
-            <h1 class="login-title">🔐 Вход в админку</h1>
+            <h1 class="login-title">Вход в админку</h1>
             
             <?php if (isset($error)): ?>
             <div class="alert alert-error"><?= TemplateEngine::e($error) ?></div>
@@ -32,7 +32,7 @@
             </form>
             
             <p class="login-footer">
-                <a href="/">← Вернуться на сайт</a>
+                <a href="/"><?= icon('back') ?> Вернуться на сайт</a>
             </p>
         </div>
     </div>

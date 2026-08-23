@@ -1,6 +1,6 @@
 <div class="page-header-actions">
     <h2>Медиафайлы</h2>
-    <button type="button" class="btn btn-primary" onclick="document.getElementById('upload-input').click()">📤 Загрузить</button>
+    <button type="button" class="btn btn-primary" onclick="document.getElementById('upload-input').click()"><?= icon('add') ?> Загрузить</button>
     <input type="file" id="upload-input" style="display: none;" accept="image/*" onchange="uploadFile(this)">
 </div>
 
@@ -15,7 +15,7 @@
             <span class="media-name"><?= TemplateEngine::e($file['name']) ?></span>
             <span class="media-size"><?= round($file['size'] / 1024, 1) ?> KB</span>
         </div>
-        <button type="button" class="btn btn-sm btn-danger" onclick="deleteFile('<?= TemplateEngine::e($file['path']) ?>')">🗑️</button>
+        <button type="button" class="btn btn-sm btn-danger" onclick="deleteFile('<?= TemplateEngine::e($file['path']) ?>')"><?= icon('delete') ?></button>
     </div>
     <?php endforeach; ?>
 </div>
