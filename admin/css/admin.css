@@ -442,16 +442,36 @@ body {
    ============================================ */
 
 .btn {
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     padding: 10px 20px;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 14px;
     font-weight: 500;
+    font-family: inherit;
     cursor: pointer;
     text-decoration: none;
-    transition: all 0.2s;
+    transition:
+        background-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--transition-fast),
+        color var(--transition-fast);
     text-align: center;
+    line-height: 1.4;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.btn:active {
+    transform: scale(0.97);
+}
+
+.btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
 }
 
 .btn-primary {
@@ -460,16 +480,17 @@ body {
 }
 
 .btn-primary:hover {
-    background: #2563eb;
+    background: var(--primary-hover);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
 }
 
 .btn-secondary {
-    background: var(--gray-600);
+    background: var(--text-muted);
     color: white;
 }
 
 .btn-secondary:hover {
-    background: var(--gray-700);
+    background: var(--text-secondary);
 }
 
 .btn-danger {
@@ -490,14 +511,24 @@ body {
     background: #0891b2;
 }
 
+.btn-success {
+    background: var(--success);
+    color: white;
+}
+
+.btn-success:hover {
+    background: #16a34a;
+}
+
 .btn-sm {
     padding: 6px 12px;
     font-size: 13px;
 }
 
 .btn-block {
-    display: block;
+    display: flex;
     width: 100%;
+    justify-content: center;
 }
 
 /* ============================================
