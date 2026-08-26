@@ -1,6 +1,5 @@
-<div class="page-header-actions">
-    <h2><?= isset($page['id']) ? 'Редактировать страницу' : 'Новая страница' ?></h2>
-    <a href="/admin/pages" class="btn btn-secondary">← Назад к списку</a>
+<div class="dg-toolbar">
+    <a href="/admin/pages" class="btn btn-ghost"><?= icon('back') ?> Назад к списку</a>
 </div>
 
 <?php
@@ -21,7 +20,7 @@ Session::remove('page_old');
 <?php endif; ?>
 
 <form method="POST" action="<?= isset($page['id']) ? '/admin/pages/update/' . $page['id'] : '/admin/pages/store' ?>"
-      class="form-post" enctype="multipart/form-data">
+      class="card form-card form-post" enctype="multipart/form-data">
     <?= csrf_field() ?>
 
     <div class="form-row">
@@ -66,7 +65,7 @@ Session::remove('page_old');
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-primary btn-block">
-                    <?= isset($page['id']) ? '💾 Сохранить' : '➕ Создать' ?>
+                    <?= isset($page['id']) ? icon('save') . ' Сохранить' : icon('add') . ' Создать' ?>
                 </button>
                 <a href="/admin/pages" class="btn btn-secondary btn-block">Отмена</a>
             </div>

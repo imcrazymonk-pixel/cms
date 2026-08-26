@@ -1,11 +1,9 @@
-<div class="page-header-actions">
-    <h2>Редактировать пункт меню</h2>
-    <a href="/admin/menus" class="btn btn-secondary"><?= icon('back') ?> Назад к меню</a>
+<div class="dg-toolbar">
+    <a href="/admin/menus" class="btn btn-ghost"><?= icon('back') ?> Назад к меню</a>
 </div>
 
 <?php if (Session::get('menu_errors')): ?>
 <div class="alert alert-error">
-    <?= icon('error') ?>
     <ul style="display:inline;margin:0;padding:0 0 0 8px;list-style:none;">
         <?php foreach (Session::flash('menu_errors') as $error): ?>
         <li><?= TemplateEngine::e($error) ?></li>
@@ -16,7 +14,7 @@
 
 <?php $old = Session::flash('menu_old') ?: []; ?>
 
-<form method="POST" action="/admin/menus/update/<?= $menuItem['id'] ?>" class="form-horizontal">
+<form method="POST" action="/admin/menus/update/<?= $menuItem['id'] ?>" class="card form-card">
     <?= csrf_field() ?>
 
     <div class="form-group">

@@ -1,5 +1,4 @@
-<div class="page-header-actions">
-    <h2>Настройки</h2>
+<div class="dg-toolbar">
     <button type="button" class="btn btn-primary" onclick="document.getElementById('settings-form').submit()"><?= icon('save') ?> Сохранить</button>
 </div>
 
@@ -10,7 +9,7 @@
 <form id="settings-form" method="POST" action="/admin/settings/update">
     <?= csrf_field() ?>
 
-    <div class="settings-section">
+    <div class="card form-card">
         <h3>Основные настройки</h3>
 
         <div class="form-group">
@@ -38,7 +37,7 @@
         </div>
     </div>
 
-    <div class="settings-section">
+    <div class="card form-card">
         <h3>Внешний вид</h3>
 
         <div class="form-group">
@@ -69,7 +68,7 @@
         </div>
     </div>
 
-    <div class="settings-section">
+    <div class="card form-card">
         <h3>Дополнительные настройки</h3>
 
         <div class="form-group">
@@ -85,25 +84,3 @@
     </div>
 </form>
 
-<style>
-.settings-section {
-    background: var(--bg-card);
-    padding: 20px 24px;
-    border-radius: var(--radius-md);
-    margin-bottom: 20px;
-    border: 1px solid var(--border-light);
-    box-shadow: var(--shadow-sm);
-}
-.settings-section h3 {
-    margin-top: 0;
-    margin-bottom: 20px;
-    padding-bottom: 12px;
-    border-bottom: 1px solid var(--border-light);
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-</style>

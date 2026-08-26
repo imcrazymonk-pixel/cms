@@ -37,10 +37,6 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
 }
 ?>
 
-<div class="page-header-actions">
-    <h2>Темы</h2>
-</div>
-
 <?php if (Request::get('success') === 'updated'): ?>
 <div class="alert alert-success">Настройки темы сохранены</div>
 <?php elseif (Request::get('success') === 'activated'): ?>
@@ -56,7 +52,7 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
 <?php endif; ?>
 
 <!-- ================= Менеджер тем ================= -->
-<div class="settings-section">
+<div class="card form-card">
     <h3>Установленные темы</h3>
 
     <div class="themes-grid">
@@ -65,7 +61,7 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
             <div class="theme-card-header">
                 <strong><?= TemplateEngine::e($theme['label']) ?></strong>
                 <?php if ($theme['active']): ?>
-                <span class="badge badge-active">Активна</span>
+                <span class="badge badge-success">Активна</span>
                 <?php endif; ?>
             </div>
             <div class="theme-card-name">slug: <code><?= TemplateEngine::e($theme['name']) ?></code></div>
@@ -83,7 +79,7 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
 </div>
 
 <!-- ================= Загрузка темы ================= -->
-<div class="settings-section">
+<div class="card form-card">
     <h3>Установить тему из .zip</h3>
     <form method="POST" action="/admin/theme/upload" enctype="multipart/form-data">
         <?= csrf_field() ?>
@@ -100,11 +96,11 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
 </div>
 
 <!-- ================= Настройки активной темы ================= -->
-<div class="settings-section">
+<div class="card form-card">
     <h3>Настройки активной темы: <?= TemplateEngine::e($themeConfig['name'] ?? $themeName) ?></h3>
 
     <?php if (empty($themeConfig['options'])): ?>
-    <p style="color: var(--text-light);">
+    <p class="form-hint">
         У этой темы нет настраиваемых полей. Чтобы они появились, добавьте файл
         <code>theme.php</code> в папку темы (см. тему hexaveil как пример).
     </p>
@@ -112,7 +108,7 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
     <form id="theme-options-form" method="POST" action="/admin/theme/update">
         <?= csrf_field() ?>
         <?php foreach ($themeConfig['options'] as $sectionName => $fields): ?>
-        <h4 style="margin: 20px 0 10px; padding-bottom: 8px; border-bottom: 1px solid var(--gray-300);">
+        <h4 style="margin: 20px 0 10px;">
             <?= TemplateEngine::e($sectionName) ?>
         </h4>
         <?php foreach ($fields as $fieldKey => $field): ?>
@@ -127,50 +123,3 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
     <?php endif; ?>
 </div>
 
-<style>
-.themes-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
-}
-.theme-card {
-    border: 2px solid var(--gray-300);
-    border-radius: 10px;
-    padding: 16px;
-    background: var(--gray-100);
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-.theme-card.theme-active {
-    border-color: #22c55e;
-    background: rgba(34, 197, 94, 0.08);
-}
-.theme-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 8px;
-}
-.theme-card-name code {
-    background: var(--gray-200);
-    padding: 1px 6px;
-    border-radius: 4px;
-}
-.theme-card-desc {
-    margin: 0;
-    color: var(--text-light);
-    font-size: 14px;
-    flex: 1;
-}
-.badge-active {
-    background: #22c55e;
-    color: #fff;
-    padding: 2px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    white-space: nowrap;
-}
-.btn-sm { padding: 6px 12px; }
-.form-actions { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--gray-300); }
-</style>

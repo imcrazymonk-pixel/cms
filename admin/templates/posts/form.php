@@ -1,10 +1,9 @@
-<div class="page-header-actions">
-    <h2><?= isset($post['id']) ? 'Редактировать пост' : 'Новый пост' ?></h2>
-    <a href="/admin/posts" class="btn btn-secondary"><?= icon('back') ?> Назад к списку</a>
+<div class="dg-toolbar">
+    <a href="/admin/posts" class="btn btn-ghost"><?= icon('back') ?> Назад к списку</a>
 </div>
 
 <form method="POST" action="<?= isset($post['id']) ? '/admin/posts/update/' . $post['id'] : '/admin/posts/store' ?>" 
-      class="form-post" enctype="multipart/form-data">
+      class="card form-card form-post" enctype="multipart/form-data">
     <?= csrf_field() ?>
     
     <div class="form-row">
