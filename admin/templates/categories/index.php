@@ -1,8 +1,3 @@
-<div class="page-header-actions">
-    <h2>Категории</h2>
-    <button type="button" class="btn btn-primary" onclick="toggleCategoryForm()"><?= icon('add') ?> Добавить категорию</button>
-</div>
-
 <?php if (Request::get('success') === 'created'): ?>
 <div class="alert alert-success">Категория создана</div>
 <?php elseif (Request::get('success') === 'updated'): ?>
@@ -12,63 +7,57 @@
 <?php endif; ?>
 
 <!-- Форма добавления -->
-<div id="category-form" class="form-container" style="display: none;">
-    <form method="POST" action="/admin/categories/store" class="form-inline">
+<div id="category-form" class="card" style="display: none; margin-bottom: 16px;">
+    <form method="POST" action="/admin/categories/store">
         <?= csrf_field() ?>
-        <input type="text" name="name" class="form-control" placeholder="Название категории" required>
-        <input type="text" name="slug" class="form-control" placeholder="Slug (URL)">
-        <input type="text" name="description" class="form-control" placeholder="Описание">
-        <button type="submit" class="btn btn-success">Сохранить</button>
-        <button type="button" class="btn btn-secondary" onclick="toggleCategoryForm()">Отмена</button>
+        <div class="form-row">
+            <div class="form-group">
+                <input type="text" name="name" placeholder="Название категории" required>
+            </div>
+            <div class="form-group">
+                <input type="text" name="slug" placeholder="Slug (URL)">
+            </div>
+            <div class="form-group">
+                <input type="text" name="description" placeholder="Описание">
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <button type="button" class="btn btn-ghost" onclick="toggleCategoryForm()">Отмена</button>
+        </div>
     </form>
 </div>
 
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Название</th>
-            <th>Slug</th>
-            <th>Описание</th>
-            <th>Постов</th>
-            <th>Действия</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php if (!empty($categories)): ?>
-            <?php foreach ($categories as $cat): ?>
-            <tr>
-                <td><?= $cat['id'] ?></td>
-                <td>
-                    <form method="POST" action="/admin/categories/update/<?= $cat['id'] ?>" class="form-inline">
-                        <?= csrf_field() ?>
-                        <input type="text" name="name" class="form-control" value="<?= TemplateEngine::e($cat['name']) ?>" required>
-                    </form>
-                </td>
-                <td><?= TemplateEngine::e($cat['slug']) ?></td>
-                <td><?= TemplateEngine::e($cat['description']) ?></td>
-                <td><?= $cat['posts_count'] ?></td>
-                <td class="actions">
-                    <button type="submit" form="update-cat-<?= $cat['id'] ?>" class="btn btn-sm btn-primary" title="Сохранить"><?= icon('edit') ?></button>
-                    <a href="/admin/categories/delete/<?= $cat['id'] ?>" class="btn btn-sm btn-danger"
-                       onclick="return confirm('Удалить категорию?')" title="Удалить">🗑️</a>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <tr>
-                <td colspan="6" class="text-center">
-                    <div class="empty-state">
-                        <div class="empty-icon"><?= icon('categories') ?></div>
-                        <h3>Категорий пока нет</h3>
-                        <p>Создайте первую категорию, чтобы упорядочить контент</p>
-                        <a href="/admin/categories/create" class="btn btn-primary"><?= icon('add') ?> Создать категорию</a>
-                    </div>
-                </td>
-            </tr>
-        <?php endif; ?>
-    </tbody>
-</table>
+<div class="dg-toolbar">
+    <button type="button" class="btn btn-primary" onclick="toggleCategoryForm()"><?= icon('add') ?> Добавить категорию</button>
+</div>
+
+<?php
+echo DataGrid::render([
+    'columns' => [
+        ['key' => 'id', 'label' => 'ID', 'sortable' => true],
+        ['key' => 'name', 'label' => 'Название', 'html' => function ($row) {
+            return '<form method="POST" action="/admin/categories/update/' . $row['id'] . '" class="form-inline">'
+                . csrf_field()
+                . '<input type="text" name="name" class="form-control" value="' . TemplateEngine::e($row['name']) . '" required>'
+                . '<button type="submit" class="btn btn-sm btn-primary" title="Сохранить">' . icon('edit') . '</button>'
+                . '</form>';
+        }],
+        ['key' => 'slug', 'label' => 'Slug'],
+        ['key' => 'description', 'label' => 'Описание'],
+        ['key' => 'posts_count', 'label' => 'Постов', 'sortable' => true],
+    ],
+    'rows' => $categories ?? [],
+    'actions' => [
+        ['label' => 'delete', 'url' => '/admin/categories/delete/{id}', 'icon' => 'delete', 'confirm' => 'Удалить категорию?'],
+    ],
+    'empty' => [
+        'title' => 'Категорий пока нет',
+        'text' => 'Создайте первую категорию, чтобы упорядочить контент',
+        'icon' => 'categories',
+    ],
+]);
+?>
 
 <script>
 // Транслитерация кириллицы в латиницу
@@ -90,7 +79,7 @@ function transliterate(word) {
         'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
         '№': ''
     };
-    
+
     let result = '';
     for (let i = 0; i < word.length; i++) {
         result += transliteration[word[i]] || word[i];
@@ -109,13 +98,13 @@ let userEditedSlug = false;
 document.addEventListener('DOMContentLoaded', function() {
     const nameInput = document.querySelector('#category-form input[name="name"]');
     const slugInput = document.querySelector('#category-form input[name="slug"]');
-    
+
     if (nameInput && slugInput) {
         // Отслеживаем ручное редактирование slug
         slugInput.addEventListener('input', function() {
             userEditedSlug = true;
         });
-        
+
         // Генерируем slug только если пользователь не редактировал его вручную
         nameInput.addEventListener('input', function() {
             if (!userEditedSlug) {

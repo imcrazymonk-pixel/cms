@@ -116,6 +116,10 @@ input:focus, textarea:focus, select:focus {
 .form-row { display: flex; gap: 16px; flex-wrap: wrap; }
 .form-row .form-group { flex: 1; min-width: 200px; }
 
+/* Инлайн-форма редактирования в строке таблицы */
+.form-inline { display: flex; align-items: center; gap: 6px; }
+.form-inline input[type="text"], .form-inline input[type="number"] { width: auto; min-width: 140px; flex: 1; }
+
 /* === Empty states === */
 .empty-state {
   text-align: center;
