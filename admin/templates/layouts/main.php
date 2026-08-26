@@ -89,6 +89,44 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
                 <div class="header-actions">
                     <!-- Переключатель тем и режима -->
                     <button class="btn-icon" id="theme-toggle" title="Сменить тему"><?= icon('palette') ?></button>
+                    <!-- Настройки вида -->
+                    <div class="dropdown">
+                        <button class="btn-icon" data-dropdown-toggle title="Настройки вида"><?= icon('settings') ?></button>
+                        <div class="dropdown-menu">
+                            <div class="dropdown-group-title">Тема</div>
+                            <button type="button" class="dropdown-item" data-set-theme="obsidian"><span>Obsidian</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-theme="halo"><span>Halo</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-theme="arctic"><span>Arctic</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-theme="sakura"><span>Sakura</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-theme="twilight"><span>Twilight</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-theme="ember"><span>Ember</span><span class="check">✓</span></button>
+
+                            <div class="dropdown-group-title">Режим</div>
+                            <button type="button" class="dropdown-item" data-set-mode="dark"><span>Тёмный</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-mode="light"><span>Светлый</span><span class="check">✓</span></button>
+
+                            <div class="dropdown-group-title">Плотность</div>
+                            <button type="button" class="dropdown-item" data-set-density="compact"><span>Compact</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-density="comfortable"><span>Comfortable</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-density="spacious"><span>Spacious</span><span class="check">✓</span></button>
+
+                            <div class="dropdown-group-title">Радиус</div>
+                            <button type="button" class="dropdown-item" data-set-radius="sharp"><span>Sharp</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-radius="default"><span>Default</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-radius="rounded"><span>Rounded</span><span class="check">✓</span></button>
+
+                            <div class="dropdown-group-title">Размер шрифта</div>
+                            <button type="button" class="dropdown-item" data-set-font-size="small"><span>S</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-font-size="default"><span>M</span><span class="check">✓</span></button>
+                            <button type="button" class="dropdown-item" data-set-font-size="large"><span>L</span><span class="check">✓</span></button>
+
+                            <div class="dropdown-group-title">Анимации</div>
+                            <label class="dropdown-item" for="panel-animations">
+                                <span>Включены</span>
+                                <input type="checkbox" id="panel-animations" data-set-animations>
+                            </label>
+                        </div>
+                    </div>
                     <div class="user-info">
                         <span class="user-avatar"><?= strtoupper(substr($user['login'] ?? 'A', 0, 1)) ?></span>
                         <span class="user-name"><?= $user['login'] ?? 'Администратор' ?></span>

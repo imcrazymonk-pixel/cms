@@ -22,6 +22,34 @@
     if (prefs.fontSize) html.setAttribute('data-font-size', prefs.fontSize);
     if (prefs.animations === false) html.setAttribute('data-animations', 'false');
     else html.removeAttribute('data-animations');
+    updateActiveStates(prefs);
+  }
+
+  // Подсветка активных опций в dropdown настроек
+  function updateActiveStates(prefs) {
+    document.querySelectorAll('[data-set-theme]').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-set-theme') === prefs.theme);
+    });
+    document.querySelectorAll('[data-set-mode]').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-set-mode') === prefs.mode);
+    });
+    document.querySelectorAll('[data-set-density]').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-set-density') === prefs.density);
+    });
+    document.querySelectorAll('[data-set-radius]').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-set-radius') === prefs.radius);
+    });
+    document.querySelectorAll('[data-set-font-size]').forEach(function (el) {
+      el.classList.toggle('active', el.getAttribute('data-set-font-size') === prefs.fontSize);
+    });
+    const animToggle = document.querySelector('[data-set-animations]');
+    if (animToggle) animToggle.checked = prefs.animations !== false;
+  }
+
+  function closeAllDropdowns() {
+    document.querySelectorAll('.dropdown-menu.open').forEach(function (m) {
+      m.classList.remove('open');
+    });
   }
 
   function init() {
@@ -35,31 +63,77 @@
     if (prefs.animations === undefined) prefs.animations = true;
     applyPrefs(prefs);
 
-    // Переключение темы/режима через data-атрибуты на кнопках
+    // Клики: dropdown, настройки вида, сайдбар
     document.addEventListener('click', function (e) {
+      // Открытие/закрытие dropdown
+      const toggle = e.target.closest('[data-dropdown-toggle]');
+      if (toggle) {
+        e.preventDefault();
+        const menu = toggle.parentElement.querySelector('.dropdown-menu');
+        const willOpen = menu && !menu.classList.contains('open');
+        closeAllDropdowns();
+        if (menu && willOpen) menu.classList.add('open');
+        return;
+      }
+
+      // Закрытие dropdown при клике вне его
+      if (!e.target.closest('.dropdown')) closeAllDropdowns();
+
+      let changed = false;
+
       const themeBtn = e.target.closest('[data-set-theme]');
       if (themeBtn) {
-        const prefs = getPrefs();
         prefs.theme = themeBtn.getAttribute('data-set-theme');
         setPrefs(prefs);
         saveToServer('theme', prefs.theme);
-        return;
+        changed = true;
       }
+
       const modeBtn = e.target.closest('[data-set-mode]');
       if (modeBtn) {
-        const prefs = getPrefs();
         prefs.mode = modeBtn.getAttribute('data-set-mode');
         setPrefs(prefs);
         saveToServer('mode', prefs.mode);
-        return;
+        changed = true;
       }
+
       const densityBtn = e.target.closest('[data-set-density]');
       if (densityBtn) {
-        const prefs = getPrefs();
         prefs.density = densityBtn.getAttribute('data-set-density');
         setPrefs(prefs);
-        return;
+        changed = true;
       }
+
+      const radiusBtn = e.target.closest('[data-set-radius]');
+      if (radiusBtn) {
+        prefs.radius = radiusBtn.getAttribute('data-set-radius');
+        setPrefs(prefs);
+        changed = true;
+      }
+
+      const fontSizeBtn = e.target.closest('[data-set-font-size]');
+      if (fontSizeBtn) {
+        prefs.fontSize = fontSizeBtn.getAttribute('data-set-font-size');
+        setPrefs(prefs);
+        changed = true;
+      }
+
+      if (changed) closeAllDropdowns();
+    });
+
+    // Переключатель анимаций (чекбокс)
+    document.addEventListener('change', function (e) {
+      const animToggle = e.target.closest('[data-set-animations]');
+      if (animToggle) {
+        const prefs = getPrefs();
+        prefs.animations = animToggle.checked;
+        setPrefs(prefs);
+      }
+    });
+
+    // Escape закрывает dropdown
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeAllDropdowns();
     });
 
     // Сворачивание сайдбара
