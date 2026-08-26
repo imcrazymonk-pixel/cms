@@ -87,10 +87,9 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
                     <span>Поиск по разделам...</span><kbd>Ctrl K</kbd>
                 </div>
                 <div class="header-actions">
-                    <!-- Переключатель тем и режима -->
-                    <button type="button" class="btn-icon" id="theme-toggle" title="Сменить тему"><?= icon('palette') ?></button>
-                    <!-- Настройки вида -->
+                    <!-- Переключатель тем и режима / Настройки вида (один dropdown) -->
                     <div class="dropdown">
+                        <button type="button" class="btn-icon" id="theme-toggle" data-dropdown-toggle title="Сменить тему"><?= icon('palette') ?></button>
                         <button type="button" class="btn-icon" data-dropdown-toggle title="Настройки вида"><?= icon('settings') ?></button>
                         <div class="dropdown-menu">
                             <div class="dropdown-group-title">Тема</div>

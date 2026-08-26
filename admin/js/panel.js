@@ -136,18 +136,6 @@
       if (e.key === 'Escape') closeAllDropdowns();
     });
 
-    // Кнопка "Сменить тему" открывает тот же dropdown настроек вида
-    const themeToggle = document.getElementById('theme-toggle');
-    if (themeToggle) {
-      themeToggle.addEventListener('click', function () {
-        const menu = document.querySelector('.dropdown-menu');
-        if (!menu) return;
-        const willOpen = !menu.classList.contains('open');
-        closeAllDropdowns();
-        if (willOpen) menu.classList.add('open');
-      });
-    }
-
     // Сворачивание сайдбара
     const collapseBtn = document.getElementById('sidebar-collapse-btn');
     if (collapseBtn) {
