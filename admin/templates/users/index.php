@@ -1,8 +1,3 @@
-<div class="page-header-actions">
-    <h2>Пользователи</h2>
-    <button type="button" class="btn btn-primary" onclick="toggleUserForm()"><?= icon('add') ?> Добавить пользователя</button>
-</div>
-
 <?php if (Request::get('success') === 'created'): ?>
 <div class="alert alert-success">Пользователь создан</div>
 <?php elseif (Request::get('success') === 'updated'): ?>
@@ -16,72 +11,71 @@
 <?php endif; ?>
 
 <!-- Форма добавления -->
-<div id="user-form" class="form-container" style="display: none;">
-    <form method="POST" action="/admin/users/store" class="form-inline">
+<div id="user-form" class="card" style="display: none; margin-bottom: 16px;">
+    <form method="POST" action="/admin/users/store">
         <?= csrf_field() ?>
-        <input type="text" name="login" class="form-control" placeholder="Логин" required>
-        <input type="email" name="email" class="form-control" placeholder="Email" required>
-        <input type="password" name="password" class="form-control" placeholder="Пароль" required>
-        <select name="role" class="form-control">
-            <option value="author">Автор</option>
-            <option value="editor">Редактор</option>
-            <option value="admin">Администратор</option>
-        </select>
-        <button type="submit" class="btn btn-success">Сохранить</button>
-        <button type="button" class="btn btn-secondary" onclick="toggleUserForm()">Отмена</button>
+        <div class="form-row">
+            <div class="form-group">
+                <input type="text" name="login" placeholder="Логин" required>
+            </div>
+            <div class="form-group">
+                <input type="email" name="email" placeholder="Email" required>
+            </div>
+            <div class="form-group">
+                <input type="password" name="password" placeholder="Пароль" required>
+            </div>
+            <div class="form-group">
+                <select name="role">
+                    <option value="author">Автор</option>
+                    <option value="editor">Редактор</option>
+                    <option value="admin">Администратор</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+            <button type="button" class="btn btn-ghost" onclick="toggleUserForm()">Отмена</button>
+        </div>
     </form>
 </div>
 
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Логин</th>
-            <th>Email</th>
-            <th>Роль</th>
-            <th>Постов</th>
-            <th>Комментариев</th>
-            <th>Действия</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php if (!empty($users)): ?>
-            <?php foreach ($users as $userItem): ?>
-            <tr>
-                <td><?= $userItem['id'] ?></td>
-                <td><?= TemplateEngine::e($userItem['login']) ?></td>
-                <td><?= TemplateEngine::e($userItem['email']) ?></td>
-                <td>
-                    <span class="badge badge-<?= $userItem['role'] ?>">
-                        <?= $userItem['role'] === 'admin' ? 'Администратор' : ($userItem['role'] === 'editor' ? 'Редактор' : 'Автор') ?>
-                    </span>
-                </td>
-                <td><?= $userItem['posts_count'] ?></td>
-                <td><?= $userItem['comments_count'] ?></td>
-                <td class="actions">
-                    <?php if ($userItem['id'] != Auth::id()): ?>
-                    <a href="/admin/users/delete/<?= $userItem['id'] ?>" class="btn btn-sm btn-danger"
-                       onclick="return confirm('Удалить пользователя?')" title="Удалить"><?= icon('delete') ?></a>
-                    <?php else: ?>
-                    <span class="text-muted">Вы</span>
-                    <?php endif; ?>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <tr>
-                <td colspan="7" class="text-center">
-                    <div class="empty-state">
-                        <div class="empty-icon"><?= icon('users') ?></div>
-                        <h3>Пользователей пока нет</h3>
-                        <p>Пригласите первого пользователя или создайте вручную</p>
-                        <a href="/admin/users/create" class="btn btn-primary"><?= icon('add') ?> Добавить пользователя</a>
-                    </div>
-                </td>
-            </tr>
-        <?php endif; ?>
-    </tbody>
-</table>
+<div class="dg-toolbar">
+    <button type="button" class="btn btn-primary" onclick="toggleUserForm()"><?= icon('add') ?> Добавить пользователя</button>
+</div>
+
+<?php
+echo DataGrid::render([
+    'columns' => [
+        ['key' => 'id', 'label' => 'ID', 'sortable' => true],
+        ['key' => 'login', 'label' => 'Логин', 'html' => function ($row) {
+            return '<strong>' . TemplateEngine::e($row['login']) . '</strong>';
+        }],
+        ['key' => 'email', 'label' => 'Email', 'html' => function ($row) {
+            return TemplateEngine::e($row['email']);
+        }],
+        ['key' => 'role', 'label' => 'Роль', 'html' => function ($row) {
+            $labels = ['admin' => 'Администратор', 'editor' => 'Редактор', 'author' => 'Автор'];
+            $classes = ['admin' => 'badge-info', 'editor' => 'badge-neutral', 'author' => 'badge-neutral'];
+            $role = $row['role'] ?? 'author';
+            return '<span class="badge ' . ($classes[$role] ?? 'badge-neutral') . '">' . ($labels[$role] ?? $role) . '</span>';
+        }],
+        ['key' => 'posts_count', 'label' => 'Постов', 'sortable' => true],
+        ['key' => 'comments_count', 'label' => 'Комментариев'],
+        ['key' => '_actions', 'label' => 'Действия', 'html' => function ($row) {
+            if (($row['id'] ?? 0) == Auth::id()) {
+                return '<span class="text-muted">Вы</span>';
+            }
+            return '<a href="/admin/users/delete/' . $row['id'] . '" class="btn btn-sm btn-danger" title="Удалить" data-confirm="Удалить пользователя?">' . icon('delete') . '</a>';
+        }],
+    ],
+    'rows' => $users ?? [],
+    'empty' => [
+        'title' => 'Пользователей пока нет',
+        'text' => 'Пригласите первого пользователя или создайте вручную',
+        'icon' => 'users',
+    ],
+]);
+?>
 
 <script>
 function toggleUserForm() {
