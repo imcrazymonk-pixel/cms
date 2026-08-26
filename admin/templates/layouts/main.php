@@ -34,8 +34,8 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%236366f1'/%3E%3Ctext x='50' y='72' font-size='56' font-family='Arial' font-weight='bold' text-anchor='middle' fill='white'%3EC%3C/text%3E%3C/svg%3E">
     <!-- TinyMCE -->
     <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
-    <script src="<?= SITE_URL ?>/admin/js/panel.js" defer></script>
-    <script src="<?= SITE_URL ?>/admin/js/command-palette.js" defer></script>
+    <script src="<?= SITE_URL ?>/admin/js/panel.js?v=<?= filemtime(ADMIN_PATH . '/js/panel.js') ?>" defer></script>
+    <script src="<?= SITE_URL ?>/admin/js/command-palette.js?v=<?= filemtime(ADMIN_PATH . '/js/command-palette.js') ?>" defer></script>
 </head>
 <body>
     <a href="#main-content" class="skip-link">Перейти к содержимому</a>
