@@ -370,3 +370,26 @@ $router->get('{slug}', function($slug) {
 $router->get('blog', function() {
     redirect('/');
 });
+
+// ============================================
+// Настройки вида панели (добавлено: редизайн админки)
+// ============================================
+
+// Сохранение пользовательской настройки панели (тема/режим)
+// Внутренний эндпоинт для fetch из админки. CSRF строго не проверяем:
+// это собственная страница панели (fetch из своего же UI), сессия уже
+// пройдена через Auth::requireAdmin(). Значения валидируются по белому списку.
+$router->post('admin/settings/save-preference', function() {
+    Auth::requireAdmin();
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $key = $body['key'] ?? '';
+    $value = $body['value'] ?? '';
+    $allowed = ['theme', 'mode', 'density', 'radius', 'fontSize'];
+    if (in_array($key, $allowed, true) && $value !== '') {
+        $pref = new UserPreference();
+        $pref->set(Auth::id(), $key, (string)$value);
+    }
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => true]);
+});

@@ -1,5 +1,22 @@
+<?php
+// Настройки вида панели из БД (тема/режим/плотность/радиус/шрифт), дефолты если пусто
+$panelPrefs = [];
+try {
+    if (Auth::id()) {
+        $panelPrefs = (new UserPreference())->getAll(Auth::id());
+    }
+} catch (\Throwable $e) {
+    $panelPrefs = [];
+}
+$panelTheme = $panelPrefs['theme'] ?? 'obsidian';
+$panelMode = $panelPrefs['mode'] ?? 'dark';
+$panelDensity = $panelPrefs['density'] ?? 'comfortable';
+$panelRadius = $panelPrefs['radius'] ?? 'default';
+$panelFontSize = $panelPrefs['fontSize'] ?? 'default';
+$panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animations'] === 'false');
+?>
 <!DOCTYPE html>
-<html lang="ru" data-theme="obsidian" data-mode="dark" data-density="comfortable" data-radius="default" data-font-size="default">
+<html lang="ru" data-theme="<?= $panelTheme ?>" data-mode="<?= $panelMode ?>" data-density="<?= $panelDensity ?>" data-radius="<?= $panelRadius ?>" data-font-size="<?= $panelFontSize ?>"<?= $panelAnimationsOff ? ' data-animations="false"' : '' ?>>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
