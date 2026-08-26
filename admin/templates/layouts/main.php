@@ -82,16 +82,16 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
 
         <main class="panel-main" id="main-content">
             <header class="panel-header">
-                <button class="btn-icon" id="sidebar-collapse-btn" title="Свернуть меню"><?= icon('menu') ?></button>
+                <button type="button" class="btn-icon" id="sidebar-collapse-btn" title="Свернуть меню"><?= icon('menu') ?></button>
                 <div class="header-search" id="command-palette-trigger">
                     <span>Поиск по разделам...</span><kbd>Ctrl K</kbd>
                 </div>
                 <div class="header-actions">
                     <!-- Переключатель тем и режима -->
-                    <button class="btn-icon" id="theme-toggle" title="Сменить тему"><?= icon('palette') ?></button>
+                    <button type="button" class="btn-icon" id="theme-toggle" title="Сменить тему"><?= icon('palette') ?></button>
                     <!-- Настройки вида -->
                     <div class="dropdown">
-                        <button class="btn-icon" data-dropdown-toggle title="Настройки вида"><?= icon('settings') ?></button>
+                        <button type="button" class="btn-icon" data-dropdown-toggle title="Настройки вида"><?= icon('settings') ?></button>
                         <div class="dropdown-menu">
                             <div class="dropdown-group-title">Тема</div>
                             <button type="button" class="dropdown-item" data-set-theme="obsidian"><span>Obsidian</span><span class="check">✓</span></button>

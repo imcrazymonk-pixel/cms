@@ -18,7 +18,8 @@ echo DataGrid::render([
             return round((int)$v / 1024, 1) . ' KB';
         }],
         ['key' => 'modified', 'label' => 'Изменён', 'format' => function ($v) {
-            return format_date($v, 'd.m.Y H:i');
+            // modified приходит как unix-таймстамп (filemtime), format_date() рассчитан на строки
+            return is_numeric($v) ? date('d.m.Y H:i', (int)$v) : format_date($v, 'd.m.Y H:i');
         }],
         ['key' => '_actions', 'label' => 'Действия', 'html' => function ($row) {
             return '<button type="button" class="btn btn-sm btn-danger" title="Удалить" onclick="deleteFile(\'' . TemplateEngine::e($row['path']) . '\')">' . icon('delete') . '</button>';

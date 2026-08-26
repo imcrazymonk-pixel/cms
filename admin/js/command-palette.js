@@ -58,6 +58,7 @@
 
     searchInput = document.createElement('input');
     searchInput.type = 'text';
+    searchInput.id = 'cp-search-input';
     searchInput.placeholder = 'Поиск по разделам...';
     searchInput.autocomplete = 'off';
     searchInput.spellcheck = false;
