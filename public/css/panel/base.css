@@ -1,0 +1,50 @@
+/* ============================================
+   Panel Base — reset, body, scrollbar, focus
+   ============================================ */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--surface-body);
+  color: var(--text-body);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Скроллбар — градиент акцента */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--surface-body); }
+::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  background: linear-gradient(180deg, var(--accent-from), var(--accent-to));
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--accent-from-light), var(--accent-to-light));
+}
+
+::selection { background: rgba(var(--selection-rgb), 0.3); }
+
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+a { color: hsl(var(--primary)); text-decoration: none; }
+a:hover { color: hsl(var(--ring)); }
+
+/* Табличные числа — выравнивание цифр */
+table, code, pre, kbd, .tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
