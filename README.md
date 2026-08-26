@@ -34,8 +34,10 @@ cms/
 │   │   ├── SettingsController.php
 │   │   └── UsersController.php
 │   ├── css/
-│   │   └── admin.css           # Стили админки
+│   │   └── admin.css           # Стили админки (легаси, заменены на public/css/panel/)
 │   ├── js/
+│   │   ├── panel.js            # Темы, режим, настройки вида, сайдбар, confirm
+│   │   ├── command-palette.js  # Командная палитра (Ctrl+K)
 │   │   └── tinymce-lang-ru.js  # Локализация TinyMCE
 │   ├── templates/              # Шаблоны админки
 │   ├── .htaccess
@@ -50,10 +52,12 @@ cms/
 │   │   ├── Page.php
 │   │   ├── Post.php
 │   │   ├── Setting.php
-│   │   └── User.php
+│   │   ├── User.php
+│   │   └── UserPreference.php  # Настройки вида панели (тема/режим и др.)
 │   ├── Auth.php                # Аутентификация
 │   ├── Autoloader.php          # Автозагрузчик классов
 │   ├── Database.php            # Работа с БД (PDO wrapper)
+│   ├── DataGrid.php            # Рендерер таблиц админки
 │   ├── helpers.php             # Вспомогательные функции
 │   ├── Request.php             # HTTP запросы
 │   ├── Router.php              # Маршрутизация
@@ -63,8 +67,18 @@ cms/
 ├── install/
 │   └── index.php               # Мастер установки
 ├── public/
-│   └── css/
-│       └── style.css           # Стили сайта
+│   ├── css/
+│   │   ├── style.css           # Стили сайта
+│   │   └── panel/              # Дизайн-система админки
+│   │       ├── tokens.css      # Токены (шрифты, радиусы, тени, glass, mesh)
+│   │       ├── themes.css      # 6 акцентных тем + светлый режим
+│   │       ├── base.css        # Reset, скроллбар, фокус
+│   │       ├── effects.css     # Glass, mesh-фон, glow, shimmer, палитра
+│   │       ├── components.css  # Кнопки, бейджи, карточки, формы, dropdown
+│   │       ├── table.css       # Стили DataGrid
+│   │       └── layout.css      # Сайдбар, шапка, дашборд, логин
+├── db/
+│   └── migrations/             # SQL-миграции (2026-08-26-user-preferences.sql)
 ├── templates/                  # Шаблоны сайта
 │   ├── page/                   # Шаблоны страниц (default, fullwidth, landing, blank)
 │   └── themes/                 # Темы оформления
@@ -139,6 +153,19 @@ cms/
 - Расположение: главное меню / футер
 - Автогенерация URL с транслитерацией
 
+### 🎨 Дизайн-система панели (remnawave-стиль)
+
+Админ-панель построена на собственной дизайн-системе (vanilla CSS/JS, без сборщиков):
+
+- **Настройки вида** (кнопка шестерёнки в шапке): 6 акцентных тем (Obsidian, Halo, Arctic, Sakura, Twilight, Ember), тёмный/светлый режим, плотность (Compact/Comfortable/Spacious), радиус (Sharp/Default/Rounded), размер шрифта (S/M/L), анимации вкл/выкл.
+- **Сохранение настроек**: тема и режим хранятся в БД (`user_preferences`, таблица закреплена за пользователем), остальное — в `localStorage`. Настройки темы/режима рендерятся на `<html>` сервером ещё до загрузки JS.
+- **Командная палитра** — `Ctrl+K` (или клик по строке поиска в шапке): быстрый переход между разделами.
+- **DataGrid** (`core/DataGrid.php`) — единый рендерер таблиц админки: сортировка, empty-состояния, действия с подтверждением (`data-confirm`).
+- **Анимация**: анимированный mesh-фон, glass-карточки, плавные появления; уважает `prefers-reduced-motion` и отключается настройкой «Анимации».
+- **Иконки** — inline Lucide (stroke-based) через `icon($name, $class)`.
+
+> Структура CSS: `public/css/panel/` (токены → темы → база → эффекты → компоненты → таблицы → layout). Файлы админки не превышают 500 строк.
+
 ## 🗄️ База данных
 
 ### Таблицы
@@ -155,6 +182,7 @@ cms/
 | `menus` | Пункты меню |
 | `settings` | Настройки сайта |
 | `media` | Медиафайлы |
+| `user_preferences` | Настройки вида панели (тема, режим и др., по пользователю) |
 
 ## 🔐 Безопасность
 
