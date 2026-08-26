@@ -1,78 +1,73 @@
-<div class="page-header-actions">
-    <h2>Меню</h2>
-    <button type="button" class="btn btn-primary" onclick="toggleMenuForm()"><?= icon('add') ?> Добавить пункт</button>
-</div>
-
 <?php if (Request::get('success') === 'created'): ?>
-<div class="alert alert-success"><?= icon('success') ?> Пункт меню добавлен</div>
+<div class="alert alert-success">Пункт меню добавлен</div>
 <?php elseif (Request::get('success') === 'deleted'): ?>
-<div class="alert alert-info"><?= icon('info') ?> Пункт меню удалён</div>
+<div class="alert alert-info">Пункт меню удалён</div>
 <?php elseif (Request::get('success') === 'updated'): ?>
-<div class="alert alert-success"><?= icon('success') ?> Пункт меню обновлён</div>
+<div class="alert alert-success">Пункт меню обновлён</div>
 <?php endif; ?>
 
 <?php if (Session::get('menu_error')): ?>
-<div class="alert alert-error"><?= icon('error') ?> <?= Session::flash('menu_error') ?></div>
+<div class="alert alert-error"><?= Session::flash('menu_error') ?></div>
 <?php endif; ?>
 
 <!-- Форма добавления -->
-<div id="menu-form" class="form-container" style="display: none;">
-    <form method="POST" action="/admin/menus/store" class="form-inline">
+<div id="menu-form" class="card" style="display: none; margin-bottom: 16px;">
+    <form method="POST" action="/admin/menus/store">
         <?= csrf_field() ?>
-        <input type="text" name="name" class="form-control" placeholder="Название" required>
-        <input type="text" name="url" class="form-control" placeholder="URL (например, /about)" required>
-        <select name="location" class="form-control">
-            <option value="main">Главное меню</option>
-            <option value="footer">Футер</option>
-        </select>
-        <button type="submit" class="btn btn-success"><?= icon('add') ?> Добавить</button>
-        <button type="button" class="btn btn-secondary" onclick="toggleMenuForm()">Отмена</button>
+        <div class="form-row">
+            <div class="form-group">
+                <input type="text" name="name" placeholder="Название" required>
+            </div>
+            <div class="form-group">
+                <input type="text" name="url" placeholder="URL (например, /about)" required>
+            </div>
+            <div class="form-group">
+                <select name="location">
+                    <option value="main">Главное меню</option>
+                    <option value="footer">Футер</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><?= icon('add') ?> Добавить</button>
+            <button type="button" class="btn btn-ghost" onclick="toggleMenuForm()">Отмена</button>
+        </div>
     </form>
 </div>
 
-<table class="data-table">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Название</th>
-            <th>URL</th>
-            <th>Расположение</th>
-            <th>Действия</th>
-        </tr>
-    </thead>
-    <tbody>
-        <?php if (!empty($menus)): ?>
-            <?php foreach ($menus as $menuItem): ?>
-            <tr>
-                <td><?= $menuItem['id'] ?></td>
-                <td><strong><?= TemplateEngine::e($menuItem['name']) ?></strong></td>
-                <td><code><?= TemplateEngine::e($menuItem['url']) ?></code></td>
-                <td>
-                    <span class="badge badge-<?= $menuItem['location'] ?>">
-                        <?= $menuItem['location'] === 'main' ? 'Главное' : 'Футер' ?>
-                    </span>
-                </td>
-                <td class="actions">
-                    <a href="/admin/menus/edit/<?= $menuItem['id'] ?>" class="btn btn-sm btn-primary" title="Редактировать"><?= icon('edit') ?></a>
-                    <a href="/admin/menus/delete/<?= $menuItem['id'] ?>" class="btn btn-sm btn-danger"
-                       onclick="return confirm('Удалить пункт меню?')" title="Удалить"><?= icon('delete') ?></a>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-        <?php else: ?>
-            <tr>
-                <td colspan="5" class="text-center">
-                    <div class="empty-state">
-                        <div class="empty-icon"><?= icon('menus') ?></div>
-                        <h3>Пунктов меню пока нет</h3>
-                        <p>Добавьте первый пункт меню для навигации по сайту</p>
-                        <button class="btn btn-primary" onclick="toggleMenuForm()"><?= icon('add') ?> Добавить пункт</button>
-                    </div>
-                </td>
-            </tr>
-        <?php endif; ?>
-    </tbody>
-</table>
+<div class="dg-toolbar">
+    <button type="button" class="btn btn-primary" onclick="toggleMenuForm()"><?= icon('add') ?> Добавить пункт</button>
+</div>
+
+<?php
+echo DataGrid::render([
+    'columns' => [
+        ['key' => 'id', 'label' => 'ID', 'sortable' => true],
+        ['key' => 'name', 'label' => 'Название', 'html' => function ($row) {
+            return '<strong>' . TemplateEngine::e($row['name']) . '</strong>';
+        }],
+        ['key' => 'url', 'label' => 'URL', 'html' => function ($row) {
+            return '<code>' . TemplateEngine::e($row['url']) . '</code>';
+        }],
+        ['key' => 'location', 'label' => 'Расположение', 'html' => function ($row) {
+            $loc = $row['location'] ?? 'main';
+            $cls = $loc === 'main' ? 'badge-success' : 'badge-neutral';
+            $label = $loc === 'main' ? 'Главное' : 'Футер';
+            return '<span class="badge ' . $cls . '">' . $label . '</span>';
+        }],
+    ],
+    'rows' => $menus ?? [],
+    'actions' => [
+        ['label' => 'edit', 'url' => '/admin/menus/edit/{id}', 'icon' => 'edit'],
+        ['label' => 'delete', 'url' => '/admin/menus/delete/{id}', 'icon' => 'delete', 'confirm' => 'Удалить пункт меню?'],
+    ],
+    'empty' => [
+        'title' => 'Пунктов меню пока нет',
+        'text' => 'Добавьте первый пункт меню для навигации по сайту',
+        'icon' => 'menus',
+    ],
+]);
+?>
 
 <script>
 // Транслитерация кириллицы в латиницу
@@ -94,7 +89,7 @@ function transliterate(word) {
         'Э': 'E', 'Ю': 'Yu', 'Я': 'Ya',
         '№': ''
     };
-    
+
     let result = '';
     for (let i = 0; i < word.length; i++) {
         result += transliteration[word[i]] || word[i];
@@ -113,13 +108,13 @@ let userEditedUrl = false;
 document.addEventListener('DOMContentLoaded', function() {
     const nameInput = document.querySelector('#menu-form input[name="name"]');
     const urlInput = document.querySelector('#menu-form input[name="url"]');
-    
+
     if (nameInput && urlInput) {
         // Отслеживаем ручное редактирование URL
         urlInput.addEventListener('input', function() {
             userEditedUrl = true;
         });
-        
+
         // Генерируем URL только если пользователь не редактировал его вручную
         nameInput.addEventListener('input', function() {
             if (!userEditedUrl) {
