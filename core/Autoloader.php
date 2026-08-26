@@ -29,6 +29,7 @@ class Autoloader
             'Session' => CORE_PATH . '/Session.php',
             'Auth' => CORE_PATH . '/Auth.php',
             'Hooks' => CORE_PATH . '/Hooks.php',
+            'DataGrid' => CORE_PATH . '/DataGrid.php',
         ];
 
         if (isset($classMap[$class])) {
