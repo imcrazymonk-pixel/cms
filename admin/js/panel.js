@@ -70,6 +70,17 @@
         if (sidebar) sidebar.classList.toggle('sidebar-collapsed');
       });
     }
+
+    // Подтверждение опасных действий (ссылки с data-confirm, рендерятся DataGrid)
+    document.addEventListener('click', function (e) {
+      const link = e.target.closest('[data-confirm]');
+      if (link) {
+        const msg = link.getAttribute('data-confirm');
+        if (msg && !window.confirm(msg)) {
+          e.preventDefault();
+        }
+      }
+    });
   }
 
   // Сохранение темы/режима на сервер (per-user)

@@ -71,10 +71,15 @@ class DataGrid
             if ($actions) {
                 $html .= '<td class="actions">';
                 foreach ($actions as $act) {
-                    $url = str_replace('{id}', (string)($row['id'] ?? ''), $act['url'] ?? '#');
+                    // Заменяем плейсхолдеры {field} значениями из строки (id, slug, ...)
+                    $url = $act['url'] ?? '#';
+                    $url = preg_replace_callback('/\{(\w+)\}/', function ($m) use ($row) {
+                        return (string)($row[$m[1]] ?? $m[0]);
+                    }, $url);
                     $target = !empty($act['target']) ? ' target="' . $act['target'] . '"' : '';
                     $title = $act['label'] ?? '';
-                    $html .= '<a href="' . $url . '" class="btn btn-sm btn-ghost" title="' . TemplateEngine::e($title) . '"' . $target . '>';
+                    $confirm = !empty($act['confirm']) ? ' data-confirm="' . TemplateEngine::e($act['confirm']) . '"' : '';
+                    $html .= '<a href="' . $url . '" class="btn btn-sm btn-ghost" title="' . TemplateEngine::e($title) . '"' . $target . $confirm . '>';
                     if (!empty($act['icon'])) $html .= icon($act['icon']);
                     elseif ($act['label'] ?? '') $html .= TemplateEngine::e($act['label']);
                     $html .= '</a>';
