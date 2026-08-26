@@ -1,0 +1,204 @@
+/* ============================================
+   Panel Themes — 6 акцентов + light mode
+   Применяются через data-theme / data-mode на <html>
+   ============================================ */
+
+/* === Базовые (default = Obsidian, индиго) === */
+:root,
+[data-theme="obsidian"] {
+  --background: 220 24% 7%;          /* hsl, основной фон */
+  --foreground: 220 9% 84%;
+  --card: 220 20% 10%;
+  --card-foreground: 220 9% 84%;
+  --popover: 220 20% 10%;
+  --popover-foreground: 220 9% 84%;
+  --primary: 239 84% 67%;            /* #6366f1 indigo */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 16%;
+  --secondary-foreground: 220 9% 84%;
+  --muted: 220 14% 16%;
+  --muted-foreground: 220 9% 56%;
+  --accent: 220 14% 16%;
+  --accent-foreground: 220 9% 84%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 14% 18%;
+  --input: 220 14% 18%;
+  --ring: 239 84% 67%;
+
+  /* Sidebar */
+  --sidebar-background: 220 22% 8%;
+  --sidebar-foreground: 220 9% 84%;
+  --sidebar-primary: 239 84% 67%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 220 14% 14%;
+  --sidebar-accent-foreground: 220 9% 84%;
+  --sidebar-border: 220 14% 16%;
+  --sidebar-ring: 239 84% 67%;
+
+  /* Акцент/glow */
+  --accent-from: #6366f1;
+  --accent-to: #818cf8;
+  --accent-from-light: #818cf8;
+  --accent-to-light: #a5b4fc;
+  --glow-rgb: 99, 102, 241;
+  --selection-rgb: 99, 102, 241;
+
+  /* Поверхности */
+  --surface-body: #0f1318;
+  --surface-card: #181e28;
+  --surface-card-alpha: rgba(24, 30, 40, 0.8);
+  --surface-hover: rgba(35, 40, 54, 0.5);
+  --surface-table-header: rgba(15, 19, 24, 0.8);
+  --surface-dropdown: rgba(24, 30, 40, 0.98);
+  --surface-skeleton-shimmer: rgba(99, 102, 241, 0.04);
+
+  /* Текст */
+  --text-body: #d1d5db;
+  --text-heading: #f3f4f6;
+  --text-muted: #6b7280;
+
+  /* Glass */
+  --glass-bg: rgba(22, 28, 38, 0.5);
+  --glass-bg-hover: rgba(22, 28, 38, 0.6);
+  --glass-bg-solid: #181e28;
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-hover: rgba(255, 255, 255, 0.14);
+  --glass-highlight: rgba(255, 255, 255, 0.04);
+
+  /* Mesh */
+  --mesh-color-1: #2d2a6e;
+  --mesh-color-2: #4338ca;
+  --mesh-color-3: #2563a0;
+  --mesh-color-4: #162240;
+}
+
+/* === Halo (cyan/teal — фирменный) === */
+[data-theme="halo"] {
+  --primary: 190 90% 46%;
+  --ring: 190 90% 46%;
+  --sidebar-primary: 190 90% 46%;
+  --sidebar-ring: 190 90% 46%;
+  --accent-from: #22d3ee;
+  --accent-to: #3b82f6;
+  --accent-from-light: #67e8f9;
+  --accent-to-light: #7dd3fc;
+  --glow-rgb: 34, 211, 238;
+  --selection-rgb: 34, 211, 238;
+  --surface-skeleton-shimmer: rgba(34, 211, 238, 0.04);
+  --mesh-color-1: #0e7e9c;
+  --mesh-color-2: #2056ad;
+  --mesh-color-3: #11a3c4;
+  --mesh-color-4: #2a2f7a;
+}
+
+/* === Arctic (sky-blue) === */
+[data-theme="arctic"] {
+  --primary: 199 89% 48%;
+  --ring: 199 89% 48%;
+  --sidebar-primary: 199 89% 48%;
+  --sidebar-ring: 199 89% 48%;
+  --accent-from: #0ea5e9;
+  --accent-to: #38bdf8;
+  --accent-from-light: #38bdf8;
+  --accent-to-light: #7dd3fc;
+  --glow-rgb: 14, 165, 233;
+  --selection-rgb: 14, 165, 233;
+  --surface-skeleton-shimmer: rgba(14, 165, 233, 0.04);
+  --mesh-color-1: #0e6da0;
+  --mesh-color-2: #0284c7;
+  --mesh-color-3: #1e6e8a;
+  --mesh-color-4: #143860;
+}
+
+/* === Sakura (pink-rose) === */
+[data-theme="sakura"] {
+  --primary: 330 81% 60%;
+  --ring: 330 81% 60%;
+  --sidebar-primary: 330 81% 60%;
+  --sidebar-ring: 330 81% 60%;
+  --accent-from: #ec4899;
+  --accent-to: #f472b6;
+  --accent-from-light: #f472b6;
+  --accent-to-light: #f9a8d4;
+  --glow-rgb: 236, 72, 153;
+  --selection-rgb: 236, 72, 153;
+  --surface-skeleton-shimmer: rgba(236, 72, 153, 0.04);
+  --mesh-color-1: #6e2560;
+  --mesh-color-2: #9d3070;
+  --mesh-color-3: #551845;
+  --mesh-color-4: #2a1028;
+}
+
+/* === Twilight (purple-violet) === */
+[data-theme="twilight"] {
+  --primary: 263 70% 58%;
+  --ring: 263 70% 58%;
+  --sidebar-primary: 263 70% 58%;
+  --sidebar-ring: 263 70% 58%;
+  --accent-from: #8b5cf6;
+  --accent-to: #a78bfa;
+  --accent-from-light: #a78bfa;
+  --accent-to-light: #c4b5fd;
+  --glow-rgb: 139, 92, 246;
+  --selection-rgb: 139, 92, 246;
+  --surface-skeleton-shimmer: rgba(139, 92, 246, 0.04);
+  --mesh-color-1: #4c1d95;
+  --mesh-color-2: #5b21b6;
+  --mesh-color-3: #2d2a6e;
+  --mesh-color-4: #261545;
+}
+
+/* === Ember (warm amber) === */
+[data-theme="ember"] {
+  --primary: 38 92% 50%;
+  --ring: 38 92% 50%;
+  --sidebar-primary: 38 92% 50%;
+  --sidebar-ring: 38 92% 50%;
+  --accent-from: #f59e0b;
+  --accent-to: #fbbf24;
+  --accent-from-light: #fbbf24;
+  --accent-to-light: #fcd34d;
+  --glow-rgb: 245, 158, 11;
+  --selection-rgb: 245, 158, 11;
+  --surface-skeleton-shimmer: rgba(245, 158, 11, 0.04);
+  --mesh-color-1: #6b2e08;
+  --mesh-color-2: #a34e15;
+  --mesh-color-3: #5a3510;
+  --mesh-color-4: #2e1808;
+}
+
+/* === СВЕТЛЫЙ РЕЖИМ === */
+[data-mode="light"] {
+  --background: 0 0% 98%;
+  --foreground: 220 28% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 220 28% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 28% 14%;
+  --secondary: 220 14% 92%;
+  --secondary-foreground: 220 28% 14%;
+  --muted: 220 14% 92%;
+  --muted-foreground: 220 9% 40%;
+  --accent: 220 14% 92%;
+  --accent-foreground: 220 28% 14%;
+  --border: 220 14% 86%;
+  --input: 220 14% 86%;
+
+  --sidebar-background: 220 14% 96%;
+  --sidebar-foreground: 220 28% 14%;
+  --sidebar-accent: 220 14% 90%;
+  --sidebar-accent-foreground: 220 28% 14%;
+  --sidebar-border: 220 14% 88%;
+
+  --surface-body: #f8fafc;
+  --surface-card: #ffffff;
+  --surface-card-alpha: rgba(255, 255, 255, 0.9);
+  --surface-hover: rgba(241, 245, 249, 0.8);
+  --surface-table-header: rgba(248, 250, 252, 0.95);
+  --surface-dropdown: rgba(255, 255, 255, 0.98);
+
+  --text-body: #1e293b;
+  --text-heading: #0f172a;
+  --text-muted: #64748b;
+}
