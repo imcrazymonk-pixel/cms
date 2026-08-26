@@ -1,0 +1,159 @@
+/* ============================================
+   Panel Effects — glass, mesh, glow, shimmer, animations
+   ============================================ */
+
+/* === Glass === */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+}
+.glass:hover {
+  background: var(--glass-bg-hover);
+  border-color: var(--glass-border-hover);
+}
+
+.glass-rim {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-top-color: rgba(255, 255, 255, 0.12);
+  border-left-color: rgba(255, 255, 255, 0.04);
+}
+
+.glass-heavy {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
+  border: 1px solid var(--glass-border);
+}
+
+/* === Glass Card (с верхней акцентной линией) === */
+.glass-card {
+  --card-rgb: var(--card-accent-rgb, var(--glow-rgb));
+  position: relative;
+  background:
+    linear-gradient(135deg, rgba(var(--card-rgb), 0.04) 0%, var(--glass-bg) 50%, rgba(var(--card-rgb), 0.02) 100%);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15), 0 1px 0 0 rgba(255, 255, 255, 0.04) inset;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
+  overflow: hidden;
+}
+.glass-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 5%, rgba(var(--card-rgb), 0.6) 50%, transparent 95%);
+  opacity: 0.35;
+  transition: opacity 0.3s ease;
+  z-index: 1;
+}
+.glass-card:hover::before { opacity: 0.75; }
+.glass-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--glass-border-hover);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2), 0 1px 0 0 rgba(255, 255, 255, 0.06) inset, 0 0 20px -5px rgba(var(--card-rgb), 0.18);
+}
+.glass-card:active { transform: scale(0.985); }
+
+/* === Mesh-фон (анимированный, фиксированный за контентом) === */
+.mesh-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.mesh-layer {
+  position: absolute;
+  inset: -25%;
+  opacity: 0.22;
+  will-change: transform;
+  contain: layout paint;
+}
+.mesh-layer--1 { background: radial-gradient(ellipse 40% 33% at 23% 30%, var(--mesh-color-1) 0%, transparent 70%); animation: meshFloat1 25s ease-in-out infinite; }
+.mesh-layer--2 { background: radial-gradient(ellipse 33% 40% at 70% 37%, var(--mesh-color-2) 0%, transparent 70%); animation: meshFloat2 30s ease-in-out infinite; }
+.mesh-layer--3 { background: radial-gradient(ellipse 30% 37% at 37% 63%, var(--mesh-color-3) 0%, transparent 70%); animation: meshFloat3 35s ease-in-out infinite; }
+.mesh-layer--4 { background: radial-gradient(ellipse 37% 30% at 63% 70%, var(--mesh-color-4) 0%, transparent 70%); animation: meshFloat1 28s ease-in-out infinite reverse; }
+.mesh-layer--5 { background: radial-gradient(ellipse 27% 27% at 50% 50%, var(--mesh-color-1) 0%, transparent 60%); opacity: 0.12; animation: meshFloat2 32s ease-in-out infinite; }
+
+[data-mode="light"] .mesh-layer { opacity: 0.08; }
+[data-animations="false"] .mesh-layer { animation: none; }
+
+@keyframes meshFloat1 {
+  0%, 100% { transform: translate(0%, 0%) scale(1); }
+  25% { transform: translate(5%, -8%) scale(1.05); }
+  50% { transform: translate(-3%, 6%) scale(0.98); }
+  75% { transform: translate(4%, 3%) scale(1.02); }
+}
+@keyframes meshFloat2 {
+  0%, 100% { transform: translate(0%, 0%) scale(1); }
+  33% { transform: translate(-4%, 5%) scale(1.03); }
+  66% { transform: translate(6%, -3%) scale(0.97); }
+}
+@keyframes meshFloat3 {
+  0%, 100% { transform: translate(0%, 0%) scale(1); }
+  20% { transform: translate(3%, -6%) scale(1.04); }
+  40% { transform: translate(-5%, 2%) scale(0.96); }
+  60% { transform: translate(2%, 5%) scale(1.02); }
+  80% { transform: translate(-3%, -4%) scale(0.99); }
+}
+
+/* === Glow === */
+.glow-accent { box-shadow: 0 0 30px -5px rgba(var(--glow-rgb), 0.3); }
+.glow-accent-hover:hover { box-shadow: 0 0 30px -5px rgba(var(--glow-rgb), 0.3); }
+
+/* === Skeleton shimmer === */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  background: hsl(var(--muted));
+}
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent 0%, var(--surface-skeleton-shimmer) 50%, transparent 100%);
+  animation: shimmer 1.5s infinite;
+}
+
+/* === Анимации появления === */
+@keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes fadeInUp { 0% { opacity: 0; transform: translateY(12px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes fadeInDown { 0% { opacity: 0; transform: translateY(-8px); } 100% { opacity: 1; transform: translateY(0); } }
+@keyframes scaleIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
+
+.anim-fade-in { animation: fadeIn 0.2s ease-out; }
+.anim-fade-in-up { animation: fadeInUp 0.35s ease-out both; }
+.anim-fade-in-down { animation: fadeInDown 0.3s ease-out both; }
+.anim-scale-in { animation: scaleIn 0.25s ease-out both; }
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
+
+/* Уважение к prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .mesh-layer { animation: none !important; }
+}
+
+/* === Настройки вида === */
+[data-animations="false"], [data-animations="false"] * {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+}
