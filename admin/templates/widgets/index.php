@@ -1,7 +1,3 @@
-<div class="page-header-actions">
-    <h2>Виджеты</h2>
-</div>
-
 <?php if (Request::get('success') === 'created'): ?>
 <div class="alert alert-success">Виджет добавлен</div>
 <?php elseif (Request::get('success') === 'updated'): ?>
@@ -15,15 +11,15 @@
     Содержимое поддерживает HTML.
 </div>
 
-<div class="settings-section">
-    <h3><?= $editWidget ? 'Редактирование виджета #' . $editWidget['id'] : 'Новый виджет' ?></h3>
+<div class="card" style="margin-bottom: 20px;">
+    <h3 class="page-header-title" style="margin: 0 0 16px;"><?= $editWidget ? 'Редактирование виджета #' . $editWidget['id'] : 'Новый виджет' ?></h3>
 
     <form method="POST" action="<?= $editWidget ? '/admin/widgets/update/' . $editWidget['id'] : '/admin/widgets/store' ?>">
         <?= csrf_field() ?>
 
         <div class="form-group">
             <label for="widget-area">Область</label>
-            <select id="widget-area" name="area" class="form-control">
+            <select id="widget-area" name="area">
                 <?php foreach ($areas as $areaKey => $areaLabel): ?>
                 <option value="<?= TemplateEngine::e($areaKey) ?>" <?= (($editWidget['area'] ?? '') === $areaKey) ? 'selected' : '' ?>><?= TemplateEngine::e($areaLabel) ?></option>
                 <?php endforeach; ?>
@@ -32,30 +28,32 @@
 
         <div class="form-group">
             <label for="widget-title">Заголовок (необязательно)</label>
-            <input type="text" id="widget-title" name="title" class="form-control"
+            <input type="text" id="widget-title" name="title"
                    value="<?= TemplateEngine::e($editWidget['title'] ?? '') ?>">
         </div>
 
         <div class="form-group">
             <label for="widget-content">Содержимое (HTML)</label>
-            <textarea id="widget-content" name="content" class="form-control editor" rows="6"><?= TemplateEngine::e($editWidget['content'] ?? '') ?></textarea>
+            <textarea id="widget-content" name="content" class="editor" rows="6"><?= TemplateEngine::e($editWidget['content'] ?? '') ?></textarea>
         </div>
 
         <div class="form-group">
             <label for="widget-sort">Порядок сортировки</label>
-            <input type="number" id="widget-sort" name="sort_order" class="form-control"
+            <input type="number" id="widget-sort" name="sort_order"
                    value="<?= (int)($editWidget['sort_order'] ?? 0) ?>" min="0" max="999" style="max-width:120px;">
         </div>
 
-        <button type="submit" class="btn btn-primary"><?= $editWidget ? icon('save') . ' Сохранить' : icon('add') . ' Добавить' ?></button>
-        <?php if ($editWidget): ?>
-        <a href="/admin/widgets" class="btn">Отмена</a>
-        <?php endif; ?>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary"><?= $editWidget ? icon('save') . ' Сохранить' : icon('add') . ' Добавить' ?></button>
+            <?php if ($editWidget): ?>
+            <a href="/admin/widgets" class="btn btn-ghost">Отмена</a>
+            <?php endif; ?>
+        </div>
     </form>
 </div>
 
-<div class="settings-section">
-    <h3>Установленные виджеты</h3>
+<div class="card">
+    <h3 class="page-header-title" style="margin: 0 0 16px;">Установленные виджеты</h3>
 
     <?php if (empty($widgets)): ?>
     <div class="empty-state">
@@ -64,39 +62,32 @@
         <p>Добавьте первый виджет, используя форму выше</p>
     </div>
     <?php else: ?>
-    <?php foreach ($areas as $areaKey => $areaLabel): $areaWidgets = array_filter($widgets, fn($w) => $w['area'] === $areaKey); ?>
-    <?php if (empty($areaWidgets)) continue; ?>
-    <h4 style="margin: 20px 0 10px;"><?= TemplateEngine::e($areaLabel) ?></h4>
-    <table class="admin-table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Заголовок</th>
-                <th>Порядок</th>
-                <th>Действия</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php foreach ($areaWidgets as $widget): ?>
-            <tr>
-                <td><?= $widget['id'] ?></td>
-                <td><?= TemplateEngine::e($widget['title'] ?: '(без заголовка)') ?></td>
-                <td><?= (int)$widget['sort_order'] ?></td>
-                <td>
-                    <a href="/admin/widgets?edit=<?= $widget['id'] ?>" class="btn btn-sm"><?= icon('edit') ?></a>
-                    <a href="/admin/widgets/delete/<?= $widget['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Удалить виджет?');"><?= icon('delete') ?></a>
-                </td>
-            </tr>
-            <?php endforeach; ?>
-        </tbody>
-    </table>
+    <?php foreach ($areas as $areaKey => $areaLabel): ?>
+        <?php
+        $areaWidgets = array_values(array_filter($widgets, function ($w) use ($areaKey) {
+            return $w['area'] === $areaKey;
+        }));
+        if (empty($areaWidgets)) continue;
+        ?>
+        <h4 style="margin: 20px 0 10px;"><?= TemplateEngine::e($areaLabel) ?></h4>
+        <?php
+        echo DataGrid::render([
+            'columns' => [
+                ['key' => 'id', 'label' => 'ID', 'sortable' => true],
+                ['key' => 'title', 'label' => 'Заголовок', 'html' => function ($row) {
+                    return TemplateEngine::e($row['title'] ?: '(без заголовка)');
+                }],
+                ['key' => 'sort_order', 'label' => 'Порядок', 'format' => function ($v) {
+                    return (int)$v;
+                }],
+            ],
+            'rows' => $areaWidgets,
+            'actions' => [
+                ['label' => 'edit', 'url' => '/admin/widgets?edit={id}', 'icon' => 'edit'],
+                ['label' => 'delete', 'url' => '/admin/widgets/delete/{id}', 'icon' => 'delete', 'confirm' => 'Удалить виджет?'],
+            ],
+        ]);
+        ?>
     <?php endforeach; ?>
     <?php endif; ?>
 </div>
-
-<style>
-.admin-table { width: 100%; border-collapse: collapse; }
-.admin-table th, .admin-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--gray-300); }
-.btn-sm { padding: 4px 8px; font-size: 14px; }
-.btn-danger { color: #dc3545; }
-</style>
