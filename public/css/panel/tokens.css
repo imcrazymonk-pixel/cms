@@ -1,0 +1,45 @@
+/* ============================================
+   Panel Design Tokens (копия дизайн-системы remnawave-admin)
+   ============================================ */
+
+:root {
+  /* Шрифты */
+  --font-sans: 'Montserrat', system-ui, sans-serif;
+  --font-mono: 'Fira Mono', 'JetBrains Mono', ui-monospace, monospace;
+  --font-display: 'Unbounded', system-ui, sans-serif;
+
+  /* Радиусы */
+  --radius: 0.5rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-glass: 14px;
+
+  /* Плотность (default = comfortable) */
+  --density-padding: 0.5rem;
+  --density-gap: 0.5rem;
+  --density-py: 0.5rem;
+  --density-px: 0.75rem;
+
+  /* Тени */
+  --shadow-deep: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.2);
+  --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --shadow-glass-hover: 0 12px 40px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+
+  /* Glass */
+  --glass-blur: 24px;
+  --glass-blur-heavy: 32px;
+
+  /* Mesh */
+  --mesh-color-1: #2d2a6e;
+  --mesh-color-2: #4338ca;
+  --mesh-color-3: #2563a0;
+  --mesh-color-4: #162240;
+  --mesh-color-5: #2d2a6e;
+
+  /* Анимации */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-bounce: 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
