@@ -1,31 +1,31 @@
 <div class="stats-grid">
-    <div class="stat-card stat-card-posts">
+    <div class="glass-card stat-card anim-fade-in-up stagger-1">
         <div class="stat-icon"><?= icon('posts', 'icon-lg') ?></div>
-        <div class="stat-body">
+        <div>
             <span class="stat-value"><?= $stats['posts'] ?? 0 ?></span>
             <span class="stat-label">Постов</span>
         </div>
     </div>
 
-    <div class="stat-card stat-card-comments">
+    <div class="glass-card stat-card anim-fade-in-up stagger-2">
         <div class="stat-icon"><?= icon('message', 'icon-lg') ?></div>
-        <div class="stat-body">
+        <div>
             <span class="stat-value"><?= $stats['comments'] ?? 0 ?></span>
             <span class="stat-label">Комментариев</span>
         </div>
     </div>
 
-    <div class="stat-card stat-card-users">
+    <div class="glass-card stat-card anim-fade-in-up stagger-3">
         <div class="stat-icon"><?= icon('users', 'icon-lg') ?></div>
-        <div class="stat-body">
+        <div>
             <span class="stat-value"><?= $stats['users'] ?? 0 ?></span>
             <span class="stat-label">Пользователей</span>
         </div>
     </div>
 
-    <div class="stat-card stat-card-categories">
+    <div class="glass-card stat-card anim-fade-in-up stagger-4">
         <div class="stat-icon"><?= icon('categories', 'icon-lg') ?></div>
-        <div class="stat-body">
+        <div>
             <span class="stat-value"><?= $stats['categories'] ?? 0 ?></span>
             <span class="stat-label">Категорий</span>
         </div>
@@ -33,62 +33,47 @@
 </div>
 
 <div class="dashboard-sections">
-    <div class="dashboard-section">
+    <div class="glass-card dashboard-section">
         <h2><?= icon('posts') ?> Последние посты</h2>
-        <table class="data-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Заголовок</th>
-                    <th>Статус</th>
-                    <th>Дата</th>
-                    <th>Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (!empty($recentPosts)): ?>
-                    <?php foreach ($recentPosts as $post): ?>
-                    <tr>
-                        <td><?= $post['id'] ?></td>
-                        <td>
-                            <a href="/admin/posts/edit/<?= $post['id'] ?>">
-                                <?= TemplateEngine::e($post['title']) ?>
-                            </a>
-                        </td>
-                        <td>
-                            <span class="badge badge-<?= $post['status'] ?>">
-                                <?= $post['status'] === 'published' ? 'Опубликован' : ($post['status'] === 'draft' ? 'Черновик' : 'Архив') ?>
-                            </span>
-                        </td>
-                        <td><?= format_date($post['created_at'], 'd.m.Y') ?></td>
-                        <td class="actions">
-                            <a href="/admin/posts/edit/<?= $post['id'] ?>" class="btn btn-sm btn-primary" title="Редактировать"><?= icon('edit') ?></a>
-                            <?php if (!empty($post['slug'])): ?>
-                            <a href="/post/<?= $post['slug'] ?>" class="btn btn-sm btn-info" target="_blank" title="Просмотр"><?= icon('eye') ?></a>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="5" class="text-center">
-                            <div class="empty-state">
-                                <div class="empty-icon"><?= icon('posts') ?></div>
-                                <h3>Постов пока нет</h3>
-                                <p>Создайте первый пост в разделе &laquo;Посты&raquo;</p>
-                                <a href="/admin/posts/create" class="btn btn-primary"><?= icon('add') ?> Создать пост</a>
-                            </div>
-                        </td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+        <?php
+        echo DataGrid::render([
+            'columns' => [
+                ['key' => 'id', 'label' => 'ID'],
+                ['key' => 'title', 'label' => 'Заголовок', 'html' => function ($row) {
+                    return '<a href="/admin/posts/edit/' . $row['id'] . '">' . TemplateEngine::e($row['title']) . '</a>';
+                }],
+                ['key' => 'status', 'label' => 'Статус', 'html' => function ($row) {
+                    $labels = ['published' => 'Опубликован', 'draft' => 'Черновик', 'archived' => 'Архив'];
+                    $st = $row['status'] ?? 'draft';
+                    return '<span class="badge badge-' . $st . '">' . ($labels[$st] ?? $st) . '</span>';
+                }],
+                ['key' => 'created_at', 'label' => 'Дата', 'format' => function ($v) {
+                    return format_date($v, 'd.m.Y');
+                }],
+                ['key' => '_actions', 'label' => 'Действия', 'html' => function ($row) {
+                    $html = '<a href="/admin/posts/edit/' . $row['id'] . '" class="btn btn-sm btn-ghost" title="Редактировать">' . icon('edit') . '</a>';
+                    if (!empty($row['slug'])) {
+                        $html .= '<a href="/post/' . $row['slug'] . '" class="btn btn-sm btn-ghost" target="_blank" title="Просмотр">' . icon('eye') . '</a>';
+                    }
+                    return $html;
+                }],
+            ],
+            'rows' => $recentPosts ?? [],
+            'empty' => [
+                'title' => 'Постов пока нет',
+                'text' => 'Создайте первый пост в разделе «Посты»',
+                'action' => '/admin/posts/create',
+                'action_label' => 'Создать пост',
+                'icon' => 'posts',
+            ],
+        ]);
+        ?>
         <div class="table-footer">
             <a href="/admin/posts" class="btn btn-secondary">Все посты →</a>
         </div>
     </div>
-    
-    <div class="dashboard-section">
+
+    <div class="glass-card dashboard-section">
         <h2><?= icon('settings') ?> Быстрые действия</h2>
         <div class="quick-actions">
             <a href="/admin/posts/create" class="btn btn-primary">

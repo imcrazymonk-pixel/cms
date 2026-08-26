@@ -165,3 +165,9 @@ input:focus, textarea:focus, select:focus {
 [data-font-size="small"] body { font-size: 13px; }
 [data-font-size="default"] body { font-size: 14px; }
 [data-font-size="large"] body { font-size: 16px; }
+
+/* === Icons (обёртка icon()) === */
+.icon { display: inline-flex; align-items: center; justify-content: center; }
+.icon svg { width: 18px; height: 18px; }
+.icon-sm svg { width: 16px; height: 16px; }
+.icon-lg svg { width: 28px; height: 28px; }
