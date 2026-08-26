@@ -18,6 +18,7 @@
     <!-- TinyMCE -->
     <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
     <script src="<?= SITE_URL ?>/admin/js/panel.js" defer></script>
+    <script src="<?= SITE_URL ?>/admin/js/command-palette.js" defer></script>
 </head>
 <body>
     <a href="#main-content" class="skip-link">Перейти к содержимому</a>
