@@ -76,7 +76,7 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
             </nav>
             <div class="sidebar-footer">
                 <div class="sidebar-footer-tools">
-                    <button type="button" class="sidebar-tool-btn" id="sidebar-collapse-btn" title="Свернуть меню">
+                    <button type="button" class="sidebar-tool-btn" id="sidebar-collapse-btn" data-tooltip="Свернуть меню">
                         <span class="collapse-icon collapse-icon-collapse"><?= icon('chevrons-left') ?></span>
                         <span class="collapse-icon collapse-icon-expand"><?= icon('chevrons-right') ?></span>
                     </button>

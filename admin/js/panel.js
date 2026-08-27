@@ -163,34 +163,52 @@
       if (e.key === 'Escape') closeAllDropdowns();
     });
 
-    // Сворачивание сайдбара + тултипы пунктов в свёрнутом режиме
-    function setSidebarTitles(collapsed) {
-      document.querySelectorAll('.sidebar-nav-item').forEach(function (item) {
-        const textEl = item.querySelector('.sidebar-text');
-        if (collapsed && textEl) {
-          item.setAttribute('title', textEl.textContent.trim());
-        } else {
-          item.removeAttribute('title');
-        }
-      });
-      const btn = document.getElementById('sidebar-collapse-btn');
-      if (btn) {
-        btn.setAttribute('title', collapsed ? 'Развернуть меню' : 'Свернуть меню');
-      }
-    }
-
+    // Сворачивание сайдбара
     const collapseBtn = document.getElementById('sidebar-collapse-btn');
     if (collapseBtn) {
       collapseBtn.addEventListener('click', function () {
         const sidebar = document.querySelector('.panel-sidebar');
         if (sidebar) {
-          sidebar.classList.toggle('sidebar-collapsed');
-          setSidebarTitles(sidebar.classList.contains('sidebar-collapsed'));
+          const collapsed = sidebar.classList.toggle('sidebar-collapsed');
+          collapseBtn.setAttribute('data-tooltip', collapsed ? 'Развернуть меню' : 'Свернуть меню');
         }
       });
     }
-    // Инициализация тултипов (если сайдбар уже свёрнут, напр. после reload)
-    setSidebarTitles(!!document.querySelector('.panel-sidebar.sidebar-collapsed'));
+
+    // Кастомный тултип для свёрнутого сайдбара (вместо нативного title,
+    // чтобы было как в remnawave-admin). Рендерится в <body> — не обрезается
+    // overflow-контейнерами и не зависит от системной темы.
+    const tooltip = document.createElement('div');
+    tooltip.className = 'sidebar-tooltip';
+    document.body.appendChild(tooltip);
+
+    document.addEventListener('mouseover', function (e) {
+      const sidebar = document.querySelector('.panel-sidebar');
+      const item = e.target.closest('.sidebar-logo, .sidebar-nav-item, .sidebar-tool-btn');
+      if (!sidebar || !sidebar.classList.contains('sidebar-collapsed') || !item) {
+        tooltip.classList.remove('visible');
+        return;
+      }
+      const textEl = item.querySelector('.sidebar-text');
+      const text = item.getAttribute('data-tooltip') || (textEl ? textEl.textContent.trim() : '');
+      if (!text) {
+        tooltip.classList.remove('visible');
+        return;
+      }
+      tooltip.textContent = text;
+      const rect = item.getBoundingClientRect();
+      tooltip.style.left = (rect.right + 12) + 'px';
+      tooltip.style.top = (rect.top + rect.height / 2) + 'px';
+      tooltip.classList.add('visible');
+    });
+    document.addEventListener('mouseout', function (e) {
+      const sidebar = document.querySelector('.panel-sidebar');
+      if (!sidebar || !sidebar.classList.contains('sidebar-collapsed')) return;
+      const next = e.relatedTarget;
+      if (!next || !(next.closest && next.closest('.sidebar-logo, .sidebar-nav-item, .sidebar-tool-btn'))) {
+        tooltip.classList.remove('visible');
+      }
+    });
 
     // Подтверждение опасных действий (ссылки с data-confirm, рендерятся DataGrid)
     document.addEventListener('click', function (e) {
