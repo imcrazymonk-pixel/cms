@@ -100,7 +100,7 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
         <main class="panel-main" id="main-content">
             <header class="panel-header">
                 <div class="header-search" id="command-palette-trigger">
-                    <?= icon('search') ?><span>Поиск по разделам...</span><kbd>Ctrl K</kbd>
+                    <?= icon('search') ?><span>Поиск по разделам...</span><kbd>Ctrl</kbd><kbd>K</kbd>
                 </div>
                 <div class="header-actions">
                     <div class="header-status" title="Панель онлайн">

@@ -279,6 +279,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 24px;
+  background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   position: sticky;
@@ -298,12 +299,26 @@
 .header-title { font-size: 1.286rem; font-weight: 600; color: var(--text-heading); }
 .header-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 
+/* Кнопки-иконки в шапке — ghost-стиль (как в remnawave-admin) */
+.panel-header .btn-icon {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+  transition: color var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+.panel-header .btn-icon:hover {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  color: var(--text-heading);
+}
+
+/* Поиск — как в remnawave-admin (glass, h-10, rounded-xl, kbd-подсказка) */
 .header-search {
   display: flex;
   align-items: center;
   gap: 8px;
   height: 40px;
-  max-width: 400px;
+  max-width: 448px;
   flex: 1;
   padding: 0 14px;
   border: 1px solid var(--glass-border);
@@ -323,12 +338,18 @@
 .header-search svg { width: 16px; height: 16px; flex-shrink: 0; opacity: 0.7; }
 .header-search span { flex: 1; }
 .header-search kbd {
-  padding: 2px 6px;
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--glass-border);
   border-radius: 6px;
-  background: hsl(var(--secondary));
+  background: rgba(255, 255, 255, 0.05);
   font-family: var(--font-mono);
   font-size: 0.714rem;
+  font-weight: 500;
   color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* Статус «Online» + разделитель */
