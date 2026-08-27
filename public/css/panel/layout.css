@@ -7,6 +7,9 @@
   min-height: 100vh;
   position: relative;
   z-index: 1;
+  /* Как в remnawave-admin: полупрозрачный тёмный слой поверх mesh —
+     приглушает фон, и хедер/сайдбар размывают затемнённую поверхность */
+  background: var(--glass-bg);
 }
 
 /* === Sidebar (remnawave-style: glass + градиентная кромка) === */
