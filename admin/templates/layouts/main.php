@@ -81,9 +81,11 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
                         <span class="collapse-icon collapse-icon-expand"><?= icon('chevrons-right') ?></span>
                     </button>
                 </div>
+                <div class="sidebar-divider"></div>
                 <div class="sidebar-footer-links">
                     <a href="/" class="sidebar-nav-item" target="_blank"><?= icon('external') ?><span class="sidebar-text">На сайт</span></a>
                 </div>
+                <div class="sidebar-divider"></div>
                 <div class="user-info">
                     <span class="user-avatar"><?= strtoupper(substr($user['login'] ?? 'A', 0, 1)) ?></span>
                     <div class="user-meta">

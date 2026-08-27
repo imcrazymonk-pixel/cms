@@ -171,6 +171,13 @@
 .panel-sidebar.sidebar-collapsed .collapse-icon-expand { display: inline-flex; }
 .sidebar-footer-links { padding-bottom: 4px; }
 
+/* Градиентный разделитель (как в remnawave-admin) */
+.sidebar-divider {
+  margin: 8px 16px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, rgba(var(--glow-rgb), 0.12), transparent);
+}
+
 /* Юзер-блок внизу сайдбара (remnawave-style) */
 .sidebar-footer .user-info {
   display: flex;
