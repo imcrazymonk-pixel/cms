@@ -37,10 +37,21 @@
 
 .panel-sidebar.sidebar-collapsed { width: 72px; }
 .panel-sidebar.sidebar-collapsed .sidebar-text { display: none; }
-.panel-sidebar.sidebar-collapsed .sidebar-group-title { display: none; }
+/* Заголовки секций в свёрнутом режиме → тонкие разделители (как в remnawave-admin) */
+.panel-sidebar.sidebar-collapsed .sidebar-group-title {
+  height: 1px;
+  margin: 12px 8px;
+  padding: 0;
+  background: var(--glass-border);
+  font-size: 0;
+  line-height: 0;
+  overflow: hidden;
+  text-indent: -9999px;
+}
 .panel-sidebar.sidebar-collapsed .sidebar-nav-item { justify-content: center; }
 .panel-sidebar.sidebar-collapsed .sidebar-logo { justify-content: center; padding: 0; }
-.panel-sidebar.sidebar-collapsed .sidebar-logo span { display: none; }
+/* В свёрнутом режиме прячем только имя (текстовый span), иконка остаётся видимой */
+.panel-sidebar.sidebar-collapsed .sidebar-logo span:not(.icon) { display: none; }
 
 .sidebar-logo {
   display: flex;
@@ -63,6 +74,12 @@
   right: 16px;
   height: 1px;
   background: linear-gradient(to right, transparent, rgba(var(--glow-rgb), 0.15), transparent);
+}
+.sidebar-logo svg {
+  width: 26px;
+  height: 26px;
+  color: hsl(var(--sidebar-primary));
+  filter: drop-shadow(0 0 10px rgba(var(--glow-rgb), 0.35));
 }
 
 .sidebar-nav { flex: 1; padding: 16px 8px; overflow-y: auto; }
@@ -262,7 +279,6 @@
   align-items: center;
   gap: 12px;
   padding: 12px 24px;
-  background: var(--surface-card-alpha);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   position: sticky;
