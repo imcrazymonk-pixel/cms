@@ -273,18 +273,18 @@
 /* === Main === */
 .panel-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
-/* === Header === */
+/* === Header (копия стиля remnawave-admin: h-16, blur-sm, без фона) === */
 .panel-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 24px;
-  background: var(--header-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  justify-content: space-between;
+  height: 64px;
+  padding: 0 24px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 40;
 }
 .panel-header::after {
   content: '';
@@ -297,7 +297,7 @@
   pointer-events: none;
 }
 .header-title { font-size: 1.286rem; font-weight: 600; color: var(--text-heading); }
-.header-actions { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.header-actions { display: flex; align-items: center; gap: 12px; }
 
 /* Кнопки-иконки в шапке — ghost-стиль (как в remnawave-admin) */
 .panel-header .btn-icon {
@@ -419,9 +419,9 @@
 
 /* === Density === */
 [data-density="compact"] .panel-content { padding: 12px; }
-[data-density="compact"] .panel-header { padding: 8px 16px; }
+[data-density="compact"] .panel-header { padding: 0 16px; }
 [data-density="spacious"] .panel-content { padding: 32px; }
-[data-density="spacious"] .panel-header { padding: 16px 32px; }
+[data-density="spacious"] .panel-header { padding: 0 32px; }
 
 /* === Icon button === */
 .btn-icon {

@@ -66,9 +66,6 @@
   --glass-border-hover: rgba(255, 255, 255, 0.14);
   --glass-highlight: rgba(255, 255, 255, 0.04);
 
-  /* Шапка: лёгкая полупрозрачность (почти как в референсе — только blur) */
-  --header-bg: rgba(22, 28, 38, 0.25);
-
   /* Mesh */
   --mesh-color-1: #2d2a6e;
   --mesh-color-2: #4338ca;
@@ -204,6 +201,4 @@
   --text-body: #1e293b;
   --text-heading: #0f172a;
   --text-muted: #64748b;
-
-  --header-bg: rgba(255, 255, 255, 0.45);
 }
