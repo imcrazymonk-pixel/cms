@@ -279,7 +279,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 24px;
-  background: var(--glass-bg);
+  background: var(--header-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
   position: sticky;
