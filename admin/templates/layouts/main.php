@@ -75,60 +75,99 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
                 <a href="/admin/theme" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/theme') ?>"><?= icon('palette') ?><span class="sidebar-text">Темы</span></a>
             </nav>
             <div class="sidebar-footer">
-                <a href="/" class="sidebar-nav-item" target="_blank"><?= icon('external') ?><span class="sidebar-text">На сайт</span></a>
-                <a href="/admin/logout" class="sidebar-nav-item logout"><?= icon('logout') ?><span class="sidebar-text">Выйти</span></a>
+                <div class="sidebar-footer-tools">
+                    <button type="button" class="sidebar-tool-btn" id="sidebar-collapse-btn" title="Свернуть меню">
+                        <span class="collapse-icon collapse-icon-collapse"><?= icon('chevrons-left') ?></span>
+                        <span class="collapse-icon collapse-icon-expand"><?= icon('chevrons-right') ?></span>
+                    </button>
+                </div>
+                <div class="sidebar-footer-links">
+                    <a href="/" class="sidebar-nav-item" target="_blank"><?= icon('external') ?><span class="sidebar-text">На сайт</span></a>
+                </div>
+                <div class="user-info">
+                    <span class="user-avatar"><?= strtoupper(substr($user['login'] ?? 'A', 0, 1)) ?></span>
+                    <div class="user-meta">
+                        <span class="user-name"><?= $user['login'] ?? 'Администратор' ?></span>
+                        <span class="user-role"><?= ($user['role'] ?? '') === 'admin' ? 'Администратор' : (($user['role'] ?? '') === 'editor' ? 'Редактор' : ($user['role'] ?? '')) ?></span>
+                    </div>
+                    <a href="/admin/logout" class="user-logout" title="Выйти"><?= icon('logout') ?></a>
+                </div>
             </div>
         </aside>
 
         <main class="panel-main" id="main-content">
             <header class="panel-header">
-                <button type="button" class="btn-icon" id="sidebar-collapse-btn" title="Свернуть меню"><?= icon('menu') ?></button>
                 <div class="header-search" id="command-palette-trigger">
-                    <span>Поиск по разделам...</span><kbd>Ctrl K</kbd>
+                    <?= icon('search') ?><span>Поиск по разделам...</span><kbd>Ctrl K</kbd>
                 </div>
                 <div class="header-actions">
-                    <!-- Переключатель тем и режима / Настройки вида (один dropdown) -->
-                    <div class="dropdown">
-                        <button type="button" class="btn-icon" id="theme-toggle" data-dropdown-toggle title="Сменить тему"><?= icon('palette') ?></button>
-                        <button type="button" class="btn-icon" data-dropdown-toggle title="Настройки вида"><?= icon('settings') ?></button>
-                        <div class="dropdown-menu">
-                            <div class="dropdown-group-title">Тема</div>
-                            <button type="button" class="dropdown-item" data-set-theme="obsidian"><span>Obsidian</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-theme="halo"><span>Halo</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-theme="arctic"><span>Arctic</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-theme="sakura"><span>Sakura</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-theme="twilight"><span>Twilight</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-theme="ember"><span>Ember</span><span class="check">✓</span></button>
-
-                            <div class="dropdown-group-title">Режим</div>
-                            <button type="button" class="dropdown-item" data-set-mode="dark"><span>Тёмный</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-mode="light"><span>Светлый</span><span class="check">✓</span></button>
-
-                            <div class="dropdown-group-title">Плотность</div>
-                            <button type="button" class="dropdown-item" data-set-density="compact"><span>Compact</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-density="comfortable"><span>Comfortable</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-density="spacious"><span>Spacious</span><span class="check">✓</span></button>
-
-                            <div class="dropdown-group-title">Радиус</div>
-                            <button type="button" class="dropdown-item" data-set-radius="sharp"><span>Sharp</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-radius="default"><span>Default</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-radius="rounded"><span>Rounded</span><span class="check">✓</span></button>
-
-                            <div class="dropdown-group-title">Размер шрифта</div>
-                            <button type="button" class="dropdown-item" data-set-font-size="small"><span>S</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-font-size="default"><span>M</span><span class="check">✓</span></button>
-                            <button type="button" class="dropdown-item" data-set-font-size="large"><span>L</span><span class="check">✓</span></button>
-
-                            <div class="dropdown-group-title">Анимации</div>
-                            <label class="dropdown-item" for="panel-animations">
-                                <span>Включены</span>
-                                <input type="checkbox" id="panel-animations" data-set-animations>
-                            </label>
-                        </div>
+                    <div class="header-status" title="Панель онлайн">
+                        <span class="status-dot"></span><span>Online</span>
                     </div>
-                    <div class="user-info">
-                        <span class="user-avatar"><?= strtoupper(substr($user['login'] ?? 'A', 0, 1)) ?></span>
-                        <span class="user-name"><?= $user['login'] ?? 'Администратор' ?></span>
+                    <div class="header-divider"></div>
+                    <!-- Настройки вида (одна кнопка → панель, как в remnawave-admin) -->
+                    <div class="dropdown">
+                        <button type="button" class="btn-icon" id="theme-toggle" data-dropdown-toggle title="Вид"><?= icon('paintbrush') ?></button>
+                        <div class="dropdown-menu ap-panel">
+                            <div class="ap-header">
+                                <span class="ap-title">Вид</span>
+                                <button type="button" class="ap-reset" id="ap-reset" title="Сбросить к настройкам по умолчанию"><?= icon('rotate-ccw') ?></button>
+                            </div>
+                            <div class="ap-body">
+                                <div class="ap-section">
+                                    <div class="ap-label">Тема</div>
+                                    <div class="ap-theme-grid">
+                                        <button type="button" class="ap-swatch" data-set-theme="obsidian" title="Obsidian"><span class="ap-swatch-dot" style="background:linear-gradient(135deg,#6366f1,#818cf8)"></span><span class="ap-swatch-name">Obsidian</span></button>
+                                        <button type="button" class="ap-swatch" data-set-theme="halo" title="Halo"><span class="ap-swatch-dot" style="background:linear-gradient(135deg,#22d3ee,#3b82f6)"></span><span class="ap-swatch-name">Halo</span></button>
+                                        <button type="button" class="ap-swatch" data-set-theme="arctic" title="Arctic"><span class="ap-swatch-dot" style="background:linear-gradient(135deg,#0ea5e9,#38bdf8)"></span><span class="ap-swatch-name">Arctic</span></button>
+                                        <button type="button" class="ap-swatch" data-set-theme="sakura" title="Sakura"><span class="ap-swatch-dot" style="background:linear-gradient(135deg,#ec4899,#f472b6)"></span><span class="ap-swatch-name">Sakura</span></button>
+                                        <button type="button" class="ap-swatch" data-set-theme="twilight" title="Twilight"><span class="ap-swatch-dot" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa)"></span><span class="ap-swatch-name">Twilight</span></button>
+                                        <button type="button" class="ap-swatch" data-set-theme="ember" title="Ember"><span class="ap-swatch-dot" style="background:linear-gradient(135deg,#f59e0b,#fbbf24)"></span><span class="ap-swatch-name">Ember</span></button>
+                                    </div>
+                                </div>
+                                <hr class="ap-sep">
+                                <div class="ap-section">
+                                    <div class="ap-label">Режим</div>
+                                    <div class="ap-row">
+                                        <button type="button" class="ap-option" data-set-mode="dark"><?= icon('moon') ?>Тёмный</button>
+                                        <button type="button" class="ap-option" data-set-mode="light"><?= icon('sun') ?>Светлый</button>
+                                        <button type="button" class="ap-option" data-set-mode="auto"><?= icon('monitor') ?>Авто</button>
+                                    </div>
+                                </div>
+                                <hr class="ap-sep">
+                                <div class="ap-section">
+                                    <div class="ap-label">Плотность</div>
+                                    <div class="ap-row">
+                                        <button type="button" class="ap-option" data-set-density="compact">Compact</button>
+                                        <button type="button" class="ap-option" data-set-density="comfortable">Comfort</button>
+                                        <button type="button" class="ap-option" data-set-density="spacious">Spacious</button>
+                                    </div>
+                                </div>
+                                <hr class="ap-sep">
+                                <div class="ap-section">
+                                    <div class="ap-label">Радиус</div>
+                                    <div class="ap-row">
+                                        <button type="button" class="ap-option" data-set-radius="sharp"><span class="ap-radius-box" style="border-radius:0"></span>Sharp</button>
+                                        <button type="button" class="ap-option" data-set-radius="default"><span class="ap-radius-box" style="border-radius:6px"></span>Default</button>
+                                        <button type="button" class="ap-option" data-set-radius="rounded"><span class="ap-radius-box" style="border-radius:12px"></span>Rounded</button>
+                                    </div>
+                                </div>
+                                <hr class="ap-sep">
+                                <div class="ap-section">
+                                    <div class="ap-label">Размер шрифта</div>
+                                    <div class="ap-row">
+                                        <button type="button" class="ap-option" data-set-font-size="small">S</button>
+                                        <button type="button" class="ap-option" data-set-font-size="default">M</button>
+                                        <button type="button" class="ap-option" data-set-font-size="large">L</button>
+                                    </div>
+                                </div>
+                                <hr class="ap-sep">
+                                <div class="ap-section ap-switch-row">
+                                    <label class="ap-switch-label" for="panel-animations">Анимации</label>
+                                    <label class="ap-switch"><input type="checkbox" id="panel-animations" data-set-animations><span class="ap-switch-slider"></span></label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </header>

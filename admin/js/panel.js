@@ -13,10 +13,16 @@
     applyPrefs(prefs);
   }
 
+  // Режим 'auto' резолвится в светлый/тёмный по системной теме
+  function resolveMode(mode) {
+    if (mode !== 'auto') return mode;
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  }
+
   function applyPrefs(prefs) {
     const html = document.documentElement;
     if (prefs.theme) html.setAttribute('data-theme', prefs.theme);
-    if (prefs.mode) html.setAttribute('data-mode', prefs.mode);
+    if (prefs.mode) html.setAttribute('data-mode', resolveMode(prefs.mode));
     if (prefs.density) html.setAttribute('data-density', prefs.density);
     if (prefs.radius) html.setAttribute('data-radius', prefs.radius);
     if (prefs.fontSize) html.setAttribute('data-font-size', prefs.fontSize);
@@ -79,14 +85,11 @@
       // Закрытие dropdown при клике вне его
       if (!e.target.closest('.dropdown')) closeAllDropdowns();
 
-      let changed = false;
-
       const themeBtn = e.target.closest('[data-set-theme]');
       if (themeBtn) {
         prefs.theme = themeBtn.getAttribute('data-set-theme');
         setPrefs(prefs);
         saveToServer('theme', prefs.theme);
-        changed = true;
       }
 
       const modeBtn = e.target.closest('[data-set-mode]');
@@ -94,31 +97,28 @@
         prefs.mode = modeBtn.getAttribute('data-set-mode');
         setPrefs(prefs);
         saveToServer('mode', prefs.mode);
-        changed = true;
       }
 
       const densityBtn = e.target.closest('[data-set-density]');
       if (densityBtn) {
         prefs.density = densityBtn.getAttribute('data-set-density');
         setPrefs(prefs);
-        changed = true;
       }
 
       const radiusBtn = e.target.closest('[data-set-radius]');
       if (radiusBtn) {
         prefs.radius = radiusBtn.getAttribute('data-set-radius');
         setPrefs(prefs);
-        changed = true;
       }
 
       const fontSizeBtn = e.target.closest('[data-set-font-size]');
       if (fontSizeBtn) {
         prefs.fontSize = fontSizeBtn.getAttribute('data-set-font-size');
         setPrefs(prefs);
-        changed = true;
       }
 
-      if (changed) closeAllDropdowns();
+      // Панель «Вид» остаётся открытой при выборе (как поповер в remnawave-admin)
+      // — закрывается по клику вне или Escape.
     });
 
     // Переключатель анимаций (чекбокс)
@@ -131,19 +131,66 @@
       }
     });
 
+    // Сброс настроек вида к значениям по умолчанию
+    const resetBtn = document.getElementById('ap-reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', function () {
+        const defaults = {
+          theme: 'obsidian',
+          mode: 'dark',
+          density: 'comfortable',
+          radius: 'default',
+          fontSize: 'default',
+          animations: true,
+        };
+        setPrefs(defaults);
+        saveToServer('theme', defaults.theme);
+        saveToServer('mode', defaults.mode);
+      });
+    }
+
+    // Режим 'auto': перерисовка при смене системной темы
+    const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)');
+    if (mq && mq.addEventListener) {
+      mq.addEventListener('change', function () {
+        const prefs = getPrefs();
+        if (prefs.mode === 'auto') applyPrefs(prefs);
+      });
+    }
+
     // Escape закрывает dropdown
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') closeAllDropdowns();
     });
 
-    // Сворачивание сайдбара
+    // Сворачивание сайдбара + тултипы пунктов в свёрнутом режиме
+    function setSidebarTitles(collapsed) {
+      document.querySelectorAll('.sidebar-nav-item').forEach(function (item) {
+        const textEl = item.querySelector('.sidebar-text');
+        if (collapsed && textEl) {
+          item.setAttribute('title', textEl.textContent.trim());
+        } else {
+          item.removeAttribute('title');
+        }
+      });
+      const btn = document.getElementById('sidebar-collapse-btn');
+      if (btn) {
+        btn.setAttribute('title', collapsed ? 'Развернуть меню' : 'Свернуть меню');
+      }
+    }
+
     const collapseBtn = document.getElementById('sidebar-collapse-btn');
     if (collapseBtn) {
       collapseBtn.addEventListener('click', function () {
         const sidebar = document.querySelector('.panel-sidebar');
-        if (sidebar) sidebar.classList.toggle('sidebar-collapsed');
+        if (sidebar) {
+          sidebar.classList.toggle('sidebar-collapsed');
+          setSidebarTitles(sidebar.classList.contains('sidebar-collapsed'));
+        }
       });
     }
+    // Инициализация тултипов (если сайдбар уже свёрнут, напр. после reload)
+    setSidebarTitles(!!document.querySelector('.panel-sidebar.sidebar-collapsed'));
 
     // Подтверждение опасных действий (ссылки с data-confirm, рендерятся DataGrid)
     document.addEventListener('click', function (e) {

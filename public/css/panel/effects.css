@@ -206,14 +206,14 @@
   background: transparent;
   color: var(--text-heading);
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: 1.071rem;
 }
 .cp-search kbd {
   padding: 2px 8px;
   border-radius: 6px;
   background: hsl(var(--secondary));
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 0.786rem;
   color: var(--text-muted);
 }
 
@@ -227,11 +227,11 @@
   color: var(--text-body);
   cursor: pointer;
   text-decoration: none;
-  font-size: 14px;
+  font-size: 1rem;
 }
 .cp-item svg { width: 18px; height: 18px; opacity: 0.7; flex-shrink: 0; }
 .cp-item.active, .cp-item:hover { background: hsl(var(--primary) / 0.12); color: hsl(var(--primary)); }
 .cp-item.active svg, .cp-item:hover svg { opacity: 1; }
-.cp-empty { padding: 24px; text-align: center; color: var(--text-muted); font-size: 14px; }
+.cp-empty { padding: 24px; text-align: center; color: var(--text-muted); font-size: 1rem; }
 
 [data-mode="light"] .cp-overlay { background: rgba(15, 23, 42, 0.25); }

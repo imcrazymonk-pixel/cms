@@ -5,7 +5,7 @@
 .dg-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 1rem;
   color: var(--text-body);
   background: transparent;
 }
@@ -13,7 +13,7 @@
 .dg-table thead th {
   padding: 10px var(--density-px);
   text-align: left;
-  font-size: 11px;
+  font-size: 0.786rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -53,7 +53,7 @@
   justify-content: space-between;
   padding: 12px 16px;
   border-top: 1px solid var(--border);
-  font-size: 13px;
+  font-size: 0.929rem;
   color: var(--text-muted);
 }
 .dg-pagination .pagination-links { display: flex; gap: 4px; }
@@ -88,5 +88,5 @@
   border-bottom: 1px solid var(--border);
 }
 
-[data-density="compact"] .dg-table tbody td { padding: 6px var(--density-px); font-size: 12px; }
+[data-density="compact"] .dg-table tbody td { padding: 6px var(--density-px); font-size: 0.857rem; }
 [data-density="spacious"] .dg-table tbody td { padding: 16px var(--density-px); }
