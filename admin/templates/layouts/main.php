@@ -73,6 +73,10 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
                 <a href="/admin/users" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/users') ?>"><?= icon('users') ?><span class="sidebar-text">Пользователи</span></a>
                 <a href="/admin/settings" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/settings') ?>"><?= icon('settings') ?><span class="sidebar-text">Настройки</span></a>
                 <a href="/admin/theme" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/theme') ?>"><?= icon('palette') ?><span class="sidebar-text">Темы</span></a>
+
+                <!-- Группа: Финансы -->
+                <div class="sidebar-group-title">Финансы</div>
+                <a href="/admin/finance" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/finance') ?>"><?= icon('wallet') ?><span class="sidebar-text">Финансы</span></a>
             </nav>
             <div class="sidebar-footer">
                 <div class="sidebar-footer-tools">

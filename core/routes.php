@@ -194,6 +194,25 @@ $router->get('admin/menus/delete/{id}', [$menusController, 'delete']);
 $router->get('admin/menus/edit/{id}', [$menusController, 'edit']);
 $router->post('admin/menus/update/{id}', [$menusController, 'update']);
 
+// Финансовый модуль
+$router->get('admin/finance', [AdminFinanceController::class, 'index']);
+$router->get('admin/finance/api/data', [AdminFinanceController::class, 'apiData']);
+$router->post('admin/finance/api/add', [AdminFinanceController::class, 'apiAdd']);
+$router->post('admin/finance/api/edit', [AdminFinanceController::class, 'apiEdit']);
+$router->post('admin/finance/api/delete', [AdminFinanceController::class, 'apiDelete']);
+$router->post('admin/finance/api/import', [AdminFinanceController::class, 'apiImport']);
+$router->get('admin/finance/api/export/csv', [AdminFinanceController::class, 'apiExportCsv']);
+$router->get('admin/finance/api/settings', [AdminFinanceController::class, 'apiSettings']);
+$router->post('admin/finance/api/settings', [AdminFinanceController::class, 'apiSettings']);
+
+// Platega import
+$router->post('admin/finance/api/platega/preview', [AdminFinanceController::class, 'apiPlategaPreview']);
+$router->post('admin/finance/api/platega/import', [AdminFinanceController::class, 'apiPlategaImport']);
+$router->post('admin/finance/api/platega/sync', [AdminFinanceController::class, 'apiPlategaSync']);
+$router->get('admin/finance/api/platega/cron-sync', [AdminFinanceController::class, 'apiPlategaCronSync']);
+$router->get('admin/finance/api/platega/settings', [AdminFinanceController::class, 'apiPlategaSettings']);
+$router->post('admin/finance/api/platega/settings', [AdminFinanceController::class, 'apiPlategaSaveSettings']);
+
 // ============================================
 // Публичные маршруты
 // ============================================

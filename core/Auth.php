@@ -114,11 +114,27 @@ class Auth
     }
 
     /**
+     * Проверить, что запрос AJAX
+     * @return bool
+     */
+    private static function isAjax(): bool
+    {
+        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+    }
+
+    /**
      * Требовать авторизацию (редирект на login если не авторизован)
      */
     public static function requireLogin(): void
     {
         if (!self::check()) {
+            if (self::isAjax()) {
+                http_response_code(401);
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'error' => 'Требуется авторизация']);
+                exit;
+            }
             header('Location: /admin/login');
             exit;
         }
@@ -132,6 +148,11 @@ class Auth
         self::requireLogin();
         if (!self::isAdmin()) {
             http_response_code(403);
+            if (self::isAjax()) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'error' => 'Доступ запрещён. Требуется роль admin']);
+                exit;
+            }
             die('Доступ запрещён. Ваша роль: ' . self::role() . ', требуется: admin');
         }
     }

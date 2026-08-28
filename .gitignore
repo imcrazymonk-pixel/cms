@@ -15,3 +15,10 @@ Thumbs.db
 
 # Эталонный код remnawave-admin (скачан для сверки визуала, не часть проекта)
 /remnawave-admin-main/
+
+# Резервные копии финансовых данных (JSON-дампы и исходники FIN) — не в git
+/db/backups/
+
+# Кеш Python
+__pycache__/
+*.pyc

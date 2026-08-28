@@ -79,8 +79,23 @@ class Request
      */
     public static function isAjax(): bool
     {
-        return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+        $with = strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '');
+        if ($with === 'xmlhttprequest') {
+            return true;
+        }
+        $fetchMode = strtolower($_SERVER['HTTP_SEC_FETCH_MODE'] ?? '');
+        if ($fetchMode === 'cors' || $fetchMode === 'no-cors' || $fetchMode === 'same-origin') {
+            return true;
+        }
+        $accept = strtolower($_SERVER['HTTP_ACCEPT'] ?? '');
+        if (strpos($accept, 'application/json') !== false) {
+            return true;
+        }
+        $contentType = strtolower($_SERVER['HTTP_CONTENT_TYPE'] ?? '');
+        if (strpos($contentType, 'application/json') !== false) {
+            return true;
+        }
+        return false;
     }
 
     /**
