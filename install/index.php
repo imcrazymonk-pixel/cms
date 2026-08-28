@@ -204,6 +204,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['step'])) {
                 // Используем multiQuery для выполнения всего SQL за раз
                 $pdo->exec($sql);
 
+                // Применяем миграции модулей (финансовый модуль: fin_transactions,
+                // fin_settings, record_id и др.) — таблицы создаются автоматически.
+                $migrationsDir = dirname(__DIR__) . '/db/migrations';
+                if (is_dir($migrationsDir)) {
+                    $migrations = glob($migrationsDir . '/*.sql');
+                    sort($migrations);
+                    foreach ($migrations as $migrationFile) {
+                        $migrationSql = file_get_contents($migrationFile);
+                        if ($migrationSql !== false && trim($migrationSql) !== '') {
+                            $pdo->exec($migrationSql);
+                        }
+                    }
+                }
+
                 $hashedPass = password_hash($adminPass, PASSWORD_BCRYPT);
                 $stmt = $pdo->prepare("INSERT INTO users (login, email, password, role) VALUES (:login, :email, :password, 'admin')");
                 $stmt->execute([
