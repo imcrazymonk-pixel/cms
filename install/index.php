@@ -85,7 +85,9 @@ define('DB_CHARSET', 'utf8mb4');
 
 // Настройки сайта
 define('SITE_NAME', 'Моя CMS');
-define('SITE_URL', 'http://' . \$_SERVER['HTTP_HOST']);
+\$__scheme = ((!empty(\$_SERVER['HTTPS']) && \$_SERVER['HTTPS'] !== 'off') || ((\$_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')) ? 'https' : 'http';
+define('SITE_URL', \$__scheme . '://' . \$_SERVER['HTTP_HOST']);
+unset(\$__scheme);
 define('ADMIN_EMAIL', '" . addslashes($adminEmail) . "');
 
 // Пути к директориям
