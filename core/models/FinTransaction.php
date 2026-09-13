@@ -63,6 +63,69 @@ class FinTransaction
     }
 
     /**
+     * Пакетное удаление по списку id (для массовых действий).
+     * Удаляет порциями по 500 id, чтобы не упереться в лимит prepared statement.
+     * @return int количество удалённых записей
+     */
+    public function deleteByIds(array $ids): int
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        if (!$ids) {
+            return 0;
+        }
+        $deleted = 0;
+        foreach (array_chunk($ids, 500) as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+            $deleted += $this->db->delete(
+                'fin_transactions',
+                'id IN (' . $placeholders . ')',
+                $chunk
+            );
+        }
+        return $deleted;
+    }
+
+    /**
+     * Пакетное обновление полей для списка id (для массовых действий).
+     * Допустимые ключи: type, category, participant, description.
+     * @return int количество обновлённых записей
+     */
+    public function bulkUpdate(array $ids, array $data): int
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        if (!$ids) {
+            return 0;
+        }
+        $allowed = ['type', 'category', 'participant', 'description'];
+        $set = [];
+        $params = [];
+        foreach ($allowed as $key) {
+            if (!array_key_exists($key, $data)) {
+                continue;
+            }
+            $val = $data[$key];
+            if ($key === 'participant') {
+                $val = $val !== '' ? $val : null;
+            }
+            $set[] = "`{$key}` = ?";
+            $params[] = $val;
+        }
+        if (empty($set)) {
+            return 0;
+        }
+        $updated = 0;
+        foreach (array_chunk($ids, 500) as $chunk) {
+            $placeholders = implode(',', array_fill(0, count($chunk), '?'));
+            $stmt = $this->db->query(
+                'UPDATE fin_transactions SET ' . implode(', ', $set) . ' WHERE id IN (' . $placeholders . ')',
+                array_merge($params, $chunk)
+            );
+            $updated += $stmt->rowCount();
+        }
+        return $updated;
+    }
+
+    /**
      * Найти по id
      */
     public function find(int $id): ?array
@@ -157,6 +220,72 @@ class FinTransaction
             [$d['date'], $d['type'], (string)($d['participant'] ?? ''), $d['amount']]
         );
         return $count > 0;
+    }
+
+    /**
+     * Найти id записи по уникальному record_id Platega.
+     * record_id уникален для КАЖДОГО платежа Platega, поэтому его наличие
+     * в таблице однозначно означает, что платёж уже импортирован.
+     */
+    public function findByRecordId(string $recordId): ?int
+    {
+        if ($recordId === '') {
+            return null;
+        }
+        $row = $this->db->fetch(
+            'SELECT id FROM fin_transactions WHERE `record_id` = ? LIMIT 1',
+            [$recordId]
+        );
+        return $row ? (int)$row['id'] : null;
+    }
+
+    /**
+     * Найти «осиротевшую» запись (record_id IS NULL) по составному ключу.
+     * Фолбэк для платежей Platega, импортированных вручную через CSV
+     * (record_id появился в экспорте/импорте позже): у таких записей нет
+     * record_id, но совпадают дата/тип/категория/контрагент/сумма.
+     * Ищем ТОЛЬКО среди записей без record_id, чтобы два реально разных
+     * платежа Platega с одинаковой датой/суммой не схлопнулись в один.
+     *
+     * @return int|null id найденной записи или null
+     */
+    public function findOrphanByKey(array $d): ?int
+    {
+        $row = $this->db->fetch(
+            'SELECT id FROM fin_transactions
+             WHERE `date` = ? AND `type` = ?
+               AND COALESCE(`participant`, \'\') = ?
+               AND COALESCE(`category`, \'\') = ?
+               AND `amount` = ?
+               AND (`record_id` IS NULL OR `record_id` = \'\')
+             ORDER BY id ASC LIMIT 1',
+            [
+                $d['date'],
+                $d['type'],
+                (string)($d['participant'] ?? ''),
+                (string)($d['category'] ?? ''),
+                $d['amount'],
+            ]
+        );
+        return $row ? (int)$row['id'] : null;
+    }
+
+    /**
+     * Прошить record_id в существующую запись.
+     * Используется, когда платёж, ранее импортированный вручную
+     * (record_id IS NULL), совпал с платежом Platega: вместо создания
+     * дубликата запись получает уникальный ключ, и дальше дедупликация
+     * идёт по record_id.
+     */
+    public function attachRecordId(int $id, string $recordId): bool
+    {
+        $this->db->update(
+            'fin_transactions',
+            ['record_id' => $recordId],
+            'id = :id',
+            ['id' => $id]
+        );
+        return true;
     }
 
     /* ─────────────────────────── Сводка и средние ─────────────────────────── */

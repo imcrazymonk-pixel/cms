@@ -194,12 +194,17 @@ $router->get('admin/menus/delete/{id}', [$menusController, 'delete']);
 $router->get('admin/menus/edit/{id}', [$menusController, 'edit']);
 $router->post('admin/menus/update/{id}', [$menusController, 'update']);
 
+// Логи
+$router->get('admin/logs', [AdminLogController::class, 'index']);
+$router->post('admin/logs/clear', [AdminLogController::class, 'clear']);
+
 // Финансовый модуль
 $router->get('admin/finance', [AdminFinanceController::class, 'index']);
 $router->get('admin/finance/api/data', [AdminFinanceController::class, 'apiData']);
 $router->post('admin/finance/api/add', [AdminFinanceController::class, 'apiAdd']);
 $router->post('admin/finance/api/edit', [AdminFinanceController::class, 'apiEdit']);
 $router->post('admin/finance/api/delete', [AdminFinanceController::class, 'apiDelete']);
+$router->post('admin/finance/api/delete-bulk', [AdminFinanceController::class, 'apiDeleteBulk']);
 $router->post('admin/finance/api/import', [AdminFinanceController::class, 'apiImport']);
 $router->get('admin/finance/api/export/csv', [AdminFinanceController::class, 'apiExportCsv']);
 $router->get('admin/finance/api/settings', [AdminFinanceController::class, 'apiSettings']);
@@ -212,6 +217,13 @@ $router->post('admin/finance/api/platega/sync', [AdminFinanceController::class, 
 $router->get('admin/finance/api/platega/cron-sync', [AdminFinanceController::class, 'apiPlategaCronSync']);
 $router->get('admin/finance/api/platega/settings', [AdminFinanceController::class, 'apiPlategaSettings']);
 $router->post('admin/finance/api/platega/settings', [AdminFinanceController::class, 'apiPlategaSaveSettings']);
+
+// Bulk actions
+$router->post('admin/finance/api/bulk/type', [AdminFinanceController::class, 'apiBulkType']);
+$router->post('admin/finance/api/bulk/category', [AdminFinanceController::class, 'apiBulkCategory']);
+$router->post('admin/finance/api/bulk/participant', [AdminFinanceController::class, 'apiBulkParticipant']);
+$router->post('admin/finance/api/bulk/description', [AdminFinanceController::class, 'apiBulkDescription']);
+$router->post('admin/finance/api/export/selected', [AdminFinanceController::class, 'apiExportSelected']);
 
 // ============================================
 // Публичные маршруты
@@ -316,6 +328,8 @@ $router->get('category/{slug}', function($slug) {
         'description' => $categoryEntity['description'] ?? '',
         'keywords' => '',
     ]);
+    $template->set('categories', $category->getAll());
+    $template->set('currentCategory', $slug);
     $template->set('category', $categoryEntity);
     $template->set('posts', $category->getPosts($categoryEntity['id']));
     $template->set('menuItems', loadMenuItems('main', 'category/' . $slug));
@@ -356,6 +370,32 @@ $router->get('page/{slug}', function($slug) {
 });
 
 // Универсальный роутинг для статических страниц (красивые URL без префикса /page/)
+
+// Маршрут блога — ДО {slug}, иначе catch-all перехватит "blog"
+$router->get('blog', function() {
+    $post = new Post();
+    $category = new Category();
+
+    $posts = $post->getPublishedPosts(POSTS_PER_PAGE);
+    $categories = $category->getAll();
+    $seoSettings = getSeoSettings();
+
+    $template = createTemplate();
+    $template->set('title', 'Блог');
+    $template->set('seo', [
+        'title' => 'Блог | ' . ($seoSettings['title'] ?? SITE_NAME),
+        'description' => 'Полезные статьи и новости сервиса',
+        'keywords' => '',
+    ]);
+    $template->set('posts', $posts);
+    $template->set('categories', $categories);
+    $template->set('currentCategory', '');
+    $template->set('menuItems', loadMenuItems('main', 'blog'));
+    $template->set('footerMenu', loadFooterMenu());
+    $template->setLayout('layouts/main');
+    $template->display('blog');
+});
+
 $router->get('{slug}', function($slug) {
     $page = new Page();
     $pageEntity = $page->getBySlug($slug);
@@ -384,10 +424,6 @@ $router->get('{slug}', function($slug) {
     // Используем шаблон из БД или default
     $templateName = 'page/' . ($pageEntity['template'] ?? 'default');
     $template->display($templateName);
-});
-
-$router->get('blog', function() {
-    redirect('/');
 });
 
 // ============================================

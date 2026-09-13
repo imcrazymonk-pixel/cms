@@ -62,7 +62,7 @@ class AdminPostsController
         $content = Request::post('content', '');
         $excerpt = trim(Request::post('excerpt', ''));
         $category_id = $this->resolveCategoryId(Request::post('category_id', 0));
-        $status = Request::post('status', 'draft');
+        $status = Request::post('status', 'published');
         $image = trim(Request::post('image', ''));
 
         $errors = [];
@@ -149,7 +149,7 @@ class AdminPostsController
         $content = Request::post('content', '');
         $excerpt = trim(Request::post('excerpt', ''));
         $category_id = $this->resolveCategoryId(Request::post('category_id', 0));
-        $status = Request::post('status', 'draft');
+        $status = Request::post('status', 'published');
         $image = trim(Request::post('image', ''));
 
         $errors = [];

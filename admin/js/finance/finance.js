@@ -20,13 +20,14 @@
   var state = {
     month: '', type: '', q: '', page: 1, per_page: 25,
     sort: 'date', dir: 'desc',
-    scale: 'month', chartType: 'bar', range: 'all', anomalies: false
+    scale: 'day', chartType: 'bar', range: 'all', anomalies: false
   };
 
   var lastData = null;
   var autoTimer = null;
   var qDebounce = null;
   var pendingDelete = null;
+  var selected = new Set(); // Set<number> — кросс-страничный выбор (remnawave-style)
 
 
   /* ─────── Утилиты ─────── */
@@ -182,7 +183,9 @@
     anom.forEach(function (id) { anomSet[id] = true; });
 
     if (!rows.length) {
-      tb.innerHTML = '<tr><td colspan="7" class="fin-empty-cell">Нет транзакций. Нажмите «Добавить» или импортируйте CSV.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="8" class="fin-empty-cell">Нет транзакций. Нажмите «Добавить» или импортируйте CSV.</td></tr>';
+      updateSelectAll();
+      updateSelectionUI();
       return;
     }
 
@@ -190,10 +193,15 @@
       var isIn = r.type === 'income';
       var badge = isIn ? 'badge-income' : 'badge-expense';
       var sign = isIn ? '+' : '−';
+      var isSel = selected.has(r.id);
       var anomaly = state.anomalies && anomSet[r.id]
         ? '<span class="fin-anomaly-dot" title="Аномалия (значение сильно выше среднего)"></span>'
         : '';
-      return '<tr class="' + (state.anomalies && anomSet[r.id] ? 'fin-row-anomaly' : '') + '">' +
+      var cls = [];
+      if (state.anomalies && anomSet[r.id]) cls.push('fin-row-anomaly');
+      if (isSel) cls.push('fin-row-selected');
+      return '<tr class="' + cls.join(' ') + '">' +
+        '<td class="fin-check-col"><input type="checkbox" class="fin-check" data-id="' + r.id + '"' + (isSel ? ' checked' : '') + ' title="Выбрать"></td>' +
         '<td class="fin-date">' + esc(r.date_display) + '</td>' +
         '<td><span class="' + badge + '">' + (isIn ? 'Доход' : 'Расход') + '</span></td>' +
         '<td>' + esc(r.category) + '</td>' +
@@ -205,6 +213,8 @@
         '<button type="button" class="btn btn-sm btn-ghost fin-del" data-id="' + r.id + '" title="Удалить">' + iconSvg('delete') + '</button>' +
         '</td></tr>';
     }).join('');
+    updateSelectAll();
+    updateSelectionUI();
   }
 
   function renderPagination() {
@@ -228,6 +238,81 @@
     var parts = (d.all_participants || []).map(function (p) { return '<option value="' + esc(p) + '">'; }).join('');
     qs('#finCatList').innerHTML = cats;
     qs('#finPartList').innerHTML = parts;
+    qs('#finBulkCatList').innerHTML = cats;
+    qs('#finBulkPartList').innerHTML = parts;
+  }
+
+
+  /* ─────── Массовый выбор (remnawave-style Set) ─────── */
+  function selectedIds() {
+    return Array.from(selected).filter(function (id) { return id > 0; });
+  }
+
+  function updateSelectAll() {
+    var sa = qs('#finSelectAll');
+    if (!sa) return;
+    var rows = (lastData && lastData.transactions) || [];
+    if (!rows.length) { sa.checked = false; sa.indeterminate = false; return; }
+    var checked = 0;
+    rows.forEach(function (r) { if (selected.has(r.id)) checked++; });
+    sa.checked = checked === rows.length;
+    sa.indeterminate = checked > 0 && checked < rows.length;
+  }
+
+  function updateSelectionUI() {
+    var n = selectedIds().length;
+    var wrap = qs('#finBulkWrap');
+    if (!wrap) return;
+    var hidden = n === 0;
+    if (hidden && !wrap.hidden) {
+      // Скрываем с анимацией — удаляем класс
+      wrap.hidden = true;
+    } else if (!hidden && wrap.hidden) {
+      wrap.hidden = false;
+    }
+    qs('#finBulkCount').textContent = n === 1 ? 'Выбрано: 1' : 'Выбрано: ' + n;
+
+    // Сколько из выбранных на текущей странице
+    var rows = (lastData && lastData.transactions) || [];
+    var onPage = rows.filter(function (r) { return selected.has(r.id); }).length;
+    var sub = qs('#finBulkCountSub');
+    if (onPage < n) {
+      sub.textContent = '(' + onPage + ' на этой странице)';
+    } else {
+      sub.textContent = '';
+    }
+
+    qs('#finBulkDelete').disabled = n === 0;
+  }
+
+  function confirmBulkDelete() {
+    var ids = selectedIds();
+    if (!ids.length) return;
+    qs('#finBulkDeleteText').textContent = 'Удалить ' + ids.length + ' операций? Это действие необратимо.';
+    qs('#finBulkDeleteConfirm').hidden = false;
+  }
+
+  function doDeleteBulk() {
+    var ids = selectedIds();
+    if (!ids.length) return;
+    qs('#finBulkDeleteConfirm').hidden = true;
+    fetch('/admin/finance/api/delete-bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf_token: CSRF, ids: ids })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.success) {
+          ids.forEach(function (id) { selected.delete(id); });
+          toast('Удалено: ' + res.deleted);
+          updateSelectionUI();
+          loadData();
+        } else {
+          toast(res.error || 'Ошибка удаления');
+        }
+      })
+      .catch(function () { toast('Ошибка сети'); });
   }
 
 
@@ -313,10 +398,120 @@
       .then(function (r) { return r.json(); })
       .then(function (res) {
         toast(res.success ? 'Удалено' : (res.error || 'Ошибка удаления'));
-        if (res.success) loadData();
+        if (res.success) {
+          selected.delete(id);
+          updateSelectionUI();
+          loadData();
+        }
       });
   }
 
+
+  /* ─────── Bulk API (remnawave-style) ─────── */
+  function exportSelectedCsv() {
+    var ids = selectedIds();
+    if (!ids.length) return;
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/finance/api/export/selected';
+    form.appendChild(input('csrf_token', CSRF));
+    form.appendChild(input('ids', JSON.stringify(ids)));
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+    function input(n, v) { var i = document.createElement('input'); i.type = 'hidden'; i.name = n; i.value = v; return i; }
+  }
+
+  function bulkAction(url, payload, onSuccess) {
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (res.success) {
+          if (onSuccess) onSuccess(res);
+          toast('Обновлено: ' + (res.updated || 0));
+          loadData();
+        } else {
+          toast(res.error || 'Ошибка');
+        }
+      })
+      .catch(function () { toast('Ошибка сети'); });
+  }
+
+  function doBulkType(type) {
+    var ids = selectedIds();
+    if (!ids.length) return;
+    bulkAction('/admin/finance/api/bulk/type', { csrf_token: CSRF, ids: ids, type: type });
+    closeDropdown('finBulkTypeMenu');
+  }
+
+  function doBulkCategory() {
+    var ids = selectedIds();
+    if (!ids.length) return;
+    qs('#finBulkCatCount').textContent = ids.length;
+    qs('#finBulkCatInput').value = '';
+    showModal('finBulkCatModal');
+  }
+
+  function doBulkCategoryApply() {
+    var val = qs('#finBulkCatInput').value.trim();
+    if (!val) { toast('Введите категорию'); return; }
+    var ids = selectedIds();
+    if (!ids.length) return;
+    hideModal('finBulkCatModal');
+    bulkAction('/admin/finance/api/bulk/category', { csrf_token: CSRF, ids: ids, category: val });
+  }
+
+  function doBulkParticipant() {
+    var ids = selectedIds();
+    if (!ids.length) return;
+    qs('#finBulkPartCount').textContent = ids.length;
+    qs('#finBulkPartInput').value = '';
+    showModal('finBulkPartModal');
+  }
+
+  function doBulkParticipantApply() {
+    var val = qs('#finBulkPartInput').value.trim();
+    var ids = selectedIds();
+    if (!ids.length) return;
+    hideModal('finBulkPartModal');
+    bulkAction('/admin/finance/api/bulk/participant', { csrf_token: CSRF, ids: ids, participant: val });
+  }
+
+  function doBulkDescription() {
+    var ids = selectedIds();
+    if (!ids.length) return;
+    qs('#finBulkDescCount').textContent = ids.length;
+    qs('#finBulkDescInput').value = '';
+    showModal('finBulkDescModal');
+  }
+
+  function doBulkDescriptionApply() {
+    var val = qs('#finBulkDescInput').value.trim();
+    var ids = selectedIds();
+    if (!ids.length) return;
+    hideModal('finBulkDescModal');
+    bulkAction('/admin/finance/api/bulk/description', { csrf_token: CSRF, ids: ids, description: val });
+  }
+
+  /* ─────── Dropdown helpers ─────── */
+  function toggleDropdown(id) {
+    var el = qs('#' + id);
+    if (!el) return;
+    el.classList.toggle('is-open');
+  }
+
+  function closeDropdown(id) {
+    var el = qs('#' + id);
+    if (el) el.classList.remove('is-open');
+  }
+
+  function closeAllDropdowns() {
+    qsa('.fin-dropdown-menu').forEach(function (m) { m.classList.remove('is-open'); });
+  }
 
   /* ─────── Импорт / экспорт ─────── */
   function exportCsv() {
@@ -430,10 +625,8 @@
     qs('#finPlategaBody').innerHTML = '<tr><td colspan="6" class="fin-empty-cell">Нажмите «Превью» для загрузки платежей</td></tr>';
     qs('#finPlategaSelectAll').checked = true;
     _plategaData = [];
-    var lastSync = settings.platega_last_sync || '';
-    qs('#finPlategaSummary').textContent = lastSync
-      ? 'Последняя синхронизация: ' + new Date(lastSync).toLocaleString('ru-RU')
-      : '';
+    qs('#finPlategaSyncStatus').textContent = '';
+    qs('#finPlategaSummary').textContent = '';
     loadPlategaSettings();
     showModal('finPlategaModal');
   }
@@ -450,6 +643,19 @@
         if (data.merchant_id) qs('#finPlategaMerchant').value = data.merchant_id;
         if (data.secret_raw) qs('#finPlategaSecret').value = data.secret_raw;
         qs('#finPlategaDays').value = data.days_back || 150;
+        var statusEl = qs('#finPlategaSyncStatus');
+        if (statusEl) {
+          var parts = [];
+          if (data.last_sync) {
+            parts.push('Синк: ' + new Date(data.last_sync).toLocaleString('ru-RU'));
+          }
+          if (data.last_sync_ok) {
+            parts.push('✓ OK');
+          } else if (data.last_error) {
+            parts.push('✗ ' + data.last_error);
+          }
+          statusEl.textContent = parts.join(' · ') || '';
+        }
       })
       .catch(function (e) {
         console.error('[Platega] load settings error:', e);
@@ -460,9 +666,12 @@
     var payload = {
       csrf_token: CSRF,
       merchant_id: qs('#finPlategaMerchant').value,
-      secret: qs('#finPlategaSecret').value,
       days_back: qs('#finPlategaDays').value,
     };
+    var secret = qs('#finPlategaSecret').value;
+    if (secret !== '') {
+      payload.secret = secret;
+    }
     fetch('/admin/finance/api/platega/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -640,6 +849,10 @@
     qs('#fin-btn-settings').addEventListener('click', openSettings);
     qs('#fin-btn-platega').addEventListener('click', openPlatega);
     qs('#finPlategaPreviewBtn').addEventListener('click', runPlategaPreview);
+    qs('#finPlategaSaveBtn').addEventListener('click', function () {
+      savePlategaSettings();
+      toast('Настройки Platega сохранены');
+    });
     qs('#finPlategaImportBtn').addEventListener('click', importPlategaSelected);
 
     // Контролы графика
@@ -688,10 +901,26 @@
       });
     }
     qs('#fin-tbody').addEventListener('click', function (e) {
+      var chk = e.target.closest('.fin-check');
+      if (chk) {
+        var id = Number(chk.getAttribute('data-id'));
+        if (chk.checked) selected.add(id); else selected.delete(id);
+        var tr = chk.closest('tr');
+        if (tr) tr.classList.toggle('fin-row-selected', chk.checked);
+        updateSelectAll();
+        updateSelectionUI();
+        return;
+      }
       var edit = e.target.closest('.fin-edit');
       if (edit) { openAdd(Number(edit.getAttribute('data-id'))); return; }
       var del = e.target.closest('.fin-del');
       if (del) { confirmDelete(Number(del.getAttribute('data-id'))); }
+    });
+    qs('#finSelectAll').addEventListener('change', function () {
+      var rows = (lastData && lastData.transactions) || [];
+      if (this.checked) rows.forEach(function (r) { selected.add(r.id); });
+      else rows.forEach(function (r) { selected.delete(r.id); });
+      renderTable();
     });
     qs('#fin-pagination').addEventListener('click', function (e) {
       var a = e.target.closest('.page-link');
@@ -709,13 +938,53 @@
       ov.addEventListener('mousedown', function (e) { if (e.target === ov) ov.hidden = true; });
     });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') qsa('.finance-modal-overlay').forEach(function (ov) { ov.hidden = true; });
+      if (e.key === 'Escape') {
+        qsa('.finance-modal-overlay').forEach(function (ov) { ov.hidden = true; });
+        qs('#finBulkDeleteConfirm').hidden = true;
+        closeAllDropdowns();
+      }
     });
 
     qs('#finTxnSave').addEventListener('click', saveTxn);
     qs('#finConfirmOk').addEventListener('click', doDelete);
     qs('#finImportBtn').addEventListener('click', doImport);
     qs('#finSettingsSave').addEventListener('click', saveSettings);
+
+    // Bulk toolbar
+    qs('#finBulkExport').addEventListener('click', function (e) { e.stopPropagation(); toggleDropdown('finBulkExportMenu'); });
+    qs('#finBulkType').addEventListener('click', function (e) { e.stopPropagation(); toggleDropdown('finBulkTypeMenu'); });
+    qs('#finBulkCategory').addEventListener('click', doBulkCategory);
+    qs('#finBulkParticipant').addEventListener('click', doBulkParticipant);
+    qs('#finBulkDescription').addEventListener('click', doBulkDescription);
+    qs('#finBulkDelete').addEventListener('click', confirmBulkDelete);
+    qs('#finBulkCancel').addEventListener('click', function () { selected.clear(); updateSelectionUI(); renderTable(); });
+
+    // Export dropdown items
+    qs('#finBulkExportMenu [data-value="csv"]').addEventListener('click', function () {
+      closeDropdown('finBulkExportMenu');
+      exportSelectedCsv();
+    });
+
+    // Type dropdown items
+    qsa('#finBulkTypeMenu .fin-dropdown-item').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        doBulkType(this.getAttribute('data-value'));
+      });
+    });
+
+    // Bulk modals apply
+    qs('#finBulkCatApply').addEventListener('click', doBulkCategoryApply);
+    qs('#finBulkPartApply').addEventListener('click', doBulkParticipantApply);
+    qs('#finBulkDescApply').addEventListener('click', doBulkDescriptionApply);
+
+    // Bulk confirm dialog
+    qs('#finBulkDeleteOk').addEventListener('click', doDeleteBulk);
+    qs('#finBulkDeleteCancel').addEventListener('click', function () { qs('#finBulkDeleteConfirm').hidden = true; });
+
+    // Закрывать дропдауны при клике вне их
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.fin-dropdown-wrap')) closeAllDropdowns();
+    });
 
     // Перекраска графика при смене темы/режима панели
     new MutationObserver(function (muts) {

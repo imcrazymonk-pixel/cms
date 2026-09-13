@@ -1,0 +1,13 @@
+{
+  "$schema": "https://app.kilo.ai/config.json",
+  "skillsAlways": [
+    "design-taste-frontend",
+    "spec-driven-development",
+    "writing-plans",
+    "executing-plans",
+    "verification-before-completion",
+    "systematic-debugging",
+    "documentation-and-adrs"
+  ],
+  "default_agent": "overseer"
+}

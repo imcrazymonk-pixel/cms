@@ -1,0 +1,15 @@
+- generic [ref=e3]:
+  - heading "Вход в админку" [level=1] [ref=e8]
+  - generic [ref=e9]:
+    - generic [ref=e10]:
+      - text: Логин или Email
+      - textbox "Логин или Email" [active] [ref=e11]:
+        - /placeholder: Введите логин или email
+    - generic [ref=e12]:
+      - text: Пароль
+      - textbox "Пароль" [ref=e13]:
+        - /placeholder: Введите пароль
+    - button "Войти" [ref=e14]
+  - paragraph [ref=e19]:
+    - link "Вернуться на сайт" [ref=e20] [cursor=pointer]:
+      - /url: /

@@ -200,6 +200,7 @@
 
         <nav class="nav" id="nav">
           <ul>
+            <li><a href="<?= TemplateEngine::url('blog') ?>">Блог</a></li>
             <li><a href="#features">Возможности</a></li>
             <li><a href="#trial">Бесплатно</a></li>
             <li><a href="#services">Сервисы</a></li>

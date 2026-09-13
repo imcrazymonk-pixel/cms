@@ -88,7 +88,7 @@ class Post
     /**
      * Получить связанные посты
      */
-    public function getRelated(int $categoryId, int $currentId, int $limit = 3): array
+    public function getRelated(?int $categoryId, int $currentId, int $limit = 3): array
     {
         if (!$categoryId) {
             return [];

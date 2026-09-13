@@ -44,8 +44,8 @@
             <div class="form-group">
                 <label for="status">Статус</label>
                 <select id="status" name="status" class="form-control">
-                    <option value="draft" <?= (($post['status'] ?? 'draft') === 'draft') ? 'selected' : '' ?>>Черновик</option>
-                    <option value="published" <?= (($post['status'] ?? '') === 'published') ? 'selected' : '' ?>>Опубликован</option>
+                    <option value="draft" <?= (($post['status'] ?? '') === 'draft') ? 'selected' : '' ?>>Черновик</option>
+                    <option value="published" <?= (($post['status'] ?? 'published') === 'published') ? 'selected' : '' ?>>Опубликован</option>
                     <option value="archived" <?= (($post['status'] ?? '') === 'archived') ? 'selected' : '' ?>>Архив</option>
                 </select>
             </div>

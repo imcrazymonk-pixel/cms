@@ -87,6 +87,8 @@ class AdminFinanceController
                     'platega_days_back' => (int)$this->settings->get('platega_days_back', 150),
                     'platega_auto_sync' => (int)$this->settings->get('platega_auto_sync', 0),
                     'platega_last_sync' => $this->settings->get('platega_last_sync', ''),
+                    'platega_last_error' => $this->settings->get('platega_last_error', ''),
+                    'platega_last_sync_ok' => (int)$this->settings->get('platega_last_sync_ok', 0),
                 ],
                 'all_months' => $this->allMonths(),
                 'all_categories' => $this->model->distinctValues('category'),
@@ -179,6 +181,207 @@ class AdminFinanceController
         }
     }
 
+    /**
+     * POST /admin/finance/api/delete-bulk
+     * Body: { csrf_token, ids: [...] } — массовое удаление выбранных записей.
+     */
+    public function apiDeleteBulk()
+    {
+        Auth::requireAdmin();
+        $body = $this->jsonBody();
+        if (!$this->verifyJsonCsrf($body)) {
+            $this->jsonResponse(['success' => false, 'error' => 'CSRF token invalid'], 403);
+            return;
+        }
+        $ids = $body['ids'] ?? [];
+        if (!is_array($ids) || empty($ids)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Не выбрано ни одной записи'], 400);
+            return;
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        if (empty($ids)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Некорректные id'], 400);
+            return;
+        }
+        if (count($ids) > 1000) {
+            $this->jsonResponse(['success' => false, 'error' => 'Слишком много записей за раз (максимум 1000)'], 400);
+            return;
+        }
+        try {
+            $deleted = $this->model->deleteByIds($ids);
+            $this->jsonResponse(['success' => true, 'deleted' => $deleted]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'error' => 'Ошибка удаления'], 500);
+        }
+    }
+
+    /* ─────────────────────────── Bulk actions ─────────────────────────── */
+
+    /**
+     * POST /admin/finance/api/bulk/type — массово сменить тип
+     * Body: { csrf_token, ids: [...], type: 'income'|'expense' }
+     */
+    public function apiBulkType()
+    {
+        Auth::requireAdmin();
+        $body = $this->jsonBody();
+        if (!$this->verifyJsonCsrf($body)) {
+            $this->jsonResponse(['success' => false, 'error' => 'CSRF token invalid'], 403);
+            return;
+        }
+        $type = $body['type'] ?? '';
+        if (!in_array($type, ['income', 'expense'], true)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Некорректный тип'], 400);
+            return;
+        }
+        $ids = $this->extractBulkIds($body);
+        if ($ids === null) return;
+        try {
+            $updated = $this->model->bulkUpdate($ids, ['type' => $type]);
+            $this->jsonResponse(['success' => true, 'updated' => $updated]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
+        }
+    }
+
+    /**
+     * POST /admin/finance/api/bulk/category — массово сменить категорию
+     * Body: { csrf_token, ids: [...], category: '...' }
+     */
+    public function apiBulkCategory()
+    {
+        Auth::requireAdmin();
+        $body = $this->jsonBody();
+        if (!$this->verifyJsonCsrf($body)) {
+            $this->jsonResponse(['success' => false, 'error' => 'CSRF token invalid'], 403);
+            return;
+        }
+        $category = trim((string)($body['category'] ?? ''));
+        if ($category === '') {
+            $this->jsonResponse(['success' => false, 'error' => 'Категория не может быть пустой'], 400);
+            return;
+        }
+        $ids = $this->extractBulkIds($body);
+        if ($ids === null) return;
+        try {
+            $updated = $this->model->bulkUpdate($ids, ['category' => $category]);
+            $this->jsonResponse(['success' => true, 'updated' => $updated]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
+        }
+    }
+
+    /**
+     * POST /admin/finance/api/bulk/participant — массово сменить участника
+     * Body: { csrf_token, ids: [...], participant: '...' }
+     */
+    public function apiBulkParticipant()
+    {
+        Auth::requireAdmin();
+        $body = $this->jsonBody();
+        if (!$this->verifyJsonCsrf($body)) {
+            $this->jsonResponse(['success' => false, 'error' => 'CSRF token invalid'], 403);
+            return;
+        }
+        $participant = trim((string)($body['participant'] ?? ''));
+        $ids = $this->extractBulkIds($body);
+        if ($ids === null) return;
+        try {
+            $updated = $this->model->bulkUpdate($ids, ['participant' => $participant]);
+            $this->jsonResponse(['success' => true, 'updated' => $updated]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
+        }
+    }
+
+    /**
+     * POST /admin/finance/api/bulk/description — массово сменить описание
+     * Body: { csrf_token, ids: [...], description: '...' }
+     */
+    public function apiBulkDescription()
+    {
+        Auth::requireAdmin();
+        $body = $this->jsonBody();
+        if (!$this->verifyJsonCsrf($body)) {
+            $this->jsonResponse(['success' => false, 'error' => 'CSRF token invalid'], 403);
+            return;
+        }
+        $description = trim((string)($body['description'] ?? ''));
+        $ids = $this->extractBulkIds($body);
+        if ($ids === null) return;
+        try {
+            $updated = $this->model->bulkUpdate($ids, ['description' => $description]);
+            $this->jsonResponse(['success' => true, 'updated' => $updated]);
+        } catch (\Throwable $e) {
+            $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
+        }
+    }
+
+    /**
+     * POST /admin/finance/api/export/selected — экспорт выбранных записей
+     * Body: { csrf_token, ids: [...] }
+     */
+    public function apiExportSelected()
+    {
+        Auth::requireAdmin();
+        $body = $this->jsonBody();
+        if (!$this->verifyJsonCsrf($body)) {
+            $this->jsonResponse(['success' => false, 'error' => 'CSRF token invalid'], 403);
+            return;
+        }
+        $ids = $this->extractBulkIds($body);
+        if ($ids === null) return;
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $rows = Database::getInstance()->fetchAll(
+            'SELECT * FROM fin_transactions WHERE id IN (' . $placeholders . ') ORDER BY date ASC, id ASC',
+            $ids
+        );
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="finance_selected_' . date('Ymd_His') . '.csv"');
+        echo "\xEF\xBB\xBF";
+
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['date', 'type', 'category', 'participant', 'amount', 'description', 'record_id'], ';');
+        foreach ($rows as $r) {
+            fputcsv($out, [
+                $r['date'],
+                $r['type'] === 'income' ? 'Доход' : 'Расход',
+                $r['category'],
+                $r['participant'] ?? '',
+                $r['amount'],
+                $r['description'] ?? '',
+                $r['record_id'] ?? '',
+            ], ';');
+        }
+        fclose($out);
+        exit;
+    }
+
+    /**
+     * Извлечь и валидировать ids из JSON body
+     * @return array|null массив id или null (ответ уже отправлен с ошибкой)
+     */
+    private function extractBulkIds(array $body): ?array
+    {
+        $ids = $body['ids'] ?? [];
+        if (!is_array($ids) || empty($ids)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Не выбрано ни одной записи'], 400);
+            return null;
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+        if (empty($ids)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Некорректные id'], 400);
+            return null;
+        }
+        if (count($ids) > 1000) {
+            $this->jsonResponse(['success' => false, 'error' => 'Слишком много записей за раз (максимум 1000)'], 400);
+            return null;
+        }
+        return $ids;
+    }
+
     /* ─────────────────────────── Импорт / экспорт ─────────────────────────── */
 
     /**
@@ -252,7 +455,7 @@ class AdminFinanceController
         echo "\xEF\xBB\xBF"; // BOM для Excel
 
         $out = fopen('php://output', 'w');
-        fputcsv($out, ['date', 'type', 'category', 'participant', 'amount', 'description'], ';');
+        fputcsv($out, ['date', 'type', 'category', 'participant', 'amount', 'description', 'record_id'], ';');
         foreach ($rows as $r) {
             fputcsv($out, [
                 $r['date'],
@@ -261,6 +464,7 @@ class AdminFinanceController
                 $r['participant'] ?? '',
                 $r['amount'],
                 $r['description'] ?? '',
+                $r['record_id'] ?? '',
             ], ';');
         }
         fclose($out);
@@ -305,9 +509,15 @@ class AdminFinanceController
 
         try {
             $preview = $this->fetchPlategaPreview($merchantId, $secret, $daysBack);
+            AppLog::add('info', 'platega', 'Platega preview OK', [
+                'merchant_id' => $merchantId,
+                'days_back' => $daysBack,
+                'rows' => count($preview),
+            ]);
             $this->jsonResponse(['success' => true, 'transactions' => $preview]);
         } catch (\Throwable $e) {
             $msg = 'Platega preview error: ' . $e->getMessage();
+            AppLog::add('error', 'platega', $msg, ['merchant_id' => $merchantId, 'days_back' => $daysBack]);
             error_log($msg);
             $this->jsonResponse(['success' => false, 'error' => $msg], 500);
         }
@@ -348,8 +558,13 @@ class AdminFinanceController
         try {
             $result = $this->commitPlategaImport($txnList, $includeIds);
             $this->settings->set('platega_last_sync', date('c'));
+            AppLog::add('info', 'platega', 'Platega import', [
+                'added' => $result['added'],
+                'skipped' => $result['skipped'],
+            ]);
             $this->jsonResponse(['success' => true, 'added' => $result['added'], 'skipped' => $result['skipped']]);
         } catch (\Throwable $e) {
+            AppLog::add('error', 'platega', 'Platega import error: ' . $e->getMessage(), []);
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка импорта: ' . $e->getMessage()], 500);
         }
     }
@@ -386,6 +601,15 @@ class AdminFinanceController
         }
         $res = $this->runPlategaSync();
         $res['cron'] = true;
+        if ($res['success']) {
+            AppLog::add('info', 'platega', 'Platega cron sync OK', [
+                'added' => $res['added'] ?? 0,
+                'skipped' => $res['skipped'] ?? 0,
+                'new' => $res['new'] ?? 0,
+            ]);
+        } else {
+            AppLog::add('error', 'platega', 'Platega cron sync error: ' . ($res['error'] ?? 'unknown'));
+        }
         $this->jsonResponse($res, $res['success'] ? 200 : ($res['code'] ?? 500));
     }
 
@@ -404,11 +628,12 @@ class AdminFinanceController
         }
 
         if (!$merchantId || !$secret) {
+            $this->settings->set('platega_last_error', 'Platega не настроен (merchant_id/secret пусты)');
+            $this->settings->set('platega_last_sync_ok', '0');
+            AppLog::add('warning', 'platega', 'Platega sync skipped: merchant_id/secret empty');
             return ['success' => false, 'error' => 'Platega не настроен (merchant_id/secret пусты)', 'code' => 400];
         }
 
-        // Анти-гонка: если другой синк выполнялся менее 30 секунд назад — пропускаем,
-        // чтобы два одновременных запроса не импортировали один и тот же платёж дважды.
         $lock = (int)$this->settings->get('platega_sync_lock', 0);
         if ($lock && (time() - $lock) < 30) {
             return ['success' => true, 'added' => 0, 'skipped' => 0, 'new' => 0, 'skipped_lock' => true];
@@ -436,12 +661,25 @@ class AdminFinanceController
                 $skipped = (int)$result['skipped'];
             }
 
+            $this->stitchOrphanRecordIds($preview);
+
             $this->settings->set('platega_last_sync', date('c'));
+            $this->settings->set('platega_last_error', '');
+            $this->settings->set('platega_last_sync_ok', '1');
             $this->settings->set('platega_sync_lock', '');
+
+            AppLog::add('info', 'platega', 'Platega sync OK', [
+                'added' => $added,
+                'skipped' => $skipped,
+                'new' => count($newRows),
+            ]);
 
             return ['success' => true, 'added' => $added, 'skipped' => $skipped, 'new' => count($newRows)];
         } catch (\Throwable $e) {
             $this->settings->set('platega_sync_lock', '');
+            $this->settings->set('platega_last_error', $e->getMessage());
+            $this->settings->set('platega_last_sync_ok', '0');
+            AppLog::add('error', 'platega', 'Platega sync error: ' . $e->getMessage());
             error_log('Platega sync error: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage(), 'code' => 500];
         }
@@ -472,6 +710,8 @@ class AdminFinanceController
         $daysBack = (int)$this->settings->get('platega_days_back', 150);
         $autoSync = (int)$this->settings->get('platega_auto_sync', 0);
         $lastSync = $this->settings->get('platega_last_sync', '');
+        $lastSyncOk = (int)$this->settings->get('platega_last_sync_ok', 0);
+        $lastError = (string)$this->settings->get('platega_last_error', '');
 
         $this->jsonResponse([
             'merchant_id' => $merchantId,
@@ -480,6 +720,8 @@ class AdminFinanceController
             'days_back' => $daysBack,
             'auto_sync' => $autoSync,
             'last_sync' => $lastSync,
+            'last_sync_ok' => $lastSyncOk,
+            'last_error' => $lastError,
         ]);
     }
 
@@ -496,6 +738,9 @@ class AdminFinanceController
             return;
         }
 
+        $oldSecret = (string)$this->settings->get('platega_secret', '');
+        $oldMerchant = (string)$this->settings->get('platega_merchant_id', '');
+
         $allowed = ['platega_merchant_id', 'platega_secret', 'platega_days_back', 'platega_auto_sync'];
         foreach ($allowed as $key) {
             if (!array_key_exists($key, $body)) {
@@ -505,8 +750,20 @@ class AdminFinanceController
             if ($key === 'platega_days_back' || $key === 'platega_auto_sync') {
                 $value = (string)max(0, (int)$value);
             }
+            if ($key === 'platega_secret' && $value === '') {
+                continue;
+            }
             $this->settings->set($key, $value);
         }
+
+        $newSecret = (string)$this->settings->get('platega_secret', '');
+        $secretUpdated = $newSecret !== '' && $newSecret !== $oldSecret;
+        AppLog::add('info', 'platega', 'Platega settings saved', [
+            'merchant_id_changed' => ($oldMerchant !== (string)$this->settings->get('platega_merchant_id', '')),
+            'secret_updated' => $secretUpdated,
+            'days_back' => (int)$this->settings->get('platega_days_back', 150),
+            'auto_sync' => (int)$this->settings->get('platega_auto_sync', 0),
+        ]);
 
         $this->jsonResponse(['success' => true]);
     }
@@ -551,6 +808,9 @@ class AdminFinanceController
                     $value = $value !== '' ? json_decode($value, true) : [];
                 }
                 $value = is_array($value) ? json_encode(array_values($value), JSON_UNESCAPED_UNICODE) : '[]';
+            }
+            if ($key === 'platega_secret' && $value === '') {
+                continue;
             }
             $this->settings->set($key, (string)$value);
         }
@@ -829,12 +1089,25 @@ class AdminFinanceController
                 $desc = 'Пополнение на ' . (int)round((float)str_replace(',', '.', $m[1])) . ' ₽';
             }
 
-            // Дедупликация ТОЛЬКО по уникальному record_id: каждый платёж Platega
-            // уникален, поэтому два платежа от разных людей с одинаковой датой/суммой
-            // никогда не пересекутся. Составной ключ — фолбэк лишь для строк без
-            // record_id (битые/нестандартные CSV-строки).
+            // Дедупликация: основной ключ — уникальный record_id (каждый платёж
+            // Platega уникален, два платежа от разных людей с одинаковой
+            // датой/суммой не считаем дубликатами).
+            // Фолбэк 1: если record_id не найден — проверяем «осиротевшие»
+            // записи (record_id IS NULL). Такой платёж мог быть импортирован
+            // вручную через CSV ДО появления record_id в экспорте/импорте —
+            // тогда он лежит в БД без record_id, но с теми же датой/суммой.
+            // Фолбэк 2 (строки без record_id): составной ключ.
             if ($recordId !== '') {
                 $isDup = in_array($recordId, $existingRecordIds, true);
+                if (!$isDup) {
+                    $isDup = $this->model->findOrphanByKey([
+                        'date' => $date,
+                        'type' => 'income',
+                        'category' => 'Прибыль',
+                        'participant' => 'Platega пополнение',
+                        'amount' => $net,
+                    ]) !== null;
+                }
             } else {
                 $dupKey = $this->plategaDupKey($date, 'Доход', 'Platega пополнение', $net);
                 $isDup = in_array($dupKey, $existingKeys, true);
@@ -971,11 +1244,30 @@ class AdminFinanceController
             }
 
             $recordId = (string)($t['record_id'] ?? '');
-            // Только record_id решает: два разных платежа с одинаковой датой/суммой
-            // от разных людей не считаем дубликатами. Составной ключ — фолбэк для
-            // строк без record_id.
+            // Основной ключ — record_id: два разных платежа с одинаковой
+            // датой/суммой от разных людей не считаем дубликатами.
             if ($recordId !== '') {
                 if (in_array($recordId, $existingRecordIds, true)) {
+                    $skipped++;
+                    continue;
+                }
+                // Фолбэк: платёж мог быть импортирован вручную через CSV
+                // (record_id в экспорте/импорте появился позже) и лежит в БД
+                // с record_id IS NULL. Вместо создания дубликата прошиваем
+                // record_id в существующую запись — дальше дедупликация идёт
+                // по record_id, и этот платёж больше не приедет повторно.
+                // Матчим ТОЛЬКО записи без record_id, чтобы не схлопнуть два
+                // реально разных платежа с одинаковой датой/суммой.
+                $orphanId = $this->model->findOrphanByKey([
+                    'date' => $t['date'],
+                    'type' => 'income',
+                    'category' => (string)($t['category'] ?? ''),
+                    'participant' => (string)($t['participant'] ?? ''),
+                    'amount' => (float)$t['amount'],
+                ]);
+                if ($orphanId !== null) {
+                    $this->model->attachRecordId($orphanId, $recordId);
+                    $existingRecordIds[] = $recordId;
                     $skipped++;
                     continue;
                 }
@@ -1011,18 +1303,58 @@ class AdminFinanceController
         return ['added' => $added, 'skipped' => $skipped];
     }
 
+    /**
+     * Прошить record_id в записи, импортированные вручную через CSV
+     * (record_id IS NULL) — когда в preview они совпали с платежами Platega
+     * по составному ключу и отмечены как duplicate. Делает вручную
+     * импортированные платежи полноценными Platega-записями: дальше
+     * дедупликация идёт по record_id, а экспорт включает уникальный ID.
+     * Матчим ТОЛЬКО записи без record_id, чтобы не схлопнуть два реально
+     * разных платежа с одинаковой датой/суммой.
+     *
+     * @param array $previewRows строки preview Platega
+     * @return int количество прошитых записей
+     */
+    private function stitchOrphanRecordIds(array $previewRows): int
+    {
+        $stitched = 0;
+        foreach ($previewRows as $t) {
+            $recordId = (string)($t['record_id'] ?? '');
+            if ($recordId === '') {
+                continue;
+            }
+            // record_id уже занят — запись настоящая, прошивать нечего
+            if ($this->model->findByRecordId($recordId) !== null) {
+                continue;
+            }
+            $orphanId = $this->model->findOrphanByKey([
+                'date' => $t['date'],
+                'type' => 'income',
+                'category' => (string)($t['category'] ?? ''),
+                'participant' => (string)($t['participant'] ?? ''),
+                'amount' => (float)$t['amount'],
+            ]);
+            if ($orphanId !== null) {
+                $this->model->attachRecordId($orphanId, $recordId);
+                $stitched++;
+            }
+        }
+        return $stitched;
+    }
+
     private function importCsvRow(?array $row, int &$imported, int &$skipped, array &$errors): int
     {
         if (!$row || count($row) < 5) {
             return 0;
         }
-        // Колонки: date; type; category; participant; amount; description
+        // Колонки: date; type; category; participant; amount; description; record_id
         $date = (string)$row[0];
         $type = $this->csvType((string)($row[1] ?? ''));
         $category = (string)($row[2] ?? '');
         $participant = (string)($row[3] ?? '');
         $amount = (float)str_replace(',', '.', (string)($row[4] ?? '0'));
         $description = (string)($row[5] ?? '');
+        $recordId = trim((string)($row[6] ?? ''));
 
         if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !strtotime($date)) {
             return 0;
@@ -1045,10 +1377,22 @@ class AdminFinanceController
         ]);
 
         // Дедупликация
-        $dup = $this->model->findDuplicate($clean);
-        if ($dup) {
-            $skipped++;
-            return 0;
+        if ($recordId !== '') {
+            // Уникальный ID платежа Platega: если такая запись уже есть
+            // (автоимпорт Platega или прошлый ручной импорт этого файла) —
+            // пропускаем. Это защищает от «наложения» ручного импорта
+            // на автоматический и наоборот.
+            if ($this->model->findByRecordId($recordId) !== null) {
+                $skipped++;
+                return 0;
+            }
+            $clean['record_id'] = $recordId;
+        } else {
+            $dup = $this->model->findDuplicate($clean);
+            if ($dup) {
+                $skipped++;
+                return 0;
+            }
         }
 
         try {

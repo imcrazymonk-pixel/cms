@@ -32,7 +32,7 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
     <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/table.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/table.css') ?>">
     <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/layout.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/layout.css') ?>">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%236366f1'/%3E%3Ctext x='50' y='72' font-size='56' font-family='Arial' font-weight='bold' text-anchor='middle' fill='white'%3EC%3C/text%3E%3C/svg%3E">
-    <!-- TinyMCE -->
+    <!-- TinyMCE 7 -->
     <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
     <script src="<?= SITE_URL ?>/admin/js/panel.js?v=<?= filemtime(ADMIN_PATH . '/js/panel.js') ?>" defer></script>
     <script src="<?= SITE_URL ?>/admin/js/command-palette.js?v=<?= filemtime(ADMIN_PATH . '/js/command-palette.js') ?>" defer></script>
@@ -58,25 +58,26 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
                 <!-- Группа: Главное -->
                 <div class="sidebar-group-title">Главное</div>
                 <a href="/admin" class="sidebar-nav-item <?= TemplateEngine::isActive('admin') ?>"><?= icon('dashboard') ?><span class="sidebar-text">Дашборд</span></a>
+
+                <!-- Группа: Сайт -->
+                <div class="sidebar-group-title">Сайт</div>
                 <a href="/admin/posts" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/posts') ?>"><?= icon('file-text') ?><span class="sidebar-text">Посты</span></a>
                 <a href="/admin/categories" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/categories') ?>"><?= icon('folder') ?><span class="sidebar-text">Категории</span></a>
-
-                <!-- Группа: Контент -->
-                <div class="sidebar-group-title">Контент</div>
                 <a href="/admin/pages" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/pages') ?>"><?= icon('file') ?><span class="sidebar-text">Страницы</span></a>
                 <a href="/admin/menus" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/menus') ?>"><?= icon('menu') ?><span class="sidebar-text">Меню</span></a>
                 <a href="/admin/media" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/media') ?>"><?= icon('image') ?><span class="sidebar-text">Медиа</span></a>
                 <a href="/admin/widgets" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/widgets') ?>"><?= icon('widgets') ?><span class="sidebar-text">Виджеты</span></a>
-
-                <!-- Группа: Система -->
-                <div class="sidebar-group-title">Система</div>
-                <a href="/admin/users" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/users') ?>"><?= icon('users') ?><span class="sidebar-text">Пользователи</span></a>
-                <a href="/admin/settings" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/settings') ?>"><?= icon('settings') ?><span class="sidebar-text">Настройки</span></a>
                 <a href="/admin/theme" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/theme') ?>"><?= icon('palette') ?><span class="sidebar-text">Темы</span></a>
 
                 <!-- Группа: Финансы -->
                 <div class="sidebar-group-title">Финансы</div>
                 <a href="/admin/finance" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/finance') ?>"><?= icon('wallet') ?><span class="sidebar-text">Финансы</span></a>
+
+                <!-- Группа: Система -->
+                <div class="sidebar-group-title">Система</div>
+                <a href="/admin/users" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/users') ?>"><?= icon('users') ?><span class="sidebar-text">Пользователи</span></a>
+                <a href="/admin/settings" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/settings') ?>"><?= icon('settings') ?><span class="sidebar-text">Настройки</span></a>
+                <a href="/admin/logs" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/logs') ?>"><?= icon('terminal') ?><span class="sidebar-text">Логи</span></a>
             </nav>
             <div class="sidebar-footer">
                 <div class="sidebar-footer-tools">
@@ -204,18 +205,17 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
     <div id="command-palette" class="command-palette" hidden></div>
 
     <script>
-        // Инициализация TinyMCE (тёмная тема редактора)
+        // Инициализация TinyMCE
         tinymce.init({
             selector: '.editor',
             license_key: 'gpl',
             language: 'ru',
-            language_url: '/admin/js/tinymce-lang-ru.js',
             height: 500,
+            plugins: 'anchor autolink charmap codesample emoticons image link lists media searchreplace table visualblocks wordcount',
+            toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap | removeformat',
+            content_style: 'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 16px; line-height: 1.7; color: #d1d5db; background: #181e28; }',
             skin: 'oxide-dark',
             content_css: 'dark',
-            plugins: 'anchor autolink charmap code codesample emoticons image link lists media searchreplace table visualblocks wordcount',
-            toolbar: 'undo redo | blocks fontfamily fontsize | bold italic underline strikethrough | link image media table | align lineheight | numlist bullist indent outdent | emoticons charmap code | removeformat',
-            content_style: 'body { font-family: Montserrat, system-ui, sans-serif; font-size: 16px; background-color: #181e28; color: #d1d5db; }',
             images_upload_url: '/admin/media/upload',
             automatic_uploads: true,
             file_picker_types: 'image',

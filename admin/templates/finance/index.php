@@ -69,9 +69,9 @@ window.FIN = {
         <div class="finance-chart-controls">
             <label>Шкала</label>
             <select id="fin-scale">
-                <option value="day">Дни</option>
+                <option value="day" selected>Дни</option>
                 <option value="week">Недели</option>
-                <option value="month" selected>Месяцы</option>
+                <option value="month">Месяцы</option>
                 <option value="year">Годы</option>
             </select>
             <div class="finance-chart-type" id="fin-chart-type">
@@ -116,11 +116,12 @@ window.FIN = {
 </div>
 
 <!-- Таблица -->
-<div class="dg-wrapper">
+<div class="dg-wrapper finance-table-wrap">
     <div class="finance-table-scroll">
         <table class="dg-table finance-table">
             <thead>
             <tr>
+                <th class="fin-check-col"><input type="checkbox" id="finSelectAll" title="Выбрать все на странице"></th>
                 <th data-sort="date" class="sortable sorted desc">Дата <span class="sort-indicator">↕</span></th>
                 <th>Тип</th>
                 <th data-sort="category" class="sortable">Категория <span class="sort-indicator">↕</span></th>
@@ -131,13 +132,118 @@ window.FIN = {
             </tr>
             </thead>
             <tbody id="fin-tbody">
-            <tr><td colspan="7" class="fin-empty-cell">Загрузка…</td></tr>
+            <tr><td colspan="8" class="fin-empty-cell">Загрузка…</td></tr>
             </tbody>
         </table>
     </div>
     <div class="dg-pagination">
         <span class="finance-total" id="fin-total"></span>
         <div class="pagination-links" id="fin-pagination"></div>
+    </div>
+</div>
+
+<!-- Плавающая панель массовых действий -->
+<div class="fin-bulk-bar-wrap" id="finBulkWrap" hidden>
+    <div class="fin-bulk-bar">
+        <span class="fin-bulk-count">
+            <span id="finBulkCount">Выбрано: 0</span>
+            <span class="fin-bulk-count-sub" id="finBulkCountSub"></span>
+        </span>
+        <div class="fin-bulk-spacer"></div>
+
+        <div class="fin-dropdown-wrap">
+            <button type="button" class="btn btn-ghost btn-sm" id="finBulkExport" title="Экспорт">
+                <?= icon('download') ?> Экспорт
+            </button>
+            <div class="fin-dropdown-menu" id="finBulkExportMenu">
+                <button type="button" class="fin-dropdown-item" data-value="csv"><?= icon('file-text') ?> CSV</button>
+            </div>
+        </div>
+
+        <div class="fin-dropdown-wrap">
+            <button type="button" class="btn btn-ghost btn-sm" id="finBulkType" title="Сменить тип">
+                <?= icon('tag') ?> Тип
+            </button>
+            <div class="fin-dropdown-menu" id="finBulkTypeMenu">
+                <button type="button" class="fin-dropdown-item" data-value="income"><?= icon('trending-up') ?> Доход</button>
+                <button type="button" class="fin-dropdown-item" data-value="expense"><?= icon('trending-down') ?> Расход</button>
+            </div>
+        </div>
+
+        <button type="button" class="btn btn-ghost btn-sm" id="finBulkCategory"><?= icon('folder') ?> Категория</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="finBulkParticipant"><?= icon('user') ?> Участник</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="finBulkDescription"><?= icon('edit') ?> Описание</button>
+
+        <button type="button" class="btn btn-sm btn-danger" id="finBulkDelete"><?= icon('trash-2') ?> Удалить</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="finBulkCancel" title="Отменить"><?= icon('x') ?></button>
+    </div>
+</div>
+
+<!-- Модалка: массовая смена категории -->
+<div class="finance-modal-overlay" id="finBulkCatModal" hidden>
+    <div class="finance-modal finance-modal-sm">
+        <div class="finance-modal-header">
+            <h3>Сменить категорию</h3>
+            <button type="button" class="finance-modal-close" data-close="finBulkCatModal"><?= icon('x') ?></button>
+        </div>
+        <div class="finance-modal-body">
+            <p class="finance-help">Новая категория для <strong id="finBulkCatCount">N</strong> записей</p>
+            <input type="text" id="finBulkCatInput" list="finBulkCatList" class="form-control" placeholder="Прибыль, Сервер…" autocomplete="off">
+            <datalist id="finBulkCatList"></datalist>
+        </div>
+        <div class="finance-modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-close="finBulkCatModal">Отмена</button>
+            <button type="button" class="btn btn-primary btn-sm" id="finBulkCatApply">Применить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка: массовая смена участника -->
+<div class="finance-modal-overlay" id="finBulkPartModal" hidden>
+    <div class="finance-modal finance-modal-sm">
+        <div class="finance-modal-header">
+            <h3>Сменить участника</h3>
+            <button type="button" class="finance-modal-close" data-close="finBulkPartModal"><?= icon('x') ?></button>
+        </div>
+        <div class="finance-modal-body">
+            <p class="finance-help">Новый участник для <strong id="finBulkPartCount">N</strong> записей</p>
+            <input type="text" id="finBulkPartInput" list="finBulkPartList" class="form-control" placeholder="Platega, Beget…" autocomplete="off">
+            <datalist id="finBulkPartList"></datalist>
+        </div>
+        <div class="finance-modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-close="finBulkPartModal">Отмена</button>
+            <button type="button" class="btn btn-primary btn-sm" id="finBulkPartApply">Применить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка: массовая смена описания -->
+<div class="finance-modal-overlay" id="finBulkDescModal" hidden>
+    <div class="finance-modal finance-modal-sm">
+        <div class="finance-modal-header">
+            <h3>Сменить описание</h3>
+            <button type="button" class="finance-modal-close" data-close="finBulkDescModal"><?= icon('x') ?></button>
+        </div>
+        <div class="finance-modal-body">
+            <p class="finance-help">Новое описание для <strong id="finBulkDescCount">N</strong> записей</p>
+            <textarea id="finBulkDescInput" class="form-control" rows="3" placeholder="Новое описание…"></textarea>
+        </div>
+        <div class="finance-modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-close="finBulkDescModal">Отмена</button>
+            <button type="button" class="btn btn-primary btn-sm" id="finBulkDescApply">Применить</button>
+        </div>
+    </div>
+</div>
+
+<!-- Confirm диалог: массовое удаление -->
+<div class="fin-confirm-overlay" id="finBulkDeleteConfirm" hidden>
+    <div class="fin-confirm-box">
+        <h3 class="fin-confirm-title">Массовое удаление</h3>
+        <p class="fin-confirm-text" id="finBulkDeleteText">Удалить операции? Это действие необратимо.</p>
+        <div class="fin-confirm-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="finBulkDeleteCancel">Отмена</button>
+            <button type="button" class="btn btn-danger btn-sm" id="finBulkDeleteOk">Удалить</button>
+        </div>
     </div>
 </div>
 
@@ -198,8 +304,9 @@ window.FIN = {
             <button type="button" class="finance-modal-close" data-close="finImportModal"><?= icon('x') ?></button>
         </div>
         <div class="finance-modal-body">
-            <p class="finance-help">Формат: <code>date;type;category;participant;amount;description</code><br>
+            <p class="finance-help">Формат: <code>date;type;category;participant;amount;description;record_id</code><br>
             Тип: <code>Доход</code> или <code>Расход</code>. Разделитель «;» или «,» (определяется автоматически).<br>
+            Колонка <code>record_id</code> необязательна — это уникальный ID платежа Platega, он защищает от дублей при импорте.<br>
             Для XLSX — сохраните файл в Excel как CSV (UTF-8).</p>
             <input type="file" id="finImportFile" accept=".csv,.txt" class="finance-file-input">
             <div class="finance-error" id="finImportError" hidden></div>
@@ -349,11 +456,13 @@ window.FIN = {
                     <label>Дней назад</label>
                     <input type="number" id="finPlategaDays" value="150" min="1" max="730">
                 </div>
-                <div class="form-group" style="display:flex;align-items:flex-end">
+                <div class="form-group" style="display:flex;align-items:flex-end;gap:8px">
+                    <button type="button" class="btn btn-secondary btn-sm" id="finPlategaSaveBtn"><?= icon('save') ?> Сохранить настройки</button>
                     <button type="button" class="btn btn-primary btn-sm" id="finPlategaPreviewBtn">Превью</button>
                 </div>
             </div>
             <div class="finance-error" id="finPlategaError" hidden></div>
+            <div class="finance-help" id="finPlategaSyncStatus" style="margin-top:8px"></div>
             <div style="max-height:50vh;overflow-y:auto;margin-top:12px">
                 <table class="dg-table finance-table" id="finPlategaTable">
                     <thead>

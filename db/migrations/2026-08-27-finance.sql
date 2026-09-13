@@ -43,5 +43,7 @@ INSERT INTO `fin_settings` (`setting_key`, `setting_value`) VALUES
   ('platega_secret', ''),
   ('platega_days_back', '150'),
   ('platega_auto_sync', '0'),
-  ('platega_last_sync', '')
+  ('platega_last_sync', ''),
+  ('platega_last_sync_ok', '0'),
+  ('platega_last_error', '')
 ON DUPLICATE KEY UPDATE `setting_key` = `setting_key`;

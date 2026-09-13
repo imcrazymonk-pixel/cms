@@ -56,13 +56,13 @@ class AdminMediaController
     {
         Auth::requireAdmin();
 
-        if (!isset($_FILES['file']) && !isset($_FILES['image'])) {
+        if (!isset($_FILES['file']) && !isset($_FILES['image']) && !isset($_FILES['upload'])) {
             http_response_code(400);
             echo json_encode(['error' => 'Файл не найден']);
             return;
         }
 
-        $file = $_FILES['file'] ?? $_FILES['image'];
+        $file = $_FILES['file'] ?? $_FILES['image'] ?? $_FILES['upload'];
 
         $allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         $maxSize = 10 * 1024 * 1024;
@@ -91,12 +91,8 @@ class AdminMediaController
         if (move_uploaded_file($file['tmp_name'], $filepath)) {
             $url = '/public/uploads/images/' . $filename;
             
-            // Для TinyMCE
-            if (isset($_FILES['image'])) {
-                echo json_encode(['location' => $url]);
-            } else {
-                echo json_encode(['success' => true, 'url' => $url]);
-            }
+            // Универсальный ответ: url для CKEditor, location для TinyMCE (legacy)
+            echo json_encode(['url' => $url, 'location' => $url, 'success' => true]);
         } else {
             http_response_code(500);
             echo json_encode(['error' => 'Ошибка загрузки']);
