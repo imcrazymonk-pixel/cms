@@ -10,6 +10,19 @@
 .DS_Store
 Thumbs.db
 
+# Kilo AI editor — конфигурация агентов, не часть проекта
+/.kilo/
+
+# Kilo управляющие файлы в корне
+/AGENTS.md
+/kilo.json
+
+# Playwright MCP логи
+/.playwright-mcp/
+
+# Спеки и дизайн-документы
+/docs/superpowers/
+
 # Проект FIN (переделывается в модуль CMS, содержит секреты)
 /Fin/
 
