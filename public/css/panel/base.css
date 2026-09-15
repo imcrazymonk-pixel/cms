@@ -22,6 +22,11 @@ body {
   font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1.5;
+  /* Усиленное тёплое ambient + холодный индиго-источник (Remnawave-style) */
+  background-image:
+    radial-gradient(ellipse 55% 40% at 70% 15%, rgba(245, 166, 35, 0.12) 0%, transparent 65%),
+    radial-gradient(ellipse 30% 35% at 20% 70%, rgba(99, 102, 241, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 25% at 85% 85%, rgba(245, 166, 35, 0.05) 0%, transparent 55%);
 }
 
 /* Скроллбар — градиент акцента */

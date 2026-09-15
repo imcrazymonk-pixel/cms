@@ -7,20 +7,58 @@
 .finance-actions .btn { gap: 6px; display: inline-flex; align-items: center; }
 .finance-spacer { flex: 1; }
 
-/* ─── Карточки сводки ─────────────────────── */
+/* ─── Карточки сводки (Remnawave-style) ────── */
 .finance-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 16px; }
-.finance-kpi { padding: 16px 18px; border: 1px solid var(--glass-border); border-radius: var(--radius-lg); background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); box-shadow: var(--shadow-glass); }
+.finance-kpi {
+  padding: 18px 20px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--shadow-glass);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+.finance-kpi:hover {
+  border-color: var(--glass-border-hover);
+  box-shadow: var(--shadow-glass-hover);
+  transform: translateY(-2px);
+}
 .finance-kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .finance-kpi-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
-.finance-kpi-value { font-size: 1.5rem; font-weight: 700; font-family: var(--font-mono); color: var(--text-heading); }
-.finance-kpi-value.is-income { color: #10b981; }
-.finance-kpi-value.is-expense { color: #ef4444; }
+.finance-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-heading);
+  letter-spacing: -0.02em;
+}
+.finance-kpi-value.is-income { color: #34d399; }
+.finance-kpi-value.is-expense { color: #fb7185; }
 .finance-kpi-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
-.finance-kpi-ic svg { width: 20px; height: 20px; }
-.finance-kpi-ic-income { color: #10b981; }
-.finance-kpi-ic-expense { color: #ef4444; }
-.finance-kpi-ic-accent { color: hsl(var(--primary)); }
-.finance-kpi-ic-neutral { color: var(--text-muted); }
+
+/* Иконка в тонированном круге */
+.finance-kpi-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius);
+  flex-shrink: 0;
+}
+.finance-kpi-icon-wrap svg { width: 18px; height: 18px; }
+.finance-kpi-icon-wrap.is-income { background: rgba(16, 185, 129, 0.12); }
+.finance-kpi-icon-wrap.is-income svg { color: #34d399; }
+.finance-kpi-icon-wrap.is-expense { background: rgba(239, 68, 68, 0.12); }
+.finance-kpi-icon-wrap.is-expense svg { color: #fb7185; }
+.finance-kpi-icon-wrap.is-accent { background: rgba(var(--glow-rgb), 0.12); }
+.finance-kpi-icon-wrap.is-accent svg { color: hsl(var(--primary)); }
+.finance-kpi-icon-wrap.is-neutral { background: var(--surface-hover); }
+.finance-kpi-icon-wrap.is-neutral svg { color: var(--text-muted); }
 
 /* ─── График ──────────────────────────────── */
 .finance-chart-card { padding: 18px; margin-bottom: 16px; border: 1px solid var(--glass-border); border-radius: var(--radius-lg); background: var(--glass-bg); backdrop-filter: blur(var(--glass-blur)); -webkit-backdrop-filter: blur(var(--glass-blur)); box-shadow: var(--shadow-glass); }
@@ -38,12 +76,17 @@
 }
 .finance-chart-type button, .finance-range button {
   border: none; background: none; color: var(--text-muted); cursor: pointer;
-  padding: 6px 10px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 12px; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 4px;
   transition: background var(--transition-fast), color var(--transition-fast);
+  font-weight: 500;
 }
 .finance-chart-type button svg { width: 13px; height: 13px; }
 .finance-chart-type button:hover, .finance-range button:hover { color: var(--text-body); background: var(--surface-hover); }
-.finance-chart-type button.active, .finance-range button.active { color: hsl(var(--primary)); background: hsl(var(--primary) / 0.12); }
+.finance-chart-type button.active, .finance-range button.active {
+  color: #000;
+  background: linear-gradient(135deg, var(--accent-from), var(--accent-to));
+  font-weight: 600;
+}
 .finance-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
 .finance-toggle input { accent-color: hsl(var(--primary)); }
 .finance-chart-wrap { position: relative; height: 340px; }
@@ -59,9 +102,9 @@
 /* ─── Таблица (remnawave-style) ──────────────── */
 .finance-table-scroll { overflow-x: auto; }
 
-/* Обёртка: border-radius 16px как в remnawave */
+/* Обёртка: border-radius от токена (реагирует на Радиус в настройках вида) */
 .dg-wrapper.finance-table-wrap {
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-deep), 0 1px 0 0 rgba(255,255,255,0.04) inset;
 }
 

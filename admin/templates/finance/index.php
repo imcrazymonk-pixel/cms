@@ -28,34 +28,34 @@ window.FIN = {
 
 <!-- Сводка -->
 <div class="finance-summary">
-    <div class="glass-card finance-kpi">
+    <div class="finance-kpi">
         <div class="finance-kpi-top">
             <span class="finance-kpi-label">Доходы</span>
-            <?= icon('trending-up', 'finance-kpi-ic finance-kpi-ic-income') ?>
+            <span class="finance-kpi-icon-wrap is-income"><?= icon('trending-up') ?></span>
         </div>
         <div class="finance-kpi-value is-income" id="fin-income">—</div>
         <div class="finance-kpi-hint" id="fin-income-avg"></div>
     </div>
-    <div class="glass-card finance-kpi">
+    <div class="finance-kpi">
         <div class="finance-kpi-top">
             <span class="finance-kpi-label">Расходы</span>
-            <?= icon('trending-down', 'finance-kpi-ic finance-kpi-ic-expense') ?>
+            <span class="finance-kpi-icon-wrap is-expense"><?= icon('trending-down') ?></span>
         </div>
         <div class="finance-kpi-value is-expense" id="fin-expense">—</div>
         <div class="finance-kpi-hint" id="fin-expense-avg"></div>
     </div>
-    <div class="glass-card finance-kpi">
+    <div class="finance-kpi">
         <div class="finance-kpi-top">
             <span class="finance-kpi-label">Баланс</span>
-            <?= icon('wallet', 'finance-kpi-ic finance-kpi-ic-accent') ?>
+            <span class="finance-kpi-icon-wrap is-accent"><?= icon('wallet') ?></span>
         </div>
         <div class="finance-kpi-value" id="fin-balance">—</div>
         <div class="finance-kpi-hint" id="fin-balance-hint"></div>
     </div>
-    <div class="glass-card finance-kpi">
+    <div class="finance-kpi">
         <div class="finance-kpi-top">
             <span class="finance-kpi-label">Операций</span>
-            <?= icon('credit-card', 'finance-kpi-ic finance-kpi-ic-neutral') ?>
+            <span class="finance-kpi-icon-wrap is-neutral"><?= icon('credit-card') ?></span>
         </div>
         <div class="finance-kpi-value" id="fin-count">—</div>
         <div class="finance-kpi-hint" id="fin-count-hint"></div>

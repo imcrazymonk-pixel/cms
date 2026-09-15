@@ -48,28 +48,29 @@
 .btn-lg { padding: 12px 24px; font-size: 1.143rem; }
 .btn-block { display: flex; width: 100%; justify-content: center; }
 
-/* === Badges === */
+/* === Badges (Remnawave-style: soft-bg filled) === */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 9999px;
   font-size: 0.857rem;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1.4;
-  border: 1px solid transparent;
+  letter-spacing: 0.01em;
+  border: none;
 }
-.badge-published, .badge-success { background: rgba(34, 197, 94, 0.15); color: #4ade80; border-color: rgba(34, 197, 94, 0.3); }
-.badge-draft, .badge-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
-.badge-archived, .badge-danger { background: rgba(239, 68, 68, 0.15); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
-.badge-info { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border-color: rgba(59, 130, 246, 0.3); }
+.badge-published, .badge-success { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.badge-draft, .badge-warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+.badge-archived, .badge-danger { background: rgba(239, 68, 68, 0.15); color: #fb7185; }
+.badge-info { background: rgba(99, 102, 241, 0.15); color: #818cf8; }
 .badge-neutral { background: hsl(var(--secondary)); color: var(--text-body); }
 
-[data-mode="light"] .badge-published { color: #16a34a; }
-[data-mode="light"] .badge-draft { color: #b45309; }
-[data-mode="light"] .badge-archived { color: #dc2626; }
-[data-mode="light"] .badge-info { color: #2563eb; }
+[data-mode="light"] .badge-published { background: rgba(22, 163, 74, 0.12); color: #16a34a; }
+[data-mode="light"] .badge-draft { background: rgba(180, 83, 9, 0.12); color: #b45309; }
+[data-mode="light"] .badge-archived { background: rgba(220, 38, 38, 0.12); color: #dc2626; }
+[data-mode="light"] .badge-info { background: rgba(37, 99, 235, 0.12); color: #2563eb; }
 
 /* === Cards (Remnawave glass-style) === */
 .card {
@@ -101,7 +102,7 @@
 
 input[type="text"], input[type="email"], input[type="password"],
 input[type="number"], input[type="url"], input[type="date"], input[type="datetime-local"],
-textarea, select {
+textarea, select, .form-control {
   width: 100%;
   padding: 10px 14px;
   border: 1px solid var(--glass-border);
@@ -113,8 +114,11 @@ textarea, select {
   font-family: var(--font-sans);
   font-size: 1rem;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  height: 44px;
 }
-input:focus, textarea:focus, select:focus {
+textarea { height: auto; min-height: 80px; resize: vertical; }
+select { appearance: auto; cursor: pointer; }
+input:focus, textarea:focus, select:focus, .form-control:focus {
   outline: none;
   border-color: hsl(var(--ring));
   box-shadow: 0 0 0 1px hsl(var(--ring)), 0 0 15px -3px rgba(var(--glow-rgb), 0.3);
@@ -215,30 +219,79 @@ input:focus, textarea:focus, select:focus {
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-glass);
   overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .theme-card:hover {
   border-color: var(--glass-border-hover);
   box-shadow: var(--shadow-glass-hover);
+  transform: translateY(-3px) scale(1.01);
 }
 .theme-card.theme-active {
-  border-color: rgba(34, 197, 94, 0.5);
+  border-color: rgba(245, 166, 35, 0.4);
+  box-shadow: 0 0 20px -4px rgba(245, 166, 35, 0.15), 0 8px 32px rgba(0,0,0,.3);
 }
 .theme-card.theme-active .theme-preview {
-  box-shadow: inset 0 -3px 0 rgba(34, 197, 94, 0.5);
+  box-shadow: inset 0 -3px 0 rgba(245, 166, 35, 0.4);
 }
 
-/* Preview band (Remnawave-style gradient swatch) */
+/* Mini-browser mockup (Remnawave-style) */
 .theme-preview {
+  position: relative;
   width: 100%;
-  height: 80px;
-  border-radius: 0;
+  height: 100px;
   flex-shrink: 0;
+  border-radius: 0;
+  overflow: hidden;
+}
+/* Browser toolbar: 3 dots */
+.theme-preview::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  width: 44px;
+  height: 8px;
+  background:
+    radial-gradient(circle 3.5px, rgba(255,255,255,0.35) 100%, transparent) 0 0 / 16px 8px,
+    radial-gradient(circle 3.5px, rgba(255,255,255,0.35) 100%, transparent) 16px 0 / 16px 8px,
+    radial-gradient(circle 3.5px, rgba(255,255,255,0.35) 100%, transparent) 32px 0 / 16px 8px;
+  background-repeat: no-repeat;
+  z-index: 2;
+  pointer-events: none;
+}
+/* Subtle inner shadow for depth */
+.theme-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+  pointer-events: none;
+  z-index: 1;
+}
+/* Active ribbon */
+.theme-card.theme-active .theme-card-body::after {
+  content: 'Активна';
+  position: absolute;
+  top: 12px;
+  right: -32px;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #000;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 36px;
+  transform: rotate(45deg);
+  z-index: 3;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 .theme-card-body {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 16px;
+  overflow: hidden;
 }
 
 .theme-card-header {
@@ -255,6 +308,70 @@ input:focus, textarea:focus, select:focus {
   border-radius: 4px;
 }
 .theme-card-desc { margin: 0; color: var(--text-muted); font-size: 1rem; flex: 1; }
+
+/* === Dropzone (Remnawave-style) === */
+.dropzone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 160px;
+  padding: 32px 24px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 2px dashed var(--glass-border);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
+  margin-top: 12px;
+}
+.dropzone:hover {
+  border-color: var(--glass-border-hover);
+  background: var(--glass-bg-hover);
+}
+.dropzone-dragover {
+  border-color: hsl(var(--primary));
+  background: rgba(var(--glow-rgb), 0.06);
+  box-shadow: 0 0 24px -4px rgba(var(--glow-rgb), 0.15);
+}
+.dropzone-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  pointer-events: none;
+}
+.dropzone-icon {
+  width: 40px;
+  height: 40px;
+  stroke: var(--text-muted);
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+}
+.dropzone-dragover .dropzone-icon {
+  opacity: 1;
+  stroke: hsl(var(--primary));
+}
+.dropzone-text {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 1rem;
+  font-weight: 500;
+}
+.dropzone-hint {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.857rem;
+  opacity: 0.6;
+}
+.dropzone-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
 
 /* === Dropdown (настройки вида) === */
 .dropdown { position: relative; }
@@ -535,8 +652,46 @@ input:focus, textarea:focus, select:focus {
   cursor: pointer;
   transition: background var(--transition-fast);
   text-align: left;
+  gap: 12px;
 }
 .settings-accordion-trigger:hover { background: var(--surface-hover); }
+/* Left icon + label group */
+.settings-accordion-trigger-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+.settings-accordion-trigger-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+.settings-accordion-trigger-icon svg { width: 16px; height: 16px; }
+.settings-accordion-trigger-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Count badge */
+.settings-accordion-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  background: var(--surface-hover);
+  color: var(--text-muted);
+  font-size: 0.786rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
 .settings-accordion-chevron {
   display: inline-flex;
   align-items: center;

@@ -11,7 +11,7 @@
 }
 
 .dg-table thead th {
-  padding: 10px var(--density-px);
+  padding: 12px var(--density-px);
   text-align: left;
   font-size: 0.786rem;
   font-weight: 600;
@@ -21,16 +21,152 @@
   background: var(--surface-table-header);
   border-bottom: 1px solid hsl(var(--border) / 0.4);
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 .dg-table tbody td {
-  padding: 12px var(--density-px);
+  padding: 14px var(--density-px);
   border-top: 1px solid hsl(var(--border) / 0.1);
   vertical-align: middle;
 }
 
-.dg-table tbody tr { transition: background var(--transition-fast); }
+.dg-table tbody tr { transition: background var(--transition-fast), transform 0.12s ease; }
 .dg-table tbody tr:hover { background: var(--surface-hover); }
+.dg-table tbody tr:active { transform: scale(1.002); }
+
+/* Ghost action buttons inside table */
+.dg-table .btn-icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+.dg-table .btn-icon-action:hover {
+  background: var(--surface-hover);
+  color: var(--text-body);
+  transform: scale(1.1);
+}
+.dg-table .btn-icon-action svg {
+  width: 16px;
+  height: 16px;
+}
+.dg-table .btn-icon-action.danger:hover {
+  color: #fb7185;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Actions column (right-align, ghost button group) */
+.dg-table .dg-actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+/* === Bulk actions bar (Remnawave-style) === */
+.dg-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  margin-bottom: 8px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  animation: fadeInUp 0.25s ease-out;
+}
+.dg-bulk-count {
+  font-size: 0.929rem;
+  font-weight: 600;
+  color: var(--text-heading);
+  white-space: nowrap;
+  margin-right: 8px;
+}
+
+/* === Checkbox column === */
+.dg-check-col {
+  width: 44px;
+  text-align: center;
+  vertical-align: middle;
+}
+.dg-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: hsl(var(--primary));
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+/* === Kebab menu (Remnawave-style dropdown) === */
+.dg-kebab {
+  display: flex;
+  justify-content: flex-end;
+}
+.dg-kebab .btn-icon-action {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius);
+}
+.dg-kebab-dots {
+  font-size: 1.143rem;
+  line-height: 1;
+  letter-spacing: 2px;
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+}
+.dg-kebab .btn-icon-action:hover .dg-kebab-dots {
+  color: var(--text-body);
+}
+.dg-kebab-menu {
+  right: 0;
+  min-width: 180px;
+  padding: 6px;
+  background: var(--surface-dropdown);
+  backdrop-filter: blur(32px);
+  -webkit-backdrop-filter: blur(32px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+}
+.dg-kebab-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  color: var(--text-body);
+  font-size: 0.929rem;
+  text-decoration: none;
+  transition: background var(--transition-fast);
+}
+.dg-kebab-item:hover {
+  background: var(--surface-hover);
+  color: var(--text-heading);
+}
+.dg-kebab-item svg {
+  width: 16px;
+  height: 16px;
+  opacity: 0.7;
+}
+.dg-kebab-danger { color: #fb7185; }
+.dg-kebab-danger:hover { background: rgba(239, 68, 68, 0.1); color: #f87171; }
+.dg-kebab-sep {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--glass-border);
+}
 
 .dg-table th.sortable { cursor: pointer; user-select: none; }
 .dg-table th.sortable:hover { color: var(--text-body); }

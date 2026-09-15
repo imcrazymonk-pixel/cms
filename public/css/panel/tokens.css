@@ -4,9 +4,9 @@
 
 :root {
   /* Шрифты */
-  --font-sans: 'Montserrat', system-ui, sans-serif;
-  --font-mono: 'Fira Mono', 'JetBrains Mono', ui-monospace, monospace;
-  --font-display: 'Unbounded', system-ui, sans-serif;
+  --font-sans: 'Montserrat', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'Fira Mono', 'JetBrains Mono', 'Cascadia Code', ui-monospace, monospace;
+  --font-display: 'Unbounded', 'Montserrat', system-ui, sans-serif;
 
   /* Радиусы */
   --radius: 0.5rem;

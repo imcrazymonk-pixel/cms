@@ -58,9 +58,9 @@
   --text-heading: #f3f4f6;
   --text-muted: #6b7280;
 
-  /* Glass */
-  --glass-bg: rgba(22, 28, 38, 0.5);
-  --glass-bg-hover: rgba(22, 28, 38, 0.6);
+  /* Glass — оригинальные токены (Remnawave-style: лёгкое стекло) */
+  --glass-bg: rgba(22, 28, 38, 0.45);
+  --glass-bg-hover: rgba(22, 28, 38, 0.55);
   --glass-bg-solid: #181e28;
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-border-hover: rgba(255, 255, 255, 0.14);

@@ -98,14 +98,11 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
             }
         ?>
         <div class="theme-card <?= $theme['active'] ? 'theme-active' : '' ?>">
-            <!-- Preview band (градиент-свотч как в Remnawave) -->
+            <!-- Preview band (мини-мокап браузера) -->
             <div class="theme-preview" style="background:linear-gradient(135deg,<?= $g[0] ?>,<?= $g[1] ?>)"></div>
             <div class="theme-card-body">
                 <div class="theme-card-header">
                     <strong><?= TemplateEngine::e($theme['label']) ?></strong>
-                    <?php if ($theme['active']): ?>
-                    <span class="badge badge-success">Активна</span>
-                    <?php endif; ?>
                 </div>
                 <div class="theme-card-name">slug: <code><?= TemplateEngine::e($theme['name']) ?></code></div>
                 <p class="theme-card-desc"><?= TemplateEngine::e($theme['description']) ?></p>
@@ -122,22 +119,80 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
     </div>
 </div>
 
-<!-- ================= Загрузка темы ================= -->
+<!-- ================= Загрузка темы (Remnawave-style dropzone) ================= -->
 <div class="card form-card">
     <h3>Установить тему из .zip</h3>
-    <form method="POST" action="/admin/theme/upload" enctype="multipart/form-data">
-        <?= csrf_field() ?>
-        <div class="form-group">
-            <label for="theme_zip">Архив темы (.zip)</label>
-            <input type="file" id="theme_zip" name="theme_zip" class="form-control" accept=".zip,application/zip">
-            <small class="form-hint">
-                Структура архива: файлы темы (layouts/, index.php, theme.php…) и необязательно папка
-                <code>public/</code> со статикой. Распакуется в <code>templates/themes/</code> и <code>public/</code>.
-            </small>
+    <div class="dropzone" id="themeDropzone">
+        <div class="dropzone-content">
+            <?= icon('upload', 'dropzone-icon') ?>
+            <p class="dropzone-text">Перетащите .zip архив сюда</p>
+            <p class="dropzone-hint">или нажмите для выбора файла</p>
         </div>
-        <button type="submit" class="btn btn-primary"><?= icon('add') ?> Загрузить и установить</button>
-    </form>
+        <form method="POST" action="/admin/theme/upload" enctype="multipart/form-data" id="themeUploadForm">
+            <?= csrf_field() ?>
+            <input type="file" id="theme_zip" name="theme_zip" class="dropzone-input" accept=".zip,application/zip" hidden>
+        </form>
+    </div>
+    <small class="form-hint" style="margin-top:12px; display:block;">
+        Структура архива: файлы темы (layouts/, index.php, theme.php…) и необязательно папка
+        <code>public/</code> со статикой. Распакуется в <code>templates/themes/</code> и <code>public/</code>.
+    </small>
 </div>
+
+<script>
+(function() {
+    var dropzone = document.getElementById('themeDropzone');
+    var input = document.getElementById('theme_zip');
+    var form = document.getElementById('themeUploadForm');
+
+    if (!dropzone || !input || !form) return;
+
+    // Click to open file picker
+    dropzone.addEventListener('click', function(e) {
+        if (e.target.closest('.dropzone-input')) return;
+        input.click();
+    });
+
+    // Drag events
+    dropzone.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.add('dropzone-dragover');
+    });
+
+    dropzone.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('dropzone-dragover');
+    });
+
+    dropzone.addEventListener('drop', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        dropzone.classList.remove('dropzone-dragover');
+        if (e.dataTransfer.files.length > 0) {
+            input.files = e.dataTransfer.files;
+            input.dispatchEvent(new Event('change'));
+        }
+    });
+
+    // Auto-submit on file select
+    input.addEventListener('change', function() {
+        if (this.files && this.files.length > 0) {
+            // Show filename
+            var content = dropzone.querySelector('.dropzone-content');
+            if (content) {
+                content.innerHTML = '<?= icon('file-archive', 'dropzone-icon') ?>'
+                    + '<p class="dropzone-text" style="color:var(--text-body)">' + esc(this.files[0].name) + '</p>'
+                    + '<p class="dropzone-hint">Загружаем...</p>';
+            }
+            form.submit();
+        }
+    });
+
+    function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+})();
+</script>
 
 <!-- ================= Настройки активной темы (Remnawave‑style) ================= -->
 <div class="card form-card settings-theme-card">
@@ -165,7 +220,11 @@ function __theme_field(string $key, array $field, string $prefix, array $setting
         <?php foreach ($themeConfig['options'] as $sectionName => $fields): ?>
             <div class="settings-accordion-item">
                 <button type="button" class="settings-accordion-trigger" data-accordion-trigger>
-                    <span><?= TemplateEngine::e($sectionName) ?></span>
+                    <span class="settings-accordion-trigger-left">
+                        <span class="settings-accordion-trigger-icon"><?= icon('settings-2') ?></span>
+                        <span class="settings-accordion-trigger-label"><?= TemplateEngine::e($sectionName) ?></span>
+                    </span>
+                    <span class="settings-accordion-count"><?= count($fields) ?></span>
                     <span class="settings-accordion-chevron"><?= icon('chevron-down') ?></span>
                 </button>
                 <div class="settings-accordion-content">

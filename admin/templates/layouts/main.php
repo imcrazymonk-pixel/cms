@@ -45,7 +45,7 @@ $panelStateJson = htmlspecialchars(json_encode($panelPrefs, JSON_UNESCAPED_UNICO
     <title><?= $title ?? 'Админ-панель' ?> - <?= SITE_NAME ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Unbounded:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Unbounded:wght@400;600;700&family=JetBrains+Mono:wght@400;500&subset=cyrillic,cyrillic-ext&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/tokens.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/tokens.css') ?>">
     <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/themes.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/themes.css') ?>">
     <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/base.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/base.css') ?>">
@@ -131,8 +131,23 @@ $panelStateJson = htmlspecialchars(json_encode($panelPrefs, JSON_UNESCAPED_UNICO
                     <?= icon('search') ?><span>Поиск по разделам...</span><kbd>Ctrl</kbd><kbd>K</kbd>
                 </div>
                 <div class="header-actions">
+                    <!-- Обновить -->
+                    <button type="button" class="btn-icon" id="header-refresh" title="Обновить" onclick="location.reload()"><?= icon('refresh-cw') ?></button>
+                    <!-- Уведомления -->
+                    <div class="dropdown">
+                        <button type="button" class="btn-icon header-notif-btn" id="header-notif" data-dropdown-toggle title="Уведомления">
+                            <?= icon('bell') ?>
+                            <span class="header-notif-badge">12</span>
+                        </button>
+                        <div class="dropdown-menu header-notif-dropdown">
+                            <div class="ap-header"><span class="ap-title">Уведомления</span></div>
+                            <div class="header-notif-empty" style="padding:20px;text-align:center;color:var(--text-muted);font-size:0.929rem;">Новых уведомлений нет</div>
+                        </div>
+                    </div>
+                    <div class="header-divider"></div>
+                    <!-- Статус панели (Remnawave-style pill) -->
                     <div class="header-status" title="Панель онлайн">
-                        <span class="status-dot"></span><span>Online</span>
+                        <span class="status-dot"></span><span>Онлайн</span>
                     </div>
                     <div class="header-divider"></div>
                     <!-- Настройки вида (одна кнопка → панель, как в remnawave-admin) -->
@@ -213,7 +228,12 @@ $panelStateJson = htmlspecialchars(json_encode($panelPrefs, JSON_UNESCAPED_UNICO
                     <?php else: ?><span class="breadcrumb-sep">/</span><span><?= $title ?? 'Панель управления' ?></span><?php endif; ?>
                 </div>
                 <div class="page-header">
-                    <h1 class="page-header-title"><?= $title ?? 'Панель управления' ?></h1>
+                    <div class="page-header-text">
+                        <h1 class="page-header-title"><?= $title ?? 'Панель управления' ?></h1>
+                        <?php if (!empty($subtitle)): ?>
+                        <p class="page-subtitle"><?= TemplateEngine::e($subtitle) ?></p>
+                        <?php endif; ?>
+                    </div>
                     <div class="page-header-actions"><?= $headerActions ?? '' ?></div>
                 </div>
                 <?php if (isset($error)): ?><div class="alert alert-error"><?= TemplateEngine::e($error) ?></div><?php endif; ?>

@@ -7,9 +7,18 @@
   min-height: 100vh;
   position: relative;
   z-index: 1;
-  /* Mesh-градиенты видно насквозь — убрали затемняющий слой,
-     чтобы фон был насыщенным, как задумано в эффектах */
   background: transparent;
+}
+/* Dot-grid текстура (под mesh/glow, поверх body) — для видимости glass-blur */
+.panel-layout::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle 1px, rgba(255, 255, 255, 0.03) 100%, transparent 0);
+  background-size: 28px 28px;
 }
 
 /* === Sidebar (remnawave-style: glass + градиентная кромка) === */
@@ -371,25 +380,27 @@
   white-space: nowrap;
 }
 
-/* Статус «Online» + разделитель */
+/* Статус «Online» + разделитель (Remnawave-style amber pill) */
 .header-status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--glass-border);
-  background: var(--glass-bg);
+  padding: 4px 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(245, 166, 35, 0.2);
+  background: rgba(245, 166, 35, 0.08);
   font-size: 0.857rem;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: #fbbf24;
   white-space: nowrap;
+  cursor: default;
 }
 .status-dot {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: var(--accent-from);
-  box-shadow: 0 0 8px rgba(var(--glow-rgb), 0.5);
+  background: #fbbf24;
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
   animation: statusPulse 2s ease-in-out infinite;
 }
 @keyframes statusPulse {
@@ -400,6 +411,35 @@
   width: 1px;
   height: 24px;
   background: var(--glass-border);
+}
+
+/* Уведомления (Remnawave-style bell + badge) */
+.header-notif-btn {
+  position: relative;
+}
+.header-notif-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+  pointer-events: none;
+}
+.header-notif-dropdown {
+  width: 320px;
+  max-height: 360px;
+  overflow-y: auto;
 }
 
 /* === Content === */
@@ -432,7 +472,9 @@
 @media (min-width: 640px) {
   .page-header { flex-direction: row; align-items: center; justify-content: space-between; }
 }
+.page-header-text { display: flex; flex-direction: column; gap: 4px; }
 .page-header-title { font-size: 1.571rem; font-weight: 700; color: var(--text-heading); margin: 0; }
+.page-subtitle { margin: 0; font-size: 0.929rem; color: var(--text-muted); font-weight: 400; }
 .page-header-actions { display: flex; align-items: center; gap: 8px; }
 
 /* === Density === */
