@@ -62,6 +62,8 @@ function icon($name, $class = '') {
         'terminal' => '<polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>',
         'bar-chart-2' => '<line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>',
         'line-chart' => '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
+        'check' => '<path d="M20 6 9 17l-5-5"/>',
+        'alert-triangle' => '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
     ];
 
     if (!isset($icons[$name])) return '';

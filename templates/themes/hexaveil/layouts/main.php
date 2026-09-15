@@ -201,12 +201,12 @@
         <nav class="nav" id="nav">
           <ul>
             <li><a href="<?= TemplateEngine::url('blog') ?>">Блог</a></li>
-            <li><a href="#features">Возможности</a></li>
-            <li><a href="#trial">Бесплатно</a></li>
-            <li><a href="#services">Сервисы</a></li>
-            <!--<li><a href="#pricing">Тарифы</a></li>-->
-            <li><a href="#referral">Партнёрам</a></li>
-            <li><a href="#faq">FAQ</a></li>
+            <li><a href="<?= TemplateEngine::url('#features') ?>">Возможности</a></li>
+            <li><a href="<?= TemplateEngine::url('#trial') ?>">Бесплатно</a></li>
+            <li><a href="<?= TemplateEngine::url('#services') ?>">Сервисы</a></li>
+            <!--<li><a href="<?= TemplateEngine::url('#pricing') ?>">Тарифы</a></li>-->
+            <li><a href="<?= TemplateEngine::url('#referral') ?>">Партнёрам</a></li>
+            <li><a href="<?= TemplateEngine::url('#faq') ?>">FAQ</a></li>
           </ul>
         </nav>
 
@@ -246,7 +246,7 @@
           <a href="#privacy">Политика конфиденциальности</a>
           <a href="#terms">Условия использования</a>
           <a
-            href="<?= theme_setting('hexaveil_telegram_url', 'https://t.me/nova_vpn') ?>"
+            href="<?= theme_setting('hexaveil_telegram_url', 'https://t.me/HexaVeil_bot') ?>"
             class="social-link"
             target="_blank"
             rel="noopener"
@@ -260,5 +260,61 @@
         </p>
       </div>
     </footer>
+    
+    <!-- ============ FLOATING BLOG WIDGET ============ -->
+    <?php $__widgetEnabled = theme_setting('hexaveil_widget_enabled', '1'); ?>
+    <?php if ($__widgetEnabled === '1' && !empty($blogPosts)): ?>
+    <?php $__widgetTitle = theme_setting('hexaveil_widget_title', 'Последние статьи'); ?>
+    <div class="blog-widget" id="blogWidget">
+      <div class="blog-widget-panel" id="blogWidgetPanel">
+        <div class="blog-widget-header">
+          <span class="blog-widget-line"></span>
+          <span class="blog-widget-title"><?= TemplateEngine::e($__widgetTitle) ?></span>
+          <span class="blog-widget-count"><?= count($blogPosts) ?></span>
+          <button class="blog-widget-close" id="blogWidgetClose" aria-label="Закрыть">✕</button>
+        </div>
+        <div class="blog-widget-posts">
+          <?php $__i = 0; foreach ($blogPosts as $__wp): $__i++; ?>
+          <a href="<?= SITE_URL ?>/post/<?= TemplateEngine::e($__wp['slug']) ?>" class="blog-widget-item">
+            <span class="blog-widget-num"><?= str_pad($__i, 2, '0', STR_PAD_LEFT) ?></span>
+            <div class="blog-widget-item-body">
+              <div class="blog-widget-item-title"><?= TemplateEngine::e($__wp['title']) ?></div>
+              <div class="blog-widget-item-meta">
+                <span class="blog-widget-date"><?= date('Y·m·d', strtotime($__wp['created_at'])) ?></span>
+                <span class="blog-widget-tag"><?= TemplateEngine::e($__wp['category_name'] ?? '') ?></span>
+              </div>
+            </div>
+          </a>
+          <?php endforeach; ?>
+        </div>
+        <div class="blog-widget-footer">
+          <a href="<?= SITE_URL ?>/blog" class="blog-widget-all">
+            Все статьи
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+        </div>
+      </div>
+      <button class="blog-widget-toggle" id="blogWidgetToggle" aria-label="Открыть блог">
+        <span class="blog-widget-toggle-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="6" x2="12" y2="12"/><line x1="9" y1="9" x2="15" y2="9"/></svg>
+        </span>
+        <span class="blog-widget-toggle-label">Блог</span>
+        <span class="blog-widget-toggle-dot"></span>
+      </button>
+    </div>
+    <script>
+    (function(){
+      var toggle = document.getElementById('blogWidgetToggle');
+      var panel = document.getElementById('blogWidgetPanel');
+      var close = document.getElementById('blogWidgetClose');
+      if (!toggle || !panel || !close) return;
+      function openWidget(){ panel.classList.add('blog-widget-panel--open'); toggle.style.display = 'none'; }
+      function closeWidget(){ panel.classList.remove('blog-widget-panel--open'); toggle.style.display = 'flex'; }
+      toggle.addEventListener('click', openWidget);
+      close.addEventListener('click', closeWidget);
+      panel.addEventListener('click', function(e){ if(e.target === panel) closeWidget(); });
+    })();
+    </script>
+    <?php endif; ?>
   </body>
 </html>

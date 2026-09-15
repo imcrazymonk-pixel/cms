@@ -182,7 +182,9 @@
   position: relative;
   width: 560px;
   max-width: calc(100vw - 32px);
-  background: var(--surface-dropdown);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur-heavy));
+  -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-deep), 0 0 40px -10px rgba(var(--glow-rgb), 0.25);
@@ -195,7 +197,7 @@
   align-items: center;
   gap: 10px;
   padding: 14px 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
 }
 .cp-search svg { width: 18px; height: 18px; opacity: 0.6; flex-shrink: 0; }
 .cp-search input {

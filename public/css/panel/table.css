@@ -37,13 +37,15 @@
 .dg-table th .sort-indicator { opacity: 0.4; margin-left: 4px; }
 .dg-table th.sorted .sort-indicator { opacity: 1; color: hsl(var(--primary)); }
 
-/* Обёртка таблицы (карточка) */
+/* Обёртка таблицы (Remnawave glass) */
 .dg-wrapper {
-  background: hsl(var(--card));
-  border: 1px solid var(--border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-glass);
 }
 
 /* Пагинация */
@@ -52,7 +54,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--glass-border);
   font-size: 0.929rem;
   color: var(--text-muted);
 }
@@ -73,8 +75,8 @@
   gap: 8px;
   padding: 12px 16px;
   flex-wrap: wrap;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-card-alpha);
+  border-bottom: 1px solid var(--glass-border);
+  background: var(--glass-bg);
 }
 .dg-filters input, .dg-filters select { width: auto; min-width: 150px; }
 
@@ -85,7 +87,7 @@
   justify-content: space-between;
   gap: 8px;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 [data-density="compact"] .dg-table tbody td { padding: 6px var(--density-px); font-size: 0.857rem; }

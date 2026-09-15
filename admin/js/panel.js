@@ -1,16 +1,32 @@
 /**
  * Panel JS — темы, режим, настройки вида, сайдбар
+ * Все настройки сохраняются в БД одним JSON-блобом (ключ panel_ui_state).
+ * Интерфейс: одна кнопка «Вид» → панель с опциями (как в remnawave-admin).
  */
 (function () {
   const STORAGE_KEY = 'panel-preferences';
 
+  // Дефолты
+  const DEFAULTS = {
+    theme: 'obsidian',
+    mode: 'dark',
+    density: 'comfortable',
+    radius: 'default',
+    fontSize: 'default',
+    animations: true,
+    sidebarCollapsed: false,
+  };
+
   function getPrefs() {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; }
-    catch (e) { return {}; }
+    try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(STORAGE_KEY))); }
+    catch (e) { return Object.assign({}, DEFAULTS); }
   }
-  function setPrefs(prefs) {
+
+  function savePrefs(prefs, saveToServerFlag) {
+    if (saveToServerFlag === undefined) saveToServerFlag = true;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
     applyPrefs(prefs);
+    if (saveToServerFlag) saveAllToServer(prefs);
   }
 
   // Режим 'auto' резолвится в светлый/тёмный по системной теме
@@ -28,6 +44,17 @@
     if (prefs.fontSize) html.setAttribute('data-font-size', prefs.fontSize);
     if (prefs.animations === false) html.setAttribute('data-animations', 'false');
     else html.removeAttribute('data-animations');
+    // Сайдбар
+    const sidebar = document.querySelector('.panel-sidebar');
+    if (sidebar && prefs.sidebarCollapsed) {
+      sidebar.classList.add('sidebar-collapsed');
+      const collapseBtn = document.getElementById('sidebar-collapse-btn');
+      if (collapseBtn) collapseBtn.setAttribute('data-tooltip', 'Развернуть меню');
+    } else if (sidebar) {
+      sidebar.classList.remove('sidebar-collapsed');
+      const collapseBtn = document.getElementById('sidebar-collapse-btn');
+      if (collapseBtn) collapseBtn.setAttribute('data-tooltip', 'Свернуть меню');
+    }
     updateActiveStates(prefs);
   }
 
@@ -58,15 +85,39 @@
     });
   }
 
+  // Bulk-сохранение всех настроек на сервер (один JSON в panel_ui_state)
+  function saveAllToServer(prefs) {
+    var payload = {};
+    // Сохраняем только то, что может измениться (не дефолты, но всё для простоты)
+    payload.theme = prefs.theme;
+    payload.mode = prefs.mode;
+    payload.density = prefs.density;
+    payload.radius = prefs.radius;
+    payload.fontSize = prefs.fontSize;
+    payload.animations = prefs.animations;
+    if (prefs.sidebarCollapsed !== undefined) payload.sidebarCollapsed = prefs.sidebarCollapsed;
+
+    fetch('/admin/settings/save-all-preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(function () { /* тихо игнорируем */ });
+  }
+
   function init() {
-    const prefs = getPrefs();
-    // Дефолты, если ничего не сохранено
-    if (!prefs.theme) prefs.theme = 'obsidian';
-    if (!prefs.mode) prefs.mode = 'dark';
-    if (!prefs.density) prefs.density = 'comfortable';
-    if (!prefs.radius) prefs.radius = 'default';
-    if (!prefs.fontSize) prefs.fontSize = 'default';
-    if (prefs.animations === undefined) prefs.animations = true;
+    var prefs = getPrefs();
+
+    // Если localStorage пуст (новый браузер/устройство), но сервер вернул
+    // panel_ui_state — используем серверные настройки, чтобы не потерять
+    // тему/режим, сохранённые с другого устройства.
+    var localRaw = (function() {
+      try { return localStorage.getItem(STORAGE_KEY); } catch(e) { return null; }
+    })();
+    if (!localRaw && window.__panelState && typeof window.__panelState === 'object') {
+      prefs = Object.assign({}, DEFAULTS, window.__panelState);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    }
+
     applyPrefs(prefs);
 
     // Клики: dropdown, настройки вида, сайдбар
@@ -88,33 +139,31 @@
       const themeBtn = e.target.closest('[data-set-theme]');
       if (themeBtn) {
         prefs.theme = themeBtn.getAttribute('data-set-theme');
-        setPrefs(prefs);
-        saveToServer('theme', prefs.theme);
+        savePrefs(prefs);
       }
 
       const modeBtn = e.target.closest('[data-set-mode]');
       if (modeBtn) {
         prefs.mode = modeBtn.getAttribute('data-set-mode');
-        setPrefs(prefs);
-        saveToServer('mode', prefs.mode);
+        savePrefs(prefs);
       }
 
       const densityBtn = e.target.closest('[data-set-density]');
       if (densityBtn) {
         prefs.density = densityBtn.getAttribute('data-set-density');
-        setPrefs(prefs);
+        savePrefs(prefs);
       }
 
       const radiusBtn = e.target.closest('[data-set-radius]');
       if (radiusBtn) {
         prefs.radius = radiusBtn.getAttribute('data-set-radius');
-        setPrefs(prefs);
+        savePrefs(prefs);
       }
 
       const fontSizeBtn = e.target.closest('[data-set-font-size]');
       if (fontSizeBtn) {
         prefs.fontSize = fontSizeBtn.getAttribute('data-set-font-size');
-        setPrefs(prefs);
+        savePrefs(prefs);
       }
 
       // Панель «Вид» остаётся открытой при выборе (как поповер в remnawave-admin)
@@ -125,9 +174,8 @@
     document.addEventListener('change', function (e) {
       const animToggle = e.target.closest('[data-set-animations]');
       if (animToggle) {
-        const prefs = getPrefs();
         prefs.animations = animToggle.checked;
-        setPrefs(prefs);
+        savePrefs(prefs);
       }
     });
 
@@ -135,17 +183,8 @@
     const resetBtn = document.getElementById('ap-reset');
     if (resetBtn) {
       resetBtn.addEventListener('click', function () {
-        const defaults = {
-          theme: 'obsidian',
-          mode: 'dark',
-          density: 'comfortable',
-          radius: 'default',
-          fontSize: 'default',
-          animations: true,
-        };
-        setPrefs(defaults);
-        saveToServer('theme', defaults.theme);
-        saveToServer('mode', defaults.mode);
+        prefs = Object.assign({}, DEFAULTS);
+        savePrefs(prefs);
       });
     }
 
@@ -153,7 +192,7 @@
     const mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)');
     if (mq && mq.addEventListener) {
       mq.addEventListener('change', function () {
-        const prefs = getPrefs();
+        prefs = getPrefs();
         if (prefs.mode === 'auto') applyPrefs(prefs);
       });
     }
@@ -170,14 +209,14 @@
         const sidebar = document.querySelector('.panel-sidebar');
         if (sidebar) {
           const collapsed = sidebar.classList.toggle('sidebar-collapsed');
+          prefs.sidebarCollapsed = collapsed;
           collapseBtn.setAttribute('data-tooltip', collapsed ? 'Развернуть меню' : 'Свернуть меню');
+          savePrefs(prefs);
         }
       });
     }
 
-    // Кастомный тултип для свёрнутого сайдбара (вместо нативного title,
-    // чтобы было как в remnawave-admin). Рендерится в <body> — не обрезается
-    // overflow-контейнерами и не зависит от системной темы.
+    // Кастомный тултип для свёрнутого сайдбара
     const tooltip = document.createElement('div');
     tooltip.className = 'sidebar-tooltip';
     document.body.appendChild(tooltip);
@@ -210,7 +249,7 @@
       }
     });
 
-    // Подтверждение опасных действий (ссылки с data-confirm, рендерятся DataGrid)
+    // Подтверждение опасных действий (ссылки с data-confirm)
     document.addEventListener('click', function (e) {
       const link = e.target.closest('[data-confirm]');
       if (link) {
@@ -220,15 +259,6 @@
         }
       }
     });
-  }
-
-  // Сохранение темы/режима на сервер (per-user)
-  function saveToServer(key, value) {
-    fetch('/admin/settings/save-preference', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: key, value: value }),
-    }).catch(function () { /* тихо игнорируем */ });
   }
 
   if (document.readyState === 'loading') {

@@ -145,7 +145,13 @@ $router->get('admin/posts/edit/{id}', [$postsController, 'edit']);
 $router->post('admin/posts/update/{id}', [$postsController, 'update']);
 $router->get('admin/posts/delete/{id}', [$postsController, 'delete']);
 
-// CRUD категорий
+// Категории постов (внутри меню Постов)
+$router->get('admin/posts/categories', [$postsController, 'categories']);
+$router->post('admin/posts/categories/store', [$postsController, 'categoryStore']);
+$router->post('admin/posts/categories/update/{id}', [$postsController, 'categoryUpdate']);
+$router->get('admin/posts/categories/delete/{id}', [$postsController, 'categoryDelete']);
+
+// CRUD категорий (старый, пока оставляем для обратной совместимости)
 $router->get('admin/categories', [$categoriesController, 'index']);
 $router->post('admin/categories/store', [$categoriesController, 'store']);
 $router->post('admin/categories/update/{id}', [$categoriesController, 'update']);
@@ -261,11 +267,16 @@ $router->get('', function() {
     $posts = $post->getPublishedPosts(POSTS_PER_PAGE);
     $categories = $category->getAll();
     $seoSettings = getSeoSettings();
+    
+    // Посты для блог-секции на лендинге (берём из настроек темы)
+    $blogPreviewCount = (int)(theme_setting('hexaveil_blog_preview_count', '3') ?: 3);
+    $blogPosts = $post->getPublishedPosts($blogPreviewCount);
 
     $template = createTemplate();
     $template->set('title', 'Главная');
     $template->set('seo', $seoSettings);
     $template->set('posts', $posts);
+    $template->set('blogPosts', $blogPosts);
     $template->set('categories', $categories);
     $template->set('menuItems', loadMenuItems('main', ''));
     $template->set('footerMenu', loadFooterMenu());
@@ -430,13 +441,23 @@ $router->get('{slug}', function($slug) {
 // Настройки вида панели (добавлено: редизайн админки)
 // ============================================
 
-// Сохранение пользовательской настройки панели (тема/режим)
-// Внутренний эндпоинт для fetch из админки. CSRF строго не проверяем:
-// это собственная страница панели (fetch из своего же UI), сессия уже
-// пройдена через Auth::requireAdmin(). Значения валидируются по белому списку.
+// Bulk-сохранение всех настроек вида одним JSON-блобом (Variant C)
+// Вся панель UI: тема, режим, плотность, радиус, шрифт, анимации,
+// свёрнутый сайдбар, колонки и т.д. — всё в одном ключе panel_ui_state.
+$router->post('admin/settings/save-all-preferences', function() {
+    Auth::requireAdmin();
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    if (!empty($body)) {
+        $pref = new UserPreference();
+        $pref->set(Auth::id(), 'panel_ui_state', json_encode($body, JSON_UNESCAPED_UNICODE));
+    }
+    header('Content-Type: application/json');
+    echo json_encode(['ok' => true]);
+});
+
+// Старый эндпоинт — сохранён для обратной совместимости (не используется в panel.js)
 $router->post('admin/settings/save-preference', function() {
     Auth::requireAdmin();
-
     $body = json_decode(file_get_contents('php://input'), true) ?: [];
     $key = $body['key'] ?? '';
     $value = $body['value'] ?? '';

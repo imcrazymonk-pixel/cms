@@ -79,7 +79,7 @@
             <a href="/admin/posts/create" class="btn btn-primary">
                 <?= icon('posts') ?> Новый пост
             </a>
-            <a href="/admin/categories" class="btn btn-secondary">
+            <a href="/admin/posts/categories" class="btn btn-secondary">
                 <?= icon('categories') ?> Категории
             </a>
             <a href="/admin/media" class="btn btn-secondary">

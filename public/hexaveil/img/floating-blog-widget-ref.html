@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HexaVeil — Floating Blog Widget (Variant B)</title>
+<style>
+  /* ── reset ── */
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+  /* ── tokens (matches variables.css) ── */
+  :root {
+    --bg-deep: #0a0a1a;
+    --bg-surface: rgba(16,16,32,0.85);
+    --accent: #a855f7;
+    --accent-glow: rgba(168,85,247,0.25);
+    --accent-subtle: rgba(168,85,247,0.12);
+    --text-primary: #f1f1f9;
+    --text-secondary: #9898b8;
+    --text-tertiary: #6a6a8a;
+    --glass-bg: rgba(20,18,40,0.72);
+    --glass-border: rgba(168,85,247,0.18);
+    --glass-border-hover: rgba(168,85,247,0.35);
+    --glass-blur: 28px;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-xl: 20px;
+    --shadow-widget: 0 8px 40px rgba(168,85,247,0.15), 0 0 80px rgba(168,85,247,0.06);
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+
+  body {
+    background: var(--bg-deep);
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── canvas: 16:9 mockup frame ── */
+  .canvas {
+    position: relative;
+    width: 1280px; height: 720px;
+    background: radial-gradient(ellipse 80% 60% at 50% 30%, #12122a 0%, #070714 100%);
+    overflow: hidden;
+    box-shadow: 0 0 0 1px rgba(168,85,247,0.08);
+  }
+
+  /* ── ambient grid ── */
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(168,85,247,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(168,85,247,0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.6;
+  }
+
+  /* ── fake landing page content ── */
+  .page-content {
+    position: relative; z-index: 1;
+    padding: 60px 80px;
+    height: 100%;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+
+  .page-hero h1 {
+    font-size: 42px; font-weight: 500; letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #f1f1f9 40%, var(--accent) 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.15; max-width: 640px;
+  }
+  .page-hero p {
+    font-size: 16px; color: var(--text-secondary);
+    margin-top: 16px; max-width: 480px; line-height: 1.6;
+  }
+  .page-hero .tagline {
+    display: inline-block;
+    font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 20px;
+    font-family: var(--font-mono);
+    background: var(--accent-subtle); padding: 4px 12px; border-radius: 20px;
+    border: 1px solid rgba(168,85,247,0.15);
+  }
+
+  /* ── decorative accent elements ── */
+  .orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .orb-1 { width: 300px; height: 300px; background: var(--accent); top: -80px; right: 120px; }
+  .orb-2 { width: 200px; height: 200px; background: #6366f1; bottom: 40px; left: 60px; }
+
+  /* ── WIDGET CONTAINER ── */
+  .widget-area {
+    position: absolute;
+    bottom: 40px; right: 40px;
+    z-index: 10;
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 12px;
+  }
+
+  /* ── Collapsed state (small pill) ── */
+  .widget-collapsed {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px 10px 14px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: 100px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    /* label */
+    font-size: 13px; font-weight: 500; color: var(--text-primary);
+    user-select: none;
+    position: relative;
+  }
+  .widget-collapsed:hover {
+    border-color: var(--glass-border-hover);
+    box-shadow: 0 4px 28px var(--accent-glow);
+  }
+
+  .widget-collapsed .icon-box {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--accent-subtle);
+    border-radius: 50%;
+    font-size: 14px;
+  }
+  .widget-collapsed .icon-box svg {
+    width: 16px; height: 16px;
+    stroke: var(--accent); fill: none;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .widget-collapsed .label {
+    font-size: 13px; font-weight: 500; letter-spacing: 0.01em;
+  }
+  .widget-collapsed .badge-dot {
+    width: 7px; height: 7px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.15); }
+  }
+
+  /* ── Expanded state (glass panel) ── */
+  .widget-expanded {
+    width: 360px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-widget);
+    padding: 0;
+    overflow: hidden;
+    animation: widget-in 0.35s cubic-bezier(0.16,1,0.3,1);
+  }
+
+  @keyframes widget-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ── panel header ── */
+  .widget-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid rgba(168,85,247,0.10);
+  }
+  .widget-header h3 {
+    font-size: 14px; font-weight: 600; color: var(--text-primary);
+    letter-spacing: -0.01em;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .widget-header h3 .accent-line {
+    width: 3px; height: 16px;
+    background: var(--accent);
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .widget-header .count {
+    font-size: 11px; color: var(--text-tertiary);
+    font-family: var(--font-mono);
+    background: rgba(255,255,255,0.04);
+    padding: 2px 8px; border-radius: 10px;
+  }
+
+  /* ── close button ── */
+  .widget-header .close-btn {
+    width: 24px; height: 24px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    transition: all 0.15s;
+    font-size: 14px; line-height: 1;
+  }
+  .widget-header .close-btn:hover {
+    background: rgba(255,255,255,0.08); color: var(--text-primary);
+  }
+
+  /* ── post list ── */
+  .widget-posts {
+    padding: 8px 6px;
+  }
+
+  .post-item {
+    display: block;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .post-item:hover {
+    background: rgba(168,85,247,0.06);
+  }
+  .post-item + .post-item {
+    border-top: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .post-title {
+    font-size: 13px; font-weight: 600; color: var(--text-primary);
+    line-height: 1.4;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .post-title .num {
+    font-family: var(--font-mono);
+    font-size: 10px; color: var(--text-tertiary);
+    background: rgba(255,255,255,0.04);
+    width: 20px; height: 20px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .post-preview {
+    font-size: 12px; color: var(--text-secondary);
+    line-height: 1.5;
+    margin-top: 4px;
+    padding-left: 28px;
+    /* 2-line clamp */
+    display: -webkit-box;
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .post-meta {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 6px; padding-left: 28px;
+    font-size: 11px; color: var(--text-tertiary);
+  }
+  .post-meta .date {
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+  .post-meta .tag {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.06em;
+    background: var(--accent-subtle);
+    color: var(--accent);
+    padding: 1px 8px; border-radius: 8px;
+  }
+
+  /* ── footer link ── */
+  .widget-footer {
+    padding: 10px 20px 14px;
+    border-top: 1px solid rgba(168,85,247,0.08);
+  }
+  .widget-footer a {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 12px; font-weight: 500; color: var(--accent);
+    text-decoration: none;
+    transition: gap 0.2s;
+  }
+  .widget-footer a:hover { gap: 10px; }
+  .widget-footer a svg {
+    width: 14px; height: 14px;
+    stroke: currentColor; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  /* ── label: state marker ── */
+  .state-label {
+    font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-tertiary); font-family: var(--font-mono);
+    text-align: right; margin-bottom: 4px;
+    opacity: 0.6;
+  }
+
+  /* ── connector line (visual hint that collapsed→expanded) ── */
+  .connector {
+    width: 1px; height: 14px;
+    background: linear-gradient(to bottom, var(--glass-border), transparent);
+    margin: 0 auto;
+  }
+
+  /* ── screenshot label ── */
+  .caption {
+    position: absolute;
+    bottom: 14px; left: 50%; transform: translateX(-50%);
+    font-size: 10px; color: rgba(255,255,255,0.12);
+    font-family: var(--font-mono);
+    letter-spacing: 0.05em;
+    z-index: 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="canvas">
+  <!-- grid overlay -->
+  <div class="grid"></div>
+
+  <!-- ambient glow orbs -->
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <!-- mock landing page content -->
+  <div class="page-content">
+    <div class="page-hero">
+      <span class="tagline">◈ HexaVeil VPN</span>
+      <h1>Беспроводная<br>свобода в каждой<br>точке мира</h1>
+      <p>Защищённое подключение с технологией VLESS Reality. Без логов, без компромиссов.</p>
+    </div>
+  </div>
+
+  <!-- ═══ WIDGET AREA ═══ -->
+  <div class="widget-area">
+
+    <!-- ── Expanded state (visible) ── -->
+    <div class="widget-expanded">
+
+      <!-- header -->
+      <div class="widget-header">
+        <h3>
+          <span class="accent-line"></span>
+          Последние статьи
+        </h3>
+        <span class="count">3</span>
+        <button class="close-btn" aria-label="Закрыть">✕</button>
+      </div>
+
+      <!-- posts -->
+      <div class="widget-posts">
+
+        <a href="#" class="post-item">
+          <div class="post-title">
+            <span class="num">01</span>
+            Как работает VLESS Reality
+          </div>
+          <div class="post-preview">
+            Разбираем принципы работы транспортного протокола VLESS с шифрованием Reality и почему это безопаснее классических VPN.
+          </div>
+          <div class="post-meta">
+            <span class="date">2026·09·12</span>
+            <span class="tag">технологии</span>
+          </div>
+        </a>
+
+        <a href="#" class="post-item">
+          <div class="post-title">
+            <span class="num">02</span>
+            Настройка клиента за 5 минут
+          </div>
+          <div class="post-preview">
+            Пошаговое руководство по подключению к HexaVeil на iOS, Android, Windows и macOS. Без сложных конфигов.
+          </div>
+          <div class="post-meta">
+            <span class="date">2026·09·10</span>
+            <span class="tag">гайд</span>
+          </div>
+        </a>
+
+        <a href="#" class="post-item">
+          <div class="post-title">
+            <span class="num">03</span>
+            Почему мы не храним логи
+          </div>
+          <div class="post-preview">
+            Политика нулевого логирования: техническая реализация, юридические гарантии и независимые аудиты.
+          </div>
+          <div class="post-meta">
+            <span class="date">2026·09·07</span>
+            <span class="tag">privacy</span>
+          </div>
+        </a>
+
+      </div>
+
+      <!-- footer -->
+      <div class="widget-footer">
+        <a href="#">
+          Все статьи
+          <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
+      </div>
+
+    </div>
+
+    <!-- ── Collapsed state (positioned below) ── -->
+    <div class="state-label">▼ collapsed</div>
+    <div class="widget-collapsed">
+      <span class="icon-box">
+        <svg viewBox="0 0 24 24">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          <line x1="12" y1="6" x2="12" y2="12"/><line x1="9" y1="9" x2="15" y2="9"/>
+        </svg>
+      </span>
+      <span class="label">Блог</span>
+      <span class="badge-dot"></span>
+    </div>
+    <div class="state-label">▲ expanded</div>
+
+  </div>
+
+  <div class="caption">HEXAVEIL · floating blog widget · variant B</div>
+</div>
+
+</body>
+</html>

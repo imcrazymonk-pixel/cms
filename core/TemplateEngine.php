@@ -283,6 +283,11 @@ class TemplateEngine
         if ($currentUri === '/' . trim($path, '/')) {
             return $class;
         }
+        // Подсветка родительского пункта меню, если дочерний активен
+        // Например, /admin/posts активен и для /admin/posts/categories
+        if (str_starts_with($currentUri, '/' . trim($path, '/') . '/')) {
+            return $class;
+        }
         return '';
     }
 }

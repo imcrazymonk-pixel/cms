@@ -1,9 +1,28 @@
 <?php
-// Настройки вида панели из БД (тема/режим/плотность/радиус/шрифт), дефолты если пусто
+// Настройки вида панели из БД — читаем единый JSON-блоб panel_ui_state (Variant C)
+// Если записи нет — создаём с дефолтами, чтобы настройки переносились между сессиями/браузерами.
 $panelPrefs = [];
+$panelPrefsDefaults = [
+    'theme' => 'obsidian',
+    'mode' => 'dark',
+    'density' => 'comfortable',
+    'radius' => 'default',
+    'fontSize' => 'default',
+    'animations' => true,
+    'sidebarCollapsed' => false,
+];
 try {
     if (Auth::id()) {
-        $panelPrefs = (new UserPreference())->getAll(Auth::id());
+        $prefModel = new UserPreference();
+        $raw = $prefModel->get(Auth::id(), 'panel_ui_state');
+        if ($raw) {
+            $decoded = json_decode($raw, true);
+            $panelPrefs = is_array($decoded) ? $decoded : [];
+        } else {
+            // Первый вход — создаём запись с дефолтами
+            $prefModel->set(Auth::id(), 'panel_ui_state', json_encode($panelPrefsDefaults, JSON_UNESCAPED_UNICODE));
+            $panelPrefs = $panelPrefsDefaults;
+        }
     }
 } catch (\Throwable $e) {
     $panelPrefs = [];
@@ -13,7 +32,10 @@ $panelMode = $panelPrefs['mode'] ?? 'dark';
 $panelDensity = $panelPrefs['density'] ?? 'comfortable';
 $panelRadius = $panelPrefs['radius'] ?? 'default';
 $panelFontSize = $panelPrefs['fontSize'] ?? 'default';
-$panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animations'] === 'false');
+$panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animations'] === false);
+// Передаём server-side state в JS, чтобы panel.js не перезаписал настройки
+// из БД пустым localStorage нового браузера.
+$panelStateJson = htmlspecialchars(json_encode($panelPrefs, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
 ?>
 <!DOCTYPE html>
 <html lang="ru" data-theme="<?= $panelTheme ?>" data-mode="<?= $panelMode ?>" data-density="<?= $panelDensity ?>" data-radius="<?= $panelRadius ?>" data-font-size="<?= $panelFontSize ?>"<?= $panelAnimationsOff ? ' data-animations="false"' : '' ?>>
@@ -34,6 +56,7 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%236366f1'/%3E%3Ctext x='50' y='72' font-size='56' font-family='Arial' font-weight='bold' text-anchor='middle' fill='white'%3EC%3C/text%3E%3C/svg%3E">
     <!-- TinyMCE 7 -->
     <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
+    <script>window.__panelState=<?= $panelStateJson ?>;</script>
     <script src="<?= SITE_URL ?>/admin/js/panel.js?v=<?= filemtime(ADMIN_PATH . '/js/panel.js') ?>" defer></script>
     <script src="<?= SITE_URL ?>/admin/js/command-palette.js?v=<?= filemtime(ADMIN_PATH . '/js/command-palette.js') ?>" defer></script>
 </head>
@@ -62,7 +85,7 @@ $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animatio
                 <!-- Группа: Сайт -->
                 <div class="sidebar-group-title">Сайт</div>
                 <a href="/admin/posts" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/posts') ?>"><?= icon('file-text') ?><span class="sidebar-text">Посты</span></a>
-                <a href="/admin/categories" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/categories') ?>"><?= icon('folder') ?><span class="sidebar-text">Категории</span></a>
+                <a href="/admin/posts/categories" class="sidebar-nav-item sub-nav-item <?= TemplateEngine::isActive('admin/posts/categories') ?>"><?= icon('folder') ?><span class="sidebar-text">Категории</span></a>
                 <a href="/admin/pages" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/pages') ?>"><?= icon('file') ?><span class="sidebar-text">Страницы</span></a>
                 <a href="/admin/menus" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/menus') ?>"><?= icon('menu') ?><span class="sidebar-text">Меню</span></a>
                 <a href="/admin/media" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/media') ?>"><?= icon('image') ?><span class="sidebar-text">Медиа</span></a>

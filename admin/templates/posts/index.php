@@ -1,3 +1,9 @@
+<!-- Табы: Посты / Категории -->
+<div class="dg-tab-bar">
+    <a href="/admin/posts" class="dg-tab active"><?= icon('file-text') ?> Посты</a>
+    <a href="/admin/posts/categories" class="dg-tab"><?= icon('folder') ?> Категории</a>
+</div>
+
 <div class="dg-toolbar">
     <a href="/admin/posts/create" class="btn btn-primary"><?= icon('add') ?> Добавить пост</a>
 </div>

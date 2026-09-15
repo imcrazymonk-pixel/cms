@@ -7,9 +7,9 @@
   min-height: 100vh;
   position: relative;
   z-index: 1;
-  /* Как в remnawave-admin: полупрозрачный тёмный слой поверх mesh —
-     приглушает фон, и хедер/сайдбар размывают затемнённую поверхность */
-  background: var(--glass-bg);
+  /* Mesh-градиенты видно насквозь — убрали затемняющий слой,
+     чтобы фон был насыщенным, как задумано в эффектах */
+  background: transparent;
 }
 
 /* === Sidebar (remnawave-style: glass + градиентная кромка) === */
@@ -148,6 +148,21 @@
   border-radius: inherit;
   background: radial-gradient(circle at var(--ripple-x, 50%) var(--ripple-y, 50%), rgba(var(--glow-rgb), 0.08) 0%, transparent 70%);
   pointer-events: none;
+}
+
+/* Подуровень навигации (категории внутри постов) */
+.sub-nav-item {
+  padding-left: 44px !important;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+.sub-nav-item svg {
+  width: 15px !important;
+  height: 15px !important;
+  opacity: 0.6;
+}
+.panel-sidebar.sidebar-collapsed .sub-nav-item {
+  display: none;
 }
 
 .sidebar-footer {
@@ -434,13 +449,15 @@
   width: 36px;
   height: 36px;
   border-radius: var(--radius);
-  border: 1px solid var(--input);
-  background: hsl(var(--card));
+  border: 1px solid var(--glass-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   color: var(--text-body);
   cursor: pointer;
   transition: background var(--transition-fast), border-color var(--transition-fast);
 }
-.btn-icon:hover { background: var(--surface-hover); border-color: var(--glass-border-hover); }
+.btn-icon:hover { background: var(--glass-bg-hover); border-color: var(--glass-border-hover); }
 
 /* === Dashboard === */
 .stats-grid {

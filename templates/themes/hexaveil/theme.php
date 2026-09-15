@@ -22,7 +22,7 @@ return [
         'Ссылки и контакты' => [
             'cabinet_url'    => ['label' => 'URL личного кабинета', 'type' => 'text',   'default' => 'https://cabinet.fortf.ru/login'],
             'referral_url'   => ['label' => 'URL реферальной программы', 'type' => 'text', 'default' => 'https://cabinet.fortf.ru/referral'],
-            'telegram_url'   => ['label' => 'Ссылка Telegram', 'type' => 'text',         'default' => 'https://t.me/nova_vpn'],
+            'telegram_url'   => ['label' => 'Ссылка Telegram', 'type' => 'text',         'default' => 'https://t.me/HexaVeil_bot'],
             'cta_label'      => ['label' => 'Кнопка в шапке (личный кабинет)', 'type' => 'text', 'default' => 'Личный кабинет'],
         ],
 
@@ -115,6 +115,18 @@ return [
 
         'Подвал' => [
             'footer_copyright' => ['label' => 'Копирайт', 'type' => 'text', 'default' => '© 2026 HexaVeil. Защищённый доступ к мировому интернету.'],
+        ],
+
+        'Блог на главной' => [
+            'blog_preview_enabled' => ['label' => 'Показывать секцию блога на лендинге', 'type' => 'select', 'options' => ['1' => 'Да', '0' => 'Нет'], 'default' => '1'],
+            'blog_preview_count'   => ['label' => 'Количество постов в секции', 'type' => 'number', 'default' => '3'],
+            'blog_preview_title'   => ['label' => 'Заголовок секции', 'type' => 'text', 'default' => 'Последние из блога'],
+            'blog_preview_desc'    => ['label' => 'Описание секции', 'type' => 'textarea', 'rows' => 2, 'default' => 'Новости, советы и инструкции по настройке VPN — для тех, кто ценит скорость, приватность и свободу в интернете.'],
+        ],
+
+        'Floating-виджет блога' => [
+            'widget_enabled' => ['label' => 'Показывать плавающий виджет', 'type' => 'select', 'options' => ['1' => 'Да', '0' => 'Нет'], 'default' => '1'],
+            'widget_title'   => ['label' => 'Заголовок виджета', 'type' => 'text', 'default' => 'Последние статьи'],
         ],
     ],
 ];

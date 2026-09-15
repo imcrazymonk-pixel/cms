@@ -637,6 +637,62 @@ $__hexaFaq = $__hexaPageModel->getBySlug('hexaveil-faq');
       </div>
     </section>
 
+    <!-- ============ БЛОГ (Превью на главной) ============ -->
+    <?php $__blogEnabled = theme_setting('hexaveil_blog_preview_enabled', '1'); ?>
+    <?php if ($__blogEnabled === '1' && !empty($blogPosts)): ?>
+    <section class="section blog-preview" id="blog-preview">
+      <div class="container">
+        <div class="blog-preview-header">
+          <span class="blog-preview-eyebrow">Блог</span>
+          <h2 class="blog-preview-title">
+            <?= theme_setting('hexaveil_blog_preview_title', 'Последние<span class="blog-preview-title-accent"> из блога</span>') ?>
+          </h2>
+          <p class="blog-preview-desc">
+            <?= theme_setting('hexaveil_blog_preview_desc', 'Новости, советы и инструкции по настройке VPN — для тех, кто ценит скорость, приватность и свободу в интернете.') ?>
+          </p>
+        </div>
+
+        <div class="blog-preview-grid">
+          <?php foreach ($blogPosts as $__bp): ?>
+          <article class="blog-preview-card glass-card">
+            <a href="<?= SITE_URL ?>/post/<?= TemplateEngine::e($__bp['slug']) ?>" class="blog-preview-link">
+              <div class="blog-preview-img">
+                <?php if (!empty($__bp['image'])): ?>
+                <img src="<?= TemplateEngine::e($__bp['image']) ?>" alt="<?= TemplateEngine::e($__bp['title']) ?>" class="blog-preview-img-real" loading="lazy">
+                <?php else: ?>
+                <div class="blog-preview-img-gradient">
+                  <svg class="blog-preview-img-icon" viewBox="0 0 576 512" fill="currentColor" aria-hidden="true"><path d="M549.7 124.1c-6.3-23.7-24.8-42.3-48.3-48.6C458.8 64 288 64 288 64S117.2 64 74.6 75.5c-23.5 6.3-42 24.9-48.3 48.6C14.7 166.6 14.7 256 14.7 256s0 89.4 16 131.9c6.3 23.7 24.8 42.3 48.3 48.6C117.2 448 288 448 288 448s170.8 0 213.4-11.5c23.5-6.3 42-24.9 48.3-48.6 16-42.5 16-131.9 16-131.9s0-89.4-16-131.9zM232 176l144 80-144 80V176z"/></svg>
+                </div>
+                <?php endif; ?>
+              </div>
+              <div class="blog-preview-body">
+                <div class="blog-preview-tags">
+                  <span class="blog-card-cat"><?= TemplateEngine::e($__bp['category_name'] ?? 'Без категории') ?></span>
+                </div>
+                <h3 class="blog-preview-card-title"><?= TemplateEngine::e($__bp['title']) ?></h3>
+                <p class="blog-preview-excerpt"><?= TemplateEngine::e(mb_substr($__bp['excerpt'] ?: strip_tags($__bp['content']), 0, 120) . (mb_strlen($__bp['excerpt'] ?: strip_tags($__bp['content'])) > 120 ? '...' : '')) ?></p>
+                <div class="blog-preview-meta">
+                  <span class="blog-preview-date"><?= date('d M Y', strtotime($__bp['created_at'])) ?></span>
+                  <span class="blog-preview-arrow">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                  </span>
+                </div>
+              </div>
+            </a>
+          </article>
+          <?php endforeach; ?>
+        </div>
+
+        <div class="blog-preview-footer">
+          <a href="<?= SITE_URL ?>/blog" class="blog-preview-all-link">
+            Читать все статьи
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </a>
+        </div>
+      </div>
+    </section>
+    <?php endif; ?>
+
     <!-- ============ FAQ (страница hexaveil-faq) ============ -->
     <section class="section" id="faq">
       <div class="container">

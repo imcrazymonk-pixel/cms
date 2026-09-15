@@ -165,10 +165,11 @@ document.addEventListener("DOMContentLoaded", function () {
       this.animationId = null;
       this.isRunning = true;
 
-      // Уважение prefers-reduced-motion: не запускаем анимацию вовсе
+      // Уважение prefers-reduced-motion: рисуем один статический кадр вместо анимации
       this.reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
       if (this.reducedMotion) {
         this.isRunning = false;
+        this.drawStatic();
         return;
       }
 
@@ -357,6 +358,38 @@ document.addEventListener("DOMContentLoaded", function () {
       if (this.canvas && this.canvas.parentNode) {
         this.canvas.parentNode.removeChild(this.canvas);
       }
+    }
+
+    // Статическая отрисовка одного кадра (для prefers-reduced-motion)
+    drawStatic() {
+      if (!this.ctx) return;
+      const ctx = this.ctx;
+      const w = this.width;
+      const h = this.height;
+      const total = this.settings.particleCount * this.STRIDE;
+
+      ctx.clearRect(0, 0, w, h);
+
+      for (let i = 0; i < total; i += this.STRIDE) {
+        const x = this.particles[i];
+        const y = this.particles[i + 1];
+        const lineWidth = this.particles[i + 7];
+        const hue = this.particles[i + 8];
+
+        ctx.lineWidth = lineWidth;
+        ctx.strokeStyle = `hsla(${hue}, 100%, 60%, 0.25)`;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + 1, y + 1);
+        ctx.stroke();
+      }
+
+      // Эффект свечения
+      ctx.save();
+      ctx.filter = "blur(8px) brightness(200%)";
+      ctx.globalCompositeOperation = "lighter";
+      ctx.drawImage(this.canvas, 0, 0, w, h);
+      ctx.restore();
     }
   }
 
