@@ -29,6 +29,11 @@
 .editor-title-input, .editor-lead-input {
   width: 100%; background: transparent; border: none; outline: none; resize: none;
   padding: 0; color: var(--text-primary); line-height: 1.2;
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--transition-fast);
+}
+.editor-title-input:focus, .editor-lead-input:focus {
+  border-bottom-color: var(--accent);
 }
 .editor-title-input {
   font-size: 32px; font-weight: 800; font-family: var(--font-display);
@@ -38,8 +43,8 @@
   font-size: 16px; font-weight: 400; color: var(--text-secondary);
   line-height: 1.6; margin-bottom: 16px; min-height: 48px;
 }
-.editor-title-input::placeholder { color: var(--text-muted); opacity: .5; }
-.editor-lead-input::placeholder { color: var(--text-muted); opacity: .4; }
+.editor-title-input::placeholder { color: var(--text-muted); opacity: .6; }
+.editor-lead-input::placeholder { color: var(--text-muted); opacity: .5; }
 
 /* ── TinyMCE ── */
 .editor-tinymce-wrapper { border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border-color); background: var(--bg-base); }
@@ -51,8 +56,8 @@
 .editor-cover-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; gap: 12px; opacity: 0; transition: opacity var(--transition-fast); }
 .editor-cover-container:hover .editor-cover-overlay { opacity: 1; }
 .editor-cover-placeholder { margin-bottom: 16px; }
-.editor-cover-add { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); cursor: pointer; padding: 6px 12px; border-radius: var(--radius-md); border: 1px dashed var(--border-color); transition: color var(--transition-fast); }
-.editor-cover-add:hover { color: var(--text-secondary); border-color: var(--accent); }
+.editor-cover-add { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 8px 14px; border-radius: var(--radius-md); border: 1px dashed var(--border-color); transition: all var(--transition-fast); background: var(--bg-base); }
+.editor-cover-add:hover { color: var(--text-primary); border-color: var(--accent); background: var(--glass-bg); }
 
 /* ── Sidebar — стеклянная карточка ── */
 .editor-sidebar {
@@ -81,28 +86,19 @@
   border-bottom: 1px solid var(--border-color);
 }
 .editor-sidebar-tab {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid transparent;
+  flex: 1; padding: 8px 12px; border: none;
   border-radius: var(--radius-md);
-  font-weight: 600;
-  font-family: var(--font-sans);
-  font-size: 0.929rem;
-  color: var(--text-muted);
-  background: transparent;
-  cursor: pointer;
-  transition: all var(--transition-fast);
+  font-weight: 600; font-family: var(--font-sans); font-size: 0.929rem;
+  color: var(--text-muted); background: transparent;
+  cursor: pointer; transition: all var(--transition-fast);
   text-align: center;
 }
 .editor-sidebar-tab.active {
-  background: var(--bg-surface);
-  border-color: var(--border-color);
-  color: var(--text-primary);
-  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+  background: var(--glass-bg); color: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
 .editor-sidebar-tab:hover:not(.active) {
-  color: var(--text-primary);
-  background: var(--glass-bg);
+  background: var(--glass-bg); color: var(--text-primary);
 }
 
 /* ── Панели внутри сайдбара ── */
@@ -123,6 +119,15 @@
 .editor-sb-slug:focus-within { border-color: var(--accent); }
 .editor-sb-slug-prefix { font-family: var(--font-mono); color: var(--text-muted); white-space: nowrap; font-size: inherit; }
 .editor-sb-slug-input { background: transparent; border: none; outline: none; color: var(--text-primary); font-family: var(--font-mono); padding: 8px 0 8px 6px; flex: 1; font-size: inherit; }
+
+/* ── Category select (prominent as btn-primary) ── */
+.editor-category-select {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
 
 /* ── Tags ── */
 .editor-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 6px; }

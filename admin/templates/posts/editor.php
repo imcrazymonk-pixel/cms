@@ -129,7 +129,7 @@ $postStatus = $post['status'] ?? 'draft';
 
                 <div class="editor-sb-section">
                     <label class="editor-sb-label" for="editor-category-select">Рубрика</label>
-                    <select id="editor-category-select" class="form-control" onchange="onCategoryChange(this.value)">
+                    <select id="editor-category-select" class="form-control editor-category-select" onchange="onCategoryChange(this.value)">
                         <option value="">Без категории</option>
                         <?php foreach ($cats as $cat): ?>
                         <option value="<?= $cat['id'] ?>" <?= (($post['category_id'] ?? 0) == $cat['id']) ? 'selected' : '' ?>><?= TemplateEngine::e($cat['name']) ?></option>
