@@ -145,6 +145,13 @@ $router->get('admin/posts/edit/{id}', [$postsController, 'edit']);
 $router->post('admin/posts/update/{id}', [$postsController, 'update']);
 $router->get('admin/posts/delete/{id}', [$postsController, 'delete']);
 
+// V2 — Новый редактор постов (параллельная разработка)
+$router->get('admin/posts/v2', [$postsController, 'editorIndex']);
+$router->get('admin/posts/v2/create', [$postsController, 'editorCreate']);
+$router->get('admin/posts/v2/edit/{id}', [$postsController, 'editorEdit']);
+$router->post('admin/posts/v2/store', [$postsController, 'editorStore']);
+$router->post('admin/posts/v2/update/{id}', [$postsController, 'editorUpdate']);
+
 // Категории постов (внутри меню Постов)
 $router->get('admin/posts/categories', [$postsController, 'categories']);
 $router->post('admin/posts/categories/store', [$postsController, 'categoryStore']);
