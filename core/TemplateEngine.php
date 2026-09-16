@@ -280,14 +280,19 @@ class TemplateEngine
     public static function isActive(string $path, string $class = 'active'): string
     {
         $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        if ($currentUri === '/' . trim($path, '/')) {
+        $normalized = '/' . trim($path, '/');
+        
+        // Точное совпадение
+        if ($currentUri === $normalized) {
             return $class;
         }
-        // Подсветка родительского пункта меню, если дочерний активен
-        // Например, /admin/posts активен и для /admin/posts/categories
-        if (str_starts_with($currentUri, '/' . trim($path, '/') . '/')) {
+        
+        // Подсветка родительского пункта — только если путь НЕ корневой (/admin)
+        // Иначе /admin будет активен для /admin/finance, /admin/posts и т.д.
+        if ($normalized !== '/admin' && str_starts_with($currentUri, $normalized . '/')) {
             return $class;
         }
+        
         return '';
     }
 }

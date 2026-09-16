@@ -9,17 +9,6 @@
   z-index: 1;
   background: transparent;
 }
-/* Dot-grid текстура (под mesh/glow, поверх body) — для видимости glass-blur */
-.panel-layout::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle 1px, rgba(255, 255, 255, 0.03) 100%, transparent 0);
-  background-size: 28px 28px;
-}
 
 /* === Sidebar (remnawave-style: glass + градиентная кромка) === */
 .panel-sidebar {

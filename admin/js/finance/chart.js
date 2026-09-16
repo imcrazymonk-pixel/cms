@@ -168,10 +168,9 @@ window.FinanceChart = (function () {
             grid: { display: false },
             ticks: {
               color: th.tick,
-              font: { size: 10, family: fontFamily },
-              autoSkip: true,
-              maxTicksLimit: 12,
-              maxRotation: 35,
+              font: { size: 9, family: fontFamily },
+              autoSkip: false,
+              maxRotation: 45,
               minRotation: 0
             }
           },

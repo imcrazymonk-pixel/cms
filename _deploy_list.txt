@@ -1,0 +1,50 @@
+📁 core/ — 4 файла
+   DataGrid.php
+   TemplateEngine.php
+   helpers_icons.php
+   routes.php
+
+📁 admin/controllers/ — 1 файл
+   PostsController.php
+
+📁 admin/templates/ — 6 файлов
+   dashboard.php
+   layouts/main.php
+   finance/index.php
+   posts/index.php
+   posts/categories.php (НОВЫЙ)
+   theme/index.php
+
+📁 admin/js/finance/ — 1 файл
+   chart.js
+
+📁 admin/js/ — 1 файл
+   panel.js
+
+📁 public/css/panel/ — 8 файлов
+   base.css
+   components.css
+   effects.css
+   finance.css
+   layout.css
+   table.css
+   themes.css
+   tokens.css
+
+📁 public/hexaveil/css/ — 1 файл
+   style.css
+
+📁 public/hexaveil/js/ — 1 файл
+   star.js
+
+📁 templates/themes/hexaveil/ — 3 файла
+   index.php
+   layouts/main.php
+   theme.php
+
+📁 public/hexaveil/img/ — 2 файла (НОВЫЕ, если есть)
+   floating-blog-widget-ref.html
+   floating-blog-widget-variant-b.png
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Всего: 27 файлов (2 новых, 25 изменённых)
