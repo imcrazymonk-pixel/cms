@@ -35,6 +35,8 @@ $postStatus = $post['status'] ?? 'draft';
                 <button type="button" class="dropdown-item" onclick="manualSaveDraft()"><?= icon('save') ?> Сохранить черновик</button>
                 <div class="dropdown-divider"></div>
                 <button type="button" class="dropdown-item" onclick="openPublishModal()"><?= icon('send') ?> Опубликовать</button>
+                <div class="dropdown-divider"></div>
+                <button type="button" class="dropdown-item" onclick="archivePost()"><?= icon('archive') ?> Переместить в архив</button>
             </div>
         </div>
         <div class="editor-topbar-divider"></div>
@@ -103,17 +105,7 @@ $postStatus = $post['status'] ?? 'draft';
         </div>
 
         <div class="editor-sidebar-panel" id="editor-tab-general">
-                <div class="editor-sb-section">
-                    <label class="editor-sb-label" for="editor-status-select">Статус</label>
-                    <select id="editor-status-select" class="form-control" onchange="onStatusChange(this.value)">
-                        <option value="draft" <?= $postStatus === 'draft' ? 'selected' : '' ?>>Черновик</option>
-                        <option value="published" <?= $postStatus === 'published' ? 'selected' : '' ?>>Опубликован</option>
-                        <option value="archived" <?= $postStatus === 'archived' ? 'selected' : '' ?>>Архив</option>
-                    </select>
-                </div>
-
-                <div class="editor-sb-section">
-                    <label class="editor-sb-label" for="editor-publish-date-input">Дата публикации</label>
+                <!-- Дата публикации -->
                     <input type="datetime-local" id="editor-publish-date-input" class="form-control" value="">
                 </div>
 

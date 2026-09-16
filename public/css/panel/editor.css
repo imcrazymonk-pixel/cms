@@ -68,7 +68,7 @@
 }
 .editor-cover-add:hover { color: var(--text-secondary); border-color: var(--accent); }
 
-/* ── Sidebar (стиль как у panel-sidebar) ── */
+/* ── Sidebar (карточка, скругления через токены) ── */
 .editor-sidebar {
   width: 360px;
   flex-shrink: 0;
@@ -79,13 +79,15 @@
   -webkit-backdrop-filter: blur(var(--glass-blur-heavy));
   border-left: 1px solid var(--glass-border);
   overflow-y: auto;
-  padding-top: 24px; /* отступ сверху — совпадает с .editor-main padding */
+  margin: 18px 0 18px -1px; /* отступ сверху/снизу — визуально карточка */
+  border-radius: var(--radius-glass);
+  margin-left: -1px; /* перекрываем border-left с контейнером */
 }
 .editor-sidebar.hidden { display: none; }
 .editor-sidebar-tabs {
   display: flex;
   gap: 2px;
-  padding: 0 12px 12px;
+  padding: 16px 12px 12px;
   border-bottom: 1px solid var(--border-color);
   margin-bottom: 8px;
 }
@@ -94,10 +96,12 @@
   padding: 8px 12px;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  font-size: 12px;
   font-weight: 600;
   color: var(--text-secondary);
   background: transparent;
+  font-family: var(--font-sans);
+  font-size: inherit;
+  line-height: inherit;
   cursor: pointer;
   transition: all var(--transition-fast);
   text-align: center;
@@ -115,15 +119,21 @@
 
 .editor-sidebar-panel { padding: 0 12px 12px; flex: 1; overflow-y: auto; }
 
-/* ── Sidebar sections ── */
+/* ── Sidebar sections (шрифты через токены) ── */
 .editor-sb-section { margin-bottom: 12px; }
 .editor-sb-label {
-  display: block; font-size: 11px; font-weight: 700;
-  color: var(--text-secondary); text-transform: uppercase;
-  letter-spacing: .05em; margin-bottom: 6px;
+  display: block;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-bottom: 6px;
+  font-family: var(--font-sans);
+  font-size: 0.786rem; /* ~11px при базе 14px */
+  line-height: 1.4;
 }
 .editor-sb-label-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.editor-sb-counter { font-size: 11px; font-family: var(--font-mono); color: var(--text-muted); }
+.editor-sb-counter { font-family: var(--font-mono); color: var(--text-muted); font-size: inherit; }
 .editor-sb-divider { height: 1px; background: var(--border-color); margin: 12px 0; }
 
 .editor-sb-slug {
@@ -132,11 +142,11 @@
   padding: 0 10px; transition: border-color var(--transition-fast);
 }
 .editor-sb-slug:focus-within { border-color: var(--accent); }
-.editor-sb-slug-prefix { font-size: 12px; font-family: var(--font-mono); color: var(--text-muted); white-space: nowrap; }
+.editor-sb-slug-prefix { font-family: var(--font-mono); color: var(--text-muted); white-space: nowrap; font-size: inherit; }
 .editor-sb-slug-input {
   background: transparent; border: none; outline: none;
-  color: var(--text-primary); font-size: 12px; font-family: var(--font-mono);
-  padding: 8px 0 8px 6px; flex: 1;
+  color: var(--text-primary); font-family: var(--font-mono);
+  padding: 8px 0 8px 6px; flex: 1; font-size: inherit;
 }
 
 /* ── Tags ── */

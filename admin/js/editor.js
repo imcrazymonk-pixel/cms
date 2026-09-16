@@ -239,13 +239,6 @@
         if (seoDescHidden && seoDesc) seoDescHidden.value = seoDesc.value;
     }
 
-    // ─── Статус (select) ────────────────────────────
-    window.onStatusChange = function(val) {
-        state.currentStatus = val;
-        if (statusHidden) statusHidden.value = val;
-        triggerContentChange();
-    };
-
     // ─── Публикация ────────────────────────────────
     window.openPublishModal = function() {
         const catSelect = categorySelect;
@@ -265,11 +258,18 @@
     window.confirmPublish = function() {
         state.currentStatus = 'published';
         if (statusHidden) statusHidden.value = 'published';
-        // Status is taken from the select
-            closePublishModal();
-            syncHiddenFields();
+        closePublishModal();
+        syncHiddenFields();
         form.submit();
         showToast('Пост опубликован!');
+    };
+
+    window.archivePost = function() {
+        state.currentStatus = 'archived';
+        if (statusHidden) statusHidden.value = 'archived';
+        syncHiddenFields();
+        form.submit();
+        showToast('Пост перемещён в архив');
     };
 
     // ─── Теги ──────────────────────────────────────
