@@ -97,13 +97,12 @@ $postStatus = $post['status'] ?? 'draft';
 
     <!-- Правый сайдбар -->
     <aside class="editor-sidebar" id="editor-sidebar">
-        <div class="card" style="flex:1;display:flex;flex-direction:column;border-radius:0;border-left:none;border-right:none;border-bottom:none;box-shadow:none;margin:0;padding:0">
-            <div class="editor-sidebar-tabs">
-                <button type="button" class="editor-sidebar-tab active" id="editor-tab-btn-general" onclick="switchSidebarTab('general')">Параметры</button>
-                <button type="button" class="editor-sidebar-tab" id="editor-tab-btn-seo" onclick="switchSidebarTab('seo')">SEO</button>
-            </div>
+        <div class="editor-sidebar-tabs">
+            <button type="button" class="editor-sidebar-tab active" id="editor-tab-btn-general" onclick="switchSidebarTab('general')">Параметры</button>
+            <button type="button" class="editor-sidebar-tab" id="editor-tab-btn-seo" onclick="switchSidebarTab('seo')">SEO</button>
+        </div>
 
-            <div class="editor-sidebar-panel" id="editor-tab-general">
+        <div class="editor-sidebar-panel" id="editor-tab-general">
                 <div class="editor-sb-section">
                     <label class="editor-sb-label" for="editor-status-select">Статус</label>
                     <select id="editor-status-select" class="form-control" onchange="onStatusChange(this.value)">
@@ -213,9 +212,8 @@ $postStatus = $post['status'] ?? 'draft';
                     <div class="editor-og-status"><?= icon('check-circle-2') ?> <span>OG:Image, OG:Title сформированы автоматически</span></div>
                 </div>
             </div>
-        </div>
-    </aside>
-</div>
+        </aside>
+    </div>
 
 <!-- Модалки -->
 <div id="editor-preview-modal" class="modal-overlay hidden">
