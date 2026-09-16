@@ -245,15 +245,6 @@
         if (statusHidden) statusHidden.value = val;
         triggerContentChange();
     };
-        state.currentStatus = status;
-        if (statusHidden) statusHidden.value = status;
-        const badge = $('editor-status-badge');
-        if (badge) {
-            badge.className = 'badge badge-' + status;
-            const labels = { draft: 'Черновик', published: 'Опубликован', archived: 'Архив' };
-            badge.textContent = labels[status] || status;
-        }
-    };
 
     // ─── Публикация ────────────────────────────────
     window.openPublishModal = function() {
