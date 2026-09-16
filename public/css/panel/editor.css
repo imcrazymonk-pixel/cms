@@ -27,17 +27,19 @@
 
 /* ── Заголовок / Лид ── */
 .editor-title-input, .editor-lead-input {
-  width: 100%; background: transparent; border: none; outline: none; resize: none;
-  padding: 0; color: var(--text-primary); line-height: 1.2;
-  border-bottom: 1px solid transparent;
+  width: 100%; background: transparent; outline: none; resize: none;
+  padding: 0 0 6px 0; color: var(--text-primary); line-height: 1.2;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
   transition: border-color var(--transition-fast);
 }
 .editor-title-input:focus, .editor-lead-input:focus {
   border-bottom-color: var(--accent);
+  border-bottom-width: 2px;
 }
 .editor-title-input {
   font-size: 32px; font-weight: 800; font-family: var(--font-display);
-  letter-spacing: -.02em; margin-bottom: 8px; min-height: 44px;
+  letter-spacing: -.02em; margin-bottom: 16px; min-height: 44px;
 }
 .editor-lead-input {
   font-size: 16px; font-weight: 400; color: var(--text-secondary);
@@ -56,8 +58,8 @@
 .editor-cover-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; gap: 12px; opacity: 0; transition: opacity var(--transition-fast); }
 .editor-cover-container:hover .editor-cover-overlay { opacity: 1; }
 .editor-cover-placeholder { margin-bottom: 16px; }
-.editor-cover-add { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 8px 14px; border-radius: var(--radius-md); border: 1px dashed var(--border-color); transition: all var(--transition-fast); background: var(--bg-base); }
-.editor-cover-add:hover { color: var(--text-primary); border-color: var(--accent); background: var(--glass-bg); }
+.editor-cover-add { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer; padding: 8px 16px; border-radius: var(--radius); border: 1px dashed var(--border-color); transition: all var(--transition-fast); background: var(--bg-base); }
+.editor-cover-add:hover { color: var(--text-primary); border-color: var(--accent); background: var(--glass-bg); border-style: solid; }
 
 /* ── Sidebar — стеклянная карточка ── */
 .editor-sidebar {
@@ -86,8 +88,8 @@
   border-bottom: 1px solid var(--border-color);
 }
 .editor-sidebar-tab {
-  flex: 1; padding: 8px 12px; border: none;
-  border-radius: var(--radius-md);
+  flex: 1; padding: 10px 14px; border: none;
+  border-radius: var(--radius); /* тот же радиус, что у левого сайдбара */
   font-weight: 600; font-family: var(--font-sans); font-size: 0.929rem;
   color: var(--text-muted); background: transparent;
   cursor: pointer; transition: all var(--transition-fast);
@@ -95,7 +97,6 @@
 }
 .editor-sidebar-tab.active {
   background: var(--glass-bg); color: #fff;
-  box-shadow: 0 1px 3px rgba(0,0,0,.2);
 }
 .editor-sidebar-tab:hover:not(.active) {
   background: var(--glass-bg); color: var(--text-primary);
@@ -120,13 +121,16 @@
 .editor-sb-slug-prefix { font-family: var(--font-mono); color: var(--text-muted); white-space: nowrap; font-size: inherit; }
 .editor-sb-slug-input { background: transparent; border: none; outline: none; color: var(--text-primary); font-family: var(--font-mono); padding: 8px 0 8px 6px; flex: 1; font-size: inherit; }
 
-/* ── Category select (prominent as btn-primary) ── */
+/* ── Category select (prominent, btn-like) ── */
 .editor-category-select {
   background: var(--bg-surface);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
   font-weight: 600;
   cursor: pointer;
+  height: 44px;
+  border-radius: var(--radius);
+  font-size: 0.929rem;
 }
 
 /* ── Tags ── */
