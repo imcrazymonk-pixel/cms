@@ -18,7 +18,7 @@ $postStatus = $post['status'] ?? 'draft';
         <div class="editor-topbar-divider"></div>
         <div class="editor-save-status">
             <span id="editor-save-dot" class="editor-save-dot editor-save-dot--saved"></span>
-            <span id="editor-save-text" class="editor-save-text"><?= $isEdit ? 'Загружено' : 'Новый пост' ?></span>
+            <span id="editor-save-text" class="editor-save-text"><?= $isEdit ? 'Загружено' : 'Черновик' ?></span>
         </div>
     </div>
     <div class="editor-topbar-right">
@@ -105,7 +105,10 @@ $postStatus = $post['status'] ?? 'draft';
         </div>
 
         <div class="editor-sidebar-panel" id="editor-tab-general">
+
                 <!-- Дата публикации -->
+                <div class="editor-sb-section">
+                    <label class="editor-sb-label" for="editor-publish-date-input">Дата публикации</label>
                     <input type="datetime-local" id="editor-publish-date-input" class="form-control" value="">
                 </div>
 
