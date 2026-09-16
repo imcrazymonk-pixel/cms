@@ -2281,4 +2281,118 @@ a,
   }
 }
 
+/* ============ BLOG POST CONTENT ============ */
+/* Стили для контента, выводимого из редактора TinyMCE.
+   Без них <p>, <ul>, <h2> и др. рендерятся без отступов. */
+.post-content {
+  line-height: 1.7;
+  color: var(--text-primary, #fafafa);
+  font-size: 1rem;
+}
+
+.post-content p {
+  margin-bottom: 1.25rem;
+}
+
+.post-content h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 2rem 0 1rem;
+  color: var(--text-primary, #fafafa);
+  line-height: 1.3;
+}
+
+.post-content h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 1.5rem 0 0.75rem;
+  color: var(--text-primary, #fafafa);
+}
+
+.post-content h4 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 1.25rem 0 0.5rem;
+  color: var(--text-primary, #fafafa);
+}
+
+.post-content ul,
+.post-content ol {
+  padding-left: 1.5rem;
+  margin: 0 0 1.25rem 0;
+}
+
+.post-content li {
+  margin-bottom: 0.35rem;
+  line-height: 1.7;
+}
+
+.post-content blockquote {
+  border-left: 3px solid var(--accent-primary, #a855f7);
+  padding: 0.75rem 1rem;
+  margin: 1.25rem 0;
+  color: var(--text-secondary, #a1a1aa);
+  font-style: italic;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 0 12px 12px 0;
+}
+
+.post-content pre {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-color, rgba(168,85,247,0.2));
+  border-radius: 12px;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1.25rem 0;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.875rem;
+  color: #38bdf8;
+}
+
+.post-content code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.875rem;
+}
+
+.post-content img {
+  max-width: 100%;
+  border-radius: 12px;
+  margin: 1.25rem 0;
+}
+
+.post-content hr {
+  border: 0;
+  border-top: 1px solid var(--border-color, rgba(168,85,247,0.2));
+  margin: 2rem 0;
+}
+
+.post-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.25rem 0;
+  font-size: 0.9rem;
+}
+
+.post-content th,
+.post-content td {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-color, rgba(168,85,247,0.15));
+  text-align: left;
+}
+
+.post-content th {
+  background: rgba(255, 255, 255, 0.04);
+  font-weight: 600;
+}
+
+.post-content a {
+  color: var(--accent-primary, #a855f7);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.post-content a:hover {
+  color: #c084fc;
+}
+
 
