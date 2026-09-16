@@ -85,7 +85,6 @@ $panelStateJson = htmlspecialchars(json_encode($panelPrefs, JSON_UNESCAPED_UNICO
                 <!-- Группа: Сайт -->
                 <div class="sidebar-group-title">Сайт</div>
                 <a href="/admin/posts" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/posts') ?>"><?= icon('file-text') ?><span class="sidebar-text">Посты</span></a>
-                <a href="/admin/posts/v2" class="sidebar-nav-item sub-nav-item <?= TemplateEngine::isActive('admin/posts/v2') ?>"><?= icon('edit') ?><span class="sidebar-text">Редактор v2</span></a>
                 <a href="/admin/posts/categories" class="sidebar-nav-item sub-nav-item <?= TemplateEngine::isActive('admin/posts/categories') ?>"><?= icon('folder') ?><span class="sidebar-text">Категории</span></a>
                 <a href="/admin/pages" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/pages') ?>"><?= icon('file') ?><span class="sidebar-text">Страницы</span></a>
                 <a href="/admin/menus" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/menus') ?>"><?= icon('menu') ?><span class="sidebar-text">Меню</span></a>
