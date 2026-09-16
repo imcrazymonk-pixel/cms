@@ -70,6 +70,9 @@ a:hover { color: hsl(var(--ring)); }
   outline: none;
 }
 
+/* Утилита скрытия */
+.hidden { display: none !important; }
+
 /* Табличные числа — выравнивание цифр */
 table, code, pre, kbd, .tabular-nums {
   font-variant-numeric: tabular-nums;
