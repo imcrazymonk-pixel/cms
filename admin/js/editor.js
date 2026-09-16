@@ -239,8 +239,12 @@
         if (seoDescHidden && seoDesc) seoDescHidden.value = seoDesc.value;
     }
 
-    // ─── Статус ────────────────────────────────────
-    window.setPostStatus = function(status) {
+    // ─── Статус (select) ────────────────────────────
+    window.onStatusChange = function(val) {
+        state.currentStatus = val;
+        if (statusHidden) statusHidden.value = val;
+        triggerContentChange();
+    };
         state.currentStatus = status;
         if (statusHidden) statusHidden.value = status;
         const badge = $('editor-status-badge');
@@ -270,9 +274,9 @@
     window.confirmPublish = function() {
         state.currentStatus = 'published';
         if (statusHidden) statusHidden.value = 'published';
-        closePublishModal();
-        setPostStatus('published');
-        syncHiddenFields();
+        // Status is taken from the select
+            closePublishModal();
+            syncHiddenFields();
         form.submit();
         showToast('Пост опубликован!');
     };
