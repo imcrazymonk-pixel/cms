@@ -141,8 +141,8 @@ $router->get('admin/logout', function() {
 $router->get('admin/posts', [$postsController, 'index']);
 $router->get('admin/posts/create', [$postsController, 'create']);
 $router->post('admin/posts/store', [$postsController, 'store']);
-$router->get('admin/posts/edit/{id}', [$postsController, 'edit']);
-$router->post('admin/posts/update/{id}', [$postsController, 'update']);
+$router->get('admin/posts/edit/{id}', [$postsController, 'editorEdit']);
+$router->post('admin/posts/update/{id}', [$postsController, 'editorUpdate']);
 $router->get('admin/posts/delete/{id}', [$postsController, 'delete']);
 
 // V2 — Новый редактор постов (параллельная разработка)
