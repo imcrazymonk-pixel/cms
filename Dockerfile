@@ -1,25 +1,20 @@
-FROM php:8.1-fpm-alpine
+FROM php:8.1-fpm
 
-# Build dependencies (will be removed after compilation)
-RUN set -eux; \
-    apk add --no-cache --virtual .build-deps \
-        $PHPIZE_DEPS \
-        postgresql-dev \
-    ; \
-    apk add --no-cache \
-        postgresql-client \
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+        libpq-dev \
+        libicu-dev \
         unzip \
         git \
-    ; \
-    docker-php-ext-install -j$(nproc) \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install PHP extensions
+RUN docker-php-ext-install \
         pdo_pgsql \
         pdo_mysql \
         intl \
         mbstring \
-        opcache \
-    ; \
-    apk del --no-network .build-deps; \
-    docker-php-ext-enable opcache
+        opcache
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
