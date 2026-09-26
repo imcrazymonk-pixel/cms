@@ -12,10 +12,9 @@
 
 ### Домен и окружение
 
-- Домен: `http://hexacms` (Apache из Open Server Panel)
-- PHP 8.1+ (последняя версия из OSPanel)
-- MySQL через `127.127.126.26` (виртуальный IP Open Server Panel)
-- **Никаких npm/сборщиков** — только vanilla CSS/JS/PHP
+- **Docker**: `http://localhost` (PHP 8.1 + Nginx + PostgreSQL 16)
+- **Локально**: `http://hexacms` (Open Server Panel, Apache + MySQL)
+- Поддержка MySQL и PostgreSQL через `DB_DRIVER` в config.php
 
 ---
 
@@ -24,7 +23,15 @@
 ```
 NewWeb/
 ├── index.php              # Front-контроллер (маршрутизация)
-├── config/config.php      # Настройки БД, путей, константы
+├── Dockerfile             # PHP 8.1-FPM (docker)
+├── docker-compose.yml     # Nginx + PHP + PostgreSQL
+├── docker-entrypoint.sh   # Инициализация при старте
+├── .env                   # Переменные окружения
+├── .env.example           # Шаблон окружения
+├── .docker/
+│   ├── nginx/default.conf # Nginx vhost
+│   └── php/php.ini        # PHP настройки
+├── config/config.php      # Настройки БД, путей, константы (env-aware)
 ├── core/                  # Ядро CMS
 │   ├── Router.php         # Маршрутизатор (GET/POST, паттерны {slug})
 │   ├── routes.php         # Все маршруты сайта
@@ -57,6 +64,11 @@ NewWeb/
 │   │       ├── global.css     # Глобальные стили (контейнер, кнопки, типографика)
 │   │       └── style.css      # Стили секций + БЛОГ (добавлено недавно)
 │   └── css/panel/         # Дизайн-система админки (7 файлов)
+├── db/
+│   ├── postgres/init/     # PostgreSQL авто-инициализация
+│   │   └── 01-schema.sql  # Полная схема БД (PG)
+│   └── migrations/        # MySQL-миграции (legacy)
+├── database.sql           # MySQL схема (legacy)
 └── docs/decisions/
     └── ADR-001-panel-design-system.md  # Документация редизайна админки
 ```
@@ -278,8 +290,8 @@ NewWeb/
 
 #### Инфраструктура (подготовка к PostgreSQL)
 - [ ] **Query Builder** — обёртка над PDO вместо голых SQL-строк (цепочки: `table()->where()->get()`)
-- [ ] **Убрать MySQL-специфику** во всех моделях: backtick-кавычки, `LIMIT` без биндинга, `DATE_FORMAT` → аналог
-- [ ] **Миграции через SQL-файлы** — версионирование схемы БД (пока без фреймворка)
+- [x] **Убрать MySQL-специфику** во всех моделях: backtick-кавычки, `LIMIT` без биндинга, `ON DUPLICATE KEY` → аналоги для PostgreSQL
+- [x] **Миграции через SQL-файлы** — `db/postgres/init/01-schema.sql` (авто-инициализация через docker-entrypoint-initdb.d)
 
 #### Финансы + API-интеграции
 - [ ] **Remnawave API-клиент** — HTTP-клиент (паттерн уже есть: `httpGet/httpPost` в FinanceController)
@@ -325,16 +337,41 @@ NewWeb/
 
 ---
 
-### 🟢 Фаза 4 — Переезд на свой сервер + PostgreSQL
+### 🟢 Фаза 4 — Переезд на свой сервер + PostgreSQL ✅
 
-Когда функционал упрётся в ceiling custom PHP, или понадобятся очереди/воркеры/миграции.
+> **Статус: выполнено (26.09.2026).** Проект полностью контейнеризирован и работает на PostgreSQL.
 
-#### Подготовка (можно делать параллельно с Фазой 2–3)
-- [ ] Настроить сервер (Ubuntu/Debian, PHP 8.1+, PostgreSQL, Nginx)
-- [ ] Экспорт MySQL → дамп
-- [ ] Импорт в PostgreSQL + правка типов
-- [ ] Переключить DSN в `config.php` на `pgsql:host=...`
-- [ ] Проверить все модели на совместимость
+#### Docker-инфраструктура
+- [x] `Dockerfile` — PHP 8.1-FPM (alpine) с pdo_pgsql, pdo_mysql, intl, mbstring, opcache
+- [x] `docker-compose.yml` — 3 сервиса: app (PHP-FPM), web (Nginx), db (PostgreSQL 16)
+- [x] `.docker/nginx/default.conf` — Nginx vhost с deny доступа к служебным директориям
+- [x] `.docker/php/php.ini` — upload 64M, memory 256M, opcache
+- [x] `docker-entrypoint.sh` — ожидание PG, создание install.lock, запуск PHP-FPM
+- [x] `db/postgres/init/01-schema.sql` — полная PostgreSQL-схема (307 строк, все таблицы + seed-данные)
+- [x] `.env` / `.env.example` — переменные окружения для Docker
+
+#### PostgreSQL-миграция (код)
+- [x] `Database.php` — динамический DSN (pgsql/mysql) через DB_DRIVER
+- [x] `config/config.php` — все константы читаются из env с fallback
+- [x] `UserPreference.php` — `ON DUPLICATE KEY` → `ON CONFLICT DO UPDATE`
+- [x] `FinSetting.php` — `ON DUPLICATE KEY` → `ON CONFLICT DO UPDATE`
+- [x] `FinTransaction.php` — убраны backtick-кавычки, `LIMIT a,b` → `LIMIT b OFFSET a`
+- [x] `AppLog.php` — убраны backtick-кавычки, `LIMIT a,b` → `LIMIT b OFFSET a`
+- [x] `index.php` — убран редирект на установщик, install.lock создаётся автоматически
+
+#### Установщик
+- [x] Убран редирект на `/install/` — в Docker приложение стартует сразу
+- [x] `install.lock` удалён из `.gitignore` для config.php (теперь это универсальный шаблон)
+
+#### Использование
+
+```bash
+# Запуск
+docker compose up --build -d
+
+# Админка
+open http://localhost/admin        # admin / admin12345
+```
 
 #### Если решено переезжать на Laravel
 Оценивается, когда:
@@ -415,7 +452,17 @@ $template->display('template-name'); // templates/themes/{theme}/template-name.p
 
 ## Как запустить
 
-Проект работает на **Open Server Panel**:
+### Docker (рекомендуется)
+
+```bash
+docker compose up --build -d
+# Сайт: http://localhost
+# Админка: http://localhost/admin  (admin / admin12345)
+```
+
+### Локальная разработка (Open Server Panel)
+
+Проект также работает на **Open Server Panel**:
 - Домен: `http://hexacms`
 - Админка: `http://hexacms/admin`
 - Логин: `admin`
@@ -425,8 +472,9 @@ $template->display('template-name'); // templates/themes/{theme}/template-name.p
 Обычная установка:
 1. Скопировать файлы в `C:\OSPanel\home\HexaCMS\public\`
 2. Импортировать `database.sql` в MySQL
-3. Настроить `config/config.php` (DB_HOST, DB_NAME, DB_USER, DB_PASS)
-4. Открыть `http://hexacms` в браузере
+3. Создать `install.lock` в корне проекта
+4. Настроить `config/config.php` (или использовать переменные окружения)
+5. Открыть `http://hexacms` в браузере
 
 ---
 

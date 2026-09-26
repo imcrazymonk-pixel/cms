@@ -107,7 +107,7 @@ class FinTransaction
             if ($key === 'participant') {
                 $val = $val !== '' ? $val : null;
             }
-            $set[] = "`{$key}` = ?";
+            $set[] = "{$key} = ?";
             $params[] = $val;
         }
         if (empty($set)) {
@@ -185,13 +185,13 @@ class FinTransaction
             $sort = 'date';
         }
         $orderSql = strtolower($order) === 'asc' ? 'ASC' : 'DESC';
-        $sortSql = in_array($sort, ['date', 'amount'], true) ? $sort : '`' . $sort . '`';
+        $sortSql = $sort;
 
         $offset = max(0, ((int)$page - 1) * (int)$perPage);
         $limit = max(1, min(500, (int)$perPage));
 
         $rows = $this->db->fetchAll(
-            "SELECT * FROM fin_transactions{$where} ORDER BY {$sortSql} {$orderSql}, id DESC LIMIT {$offset}, {$limit}",
+            "SELECT * FROM fin_transactions{$where} ORDER BY {$sortSql} {$orderSql}, id DESC LIMIT {$limit} OFFSET {$offset}",
             $params
         );
 
@@ -216,7 +216,7 @@ class FinTransaction
     public function findDuplicate(array $d): bool
     {
         $count = (int)$this->db->fetchOne(
-            'SELECT COUNT(*) FROM fin_transactions WHERE `date` = ? AND `type` = ? AND COALESCE(`participant`, \'\') = ? AND `amount` = ?',
+            'SELECT COUNT(*) FROM fin_transactions WHERE date = ? AND type = ? AND COALESCE(participant, \'\') = ? AND amount = ?',
             [$d['date'], $d['type'], (string)($d['participant'] ?? ''), $d['amount']]
         );
         return $count > 0;
@@ -233,7 +233,7 @@ class FinTransaction
             return null;
         }
         $row = $this->db->fetch(
-            'SELECT id FROM fin_transactions WHERE `record_id` = ? LIMIT 1',
+            'SELECT id FROM fin_transactions WHERE record_id = ? LIMIT 1',
             [$recordId]
         );
         return $row ? (int)$row['id'] : null;
@@ -253,11 +253,11 @@ class FinTransaction
     {
         $row = $this->db->fetch(
             'SELECT id FROM fin_transactions
-             WHERE `date` = ? AND `type` = ?
-               AND COALESCE(`participant`, \'\') = ?
-               AND COALESCE(`category`, \'\') = ?
-               AND `amount` = ?
-               AND (`record_id` IS NULL OR `record_id` = \'\')
+             WHERE date = ? AND type = ?
+               AND COALESCE(participant, \'\') = ?
+               AND COALESCE(category, \'\') = ?
+               AND amount = ?
+               AND (record_id IS NULL OR record_id = \'\')
              ORDER BY id ASC LIMIT 1',
             [
                 $d['date'],
@@ -550,7 +550,7 @@ class FinTransaction
         if (!in_array($column, $allowed, true)) {
             return [];
         }
-        $col = $column === 'participant' ? '`participant`' : '`category`';
+        $col = $column === 'participant' ? 'participant' : 'category';
         $rows = $this->db->fetchAll(
             "SELECT DISTINCT {$col} AS v FROM fin_transactions WHERE {$col} IS NOT NULL AND {$col} != '' ORDER BY v ASC LIMIT 200"
         );

@@ -18,18 +18,9 @@ if (file_exists(ROOT_PATH . '/config/config.php')) {
     require_once ROOT_PATH . '/config/config.php';
 }
 
-// Проверка установки CMS
+// В Docker-окружении install.lock создаётся entrypoint-ом
 if (!file_exists(ROOT_PATH . '/install.lock')) {
-    if (!file_exists(ROOT_PATH . '/config/config.php')) {
-        header('Location: /install/');
-        exit;
-    }
-    
-    // Показываем страницу пока идёт установка
-    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Установка CMS</title>';
-    echo '<meta http-equiv="refresh" content="1;url=/install/">';
-    echo '</head><body><p>Идёт установка CMS... <a href="/install/">Перейти</a></p></body></html>';
-    exit;
+    @touch(ROOT_PATH . '/install.lock');
 }
 
 // ============================================

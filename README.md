@@ -1,419 +1,189 @@
-# Моя CMS
+# HexaVeil CMS
 
-Лёгкая и простая система управления контентом (CMS) на PHP с использованием MySQL.
+Собственная PHP CMS (vanilla, без фреймворков) для VPN-сервиса. Поддерживает MySQL и PostgreSQL, запуск через Docker или Open Server Panel.
+
+## 🚀 Быстрый старт (Docker)
+
+```bash
+# 1. Клонировать репозиторий
+git clone <repo> && cd NewWeb
+
+# 2. Настроить .env (можно оставить дефолтный)
+cp .env.example .env
+# Отредактировать если нужно: пароль БД, ключ шифрования
+
+# 3. Запустить
+docker compose up --build -d
+
+# 4. Открыть в браузере
+open http://localhost
+```
+
+### Логин по умолчанию
+
+- **Сайт**: `http://localhost`
+- **Админка**: `http://localhost/admin`
+- **Логин**: `admin`
+- **Пароль**: `admin12345`
+
+### Основные команды
+
+```bash
+# Запустить
+docker compose up -d
+
+# Пересобрать после изменений
+docker compose up --build -d
+
+# Остановить
+docker compose down
+
+# Смотреть логи
+docker compose logs -f app
+
+# Зайти в контейнер PHP
+docker compose exec app sh
+
+# Подключиться к БД
+docker compose exec db psql -U cms -d cms
+```
 
 ## 📋 Требования
 
-- PHP 7.4 или выше
-- MySQL 5.7 или выше / MariaDB
-- mod_rewrite для Apache
-- Расширения PHP: PDO, pdo_mysql, mbstring, json
+### Docker (рекомендуется)
+- Docker Engine 24+
+- Docker Compose v2
+- 1 CPU, 1 GB RAM
 
-## 🚀 Установка
+### Локальная разработка (Open Server Panel)
+- Open Server Panel
+- PHP 7.4+
+- MySQL 5.7+ / MariaDB
+- Apache с mod_rewrite
 
-1. Скопируйте файлы CMS в корневую директорию вашего сайта
-2. Откройте сайт в браузере
-3. Автоматически откроется мастер установки
-4. Следуйте инструкциям:
-   - Проверка требований
-   - Настройка базы данных (создаётся автоматически)
-   - Создание учётной записи администратора
-5. После установки удалите файл `install.lock` для повторной установки (если нужно)
+## 🐘 База данных
 
-## 📁 Структура проекта
+### Docker (PostgreSQL)
+При первом запуске БД создаётся автоматически через `db/postgres/init/01-schema.sql`:
+- Все таблицы: users, posts, categories, tags, comments, pages, menus, widgets, media, settings, fin_transactions, app_logs, user_preferences
+- Seed-данные: администратор, категории, настройки сайта, настройки финансов
+- `install.lock` создаётся автоматически entrypoint-ом
+
+### Локально (MySQL)
+`config/config.php` автоматически читает `DB_DRIVER` из переменных окружения, с fallback на MySQL для локальной разработки.
+
+## 🗂️ Структура проекта
 
 ```
-cms/
-├── admin/                      # Админ-панель
-│   ├── controllers/            # Контроллеры админки
-│   │   ├── CategoriesController.php
-│   │   ├── MediaController.php
-│   │   ├── MenusController.php
-│   │   ├── PagesController.php
-│   │   ├── PostsController.php
-│   │   ├── SettingsController.php
-│   │   └── UsersController.php
-│   ├── css/
-│   │   └── admin.css           # Стили админки (легаси, заменены на public/css/panel/)
-│   ├── js/
-│   │   ├── panel.js            # Темы, режим, настройки вида, сайдбар, confirm
-│   │   ├── command-palette.js  # Командная палитра (Ctrl+K)
-│   │   └── tinymce-lang-ru.js  # Локализация TinyMCE
-│   ├── templates/              # Шаблоны админки
-│   ├── .htaccess
-│   └── index.php               # Точка входа админки
+NewWeb/
+├── index.php                 # Front-контроллер
+├── Dockerfile                # PHP 8.1-FPM Alpine
+├── docker-compose.yml        # Nginx + PHP + PostgreSQL
+├── docker-entrypoint.sh      # Инициализация при старте
+├── .env                      # Переменные окружения (НЕ в git)
+├── .env.example              # Шаблон .env
+├── .docker/
+│   ├── nginx/default.conf    # Nginx vhost
+│   └── php/php.ini           # PHP настройки
 ├── config/
-│   └── config.php              # Конфигурация (генерируется)
-├── core/                       # Ядро CMS
-│   ├── models/                 # Модели данных
-│   │   ├── Category.php
-│   │   ├── Comment.php
-│   │   ├── Menu.php
-│   │   ├── Page.php
-│   │   ├── Post.php
-│   │   ├── Setting.php
-│   │   ├── User.php
-│   │   └── UserPreference.php  # Настройки вида панели (тема/режим и др.)
-│   ├── Auth.php                # Аутентификация
-│   ├── Autoloader.php          # Автозагрузчик классов
-│   ├── Database.php            # Работа с БД (PDO wrapper)
-│   ├── DataGrid.php            # Рендерер таблиц админки
-│   ├── helpers.php             # Вспомогательные функции
-│   ├── Request.php             # HTTP запросы
-│   ├── Router.php              # Маршрутизация
-│   ├── routes.php              # Определение маршрутов
-│   ├── Session.php             # Работа с сессиями
-│   └── TemplateEngine.php      # Шаблонизатор
-├── install/
-│   └── index.php               # Мастер установки
+│   └── config.php            # Конфигурация (env-aware)
+├── core/                     # Ядро CMS
+│   ├── models/               # Модели (Post, User, Category, FinTransaction...)
+│   ├── Database.php          # PDO-wrapper (mysql/pgsql)
+│   ├── Router.php            # Маршрутизатор
+│   ├── TemplateEngine.php    # Шаблонизатор
+│   ├── Auth.php              # Аутентификация
+│   ├── DataGrid.php          # Рендерер таблиц
+│   └── ...
+├── admin/                    # Админ-панель
+│   ├── controllers/          # Контроллеры (Posts, Finance, Theme...)
+│   ├── templates/            # Шаблоны
+│   └── js/                   # panel.js, command-palette.js
+├── templates/themes/
+│   └── hexaveil/             # VPN-лендинг тема (HexaVeil)
 ├── public/
-│   ├── css/
-│   │   ├── style.css           # Стили сайта
-│   │   └── panel/              # Дизайн-система админки
-│   │       ├── tokens.css      # Токены (шрифты, радиусы, тени, glass, mesh)
-│   │       ├── themes.css      # 6 акцентных тем + светлый режим
-│   │       ├── base.css        # Reset, скроллбар, фокус
-│   │       ├── effects.css     # Glass, mesh-фон, glow, shimmer, палитра
-│   │       ├── components.css  # Кнопки, бейджи, карточки, формы, dropdown
-│   │       ├── table.css       # Стили DataGrid
-│   │       └── layout.css      # Сайдбар, шапка, дашборд, логин
+│   ├── hexaveil/css/         # Стили темы
+│   └── css/panel/            # Дизайн-система админки (7 файлов)
 ├── db/
-│   └── migrations/             # SQL-миграции (2026-08-26-user-preferences.sql)
-├── templates/                  # Шаблоны сайта
-│   ├── page/                   # Шаблоны страниц (default, fullwidth, landing, blank)
-│   └── themes/                 # Темы оформления
-│       ├── default/            # Классическая тема
-│       │   ├── layouts/
-│       │   ├── errors/
-│       │   ├── index.php
-│       │   ├── post.php
-│       │   ├── page.php
-│       │   └── category.php
-│       ├── modern/             # Современная тема
-│       └── minimal/            # Минималистичная тема
-├── .htaccess                   # Главный .htaccess
-├── database.sql                # Схема базы данных
-├── index.php                   # Точка входа
-└── install.lock                # Блокировка установки
+│   ├── postgres/init/01-schema.sql  # PostgreSQL схема
+│   └── migrations/           # MySQL-миграции (legacy)
+├── database.sql              # MySQL схема (legacy)
+└── install/                  # Веб-установщик (не используется в Docker)
 ```
 
-## 🔧 Функционал
+## 🎨 Темы оформления
+
+### Активная тема: HexaVeil
+- **Лендинг**: 3D-глобус (Three.js), тарифы, FAQ, звёздный фон, glassmorphism
+- **Блог**: glass-карточки, pill-фильтр категорий, floating-виджет
+
+### Дизайн-система админки
+- 6 акцентных пресетов (Obsidian, Halo, Arctic, Sakura, Twilight, Ember)
+- Тёмный/светлый режим
+- Glass-эффекты, mesh-фон, командная палитра (Ctrl+K)
+- DataGrid-таблицы с массовыми действиями
+
+## 🧩 Функционал
 
 ### Публичная часть
-
-- **Главная страница** — список опубликованных постов
-- **Просмотр постов** — полная страница поста с комментариями
-- **Категории** — фильтрация постов по категориям
-- **Страницы** — статические страницы с поддержкой главной страницы
-- **Меню** — динамическое меню из БД (главное + футер)
-- **SEO** — meta-теги, canonical URL, Open Graph
+- Лендинг VPN-сервиса с 3D-визуализацией серверов
+- Блог (посты, категории, теги, комментарии)
+- Статические страницы
+- SEO: Open Graph, canonical URL
 
 ### Админ-панель
+- **Посты**: CRUD, CKEditor 5, статусы, категории, теги
+- **Страницы**: CRUD, шаблоны (default, fullwidth, landing, blank)
+- **Категории, теги, комментарии**: управление + модерация
+- **Медиа**: загрузка изображений (JPG, PNG, WebP, SVG)
+- **Пользователи**: роли admin/editor/author
+- **Финансы**: транзакции, графики, импорт CSV, интеграция Platega и YooKassa
+- **Логи**: централизованное логирование событий
+- **Настройки темы**: конфигурация активной темы через админку
+- **Настройки вида**: тема/режим/плотность/радиус/шрифт (per-user)
 
-#### 📝 Посты
-- Создание, редактирование, удаление постов
-- Статусы: черновик, опубликован, архив
-- Привязка к категориям
-- Загрузка изображений
-- Счётчик просмотров
-- Автогенерация URL (slug) с транслитерацией
+## 🔧 Разработка
 
-#### 📂 Категории
-- Управление категориями
-- Подсчёт количества постов
-- Автогенерация slug
+### Добавление новой страницы
+1. Маршрут в `core/routes.php` (ДО `{slug}`)
+2. Шаблон в `templates/themes/hexaveil/`
+3. Стили в `public/hexaveil/css/style.css`
 
-#### 📄 Страницы
-- Создание статических страниц
-- Назначение главной страницы
-- Meta-описания
-- Автогенерация slug
-- **Переключение шаблонов** (default, fullwidth, landing, blank)
+### Команды для разработки
 
-#### 👥 Пользователи
-- Управление пользователями
-- Роли: admin, editor, author
-- Защита от удаления текущего пользователя
+```bash
+# Режим отладки (включён по умолчанию в .env)
+APP_DEBUG=true
 
-#### 🖼️ Медиа
-- Загрузка изображений
-- Поддержка форматов: JPG, PNG, GIF, WebP, SVG
-- Интеграция с TinyMCE
-
-#### ⚙️ Настройки
-- Название сайта
-- URL сайта
-- Email администратора
-- Постов на страницу
-- Meta-теги по умолчанию
-- **Переключение тем оформления** (default, modern, minimal)
-
-#### 🍔 Меню
-- Управление пунктами меню
-- Расположение: главное меню / футер
-- Автогенерация URL с транслитерацией
-
-### 🎨 Дизайн-система панели (remnawave-стиль)
-
-Админ-панель построена на собственной дизайн-системе (vanilla CSS/JS, без сборщиков):
-
-- **Настройки вида** (кнопка шестерёнки в шапке): 6 акцентных тем (Obsidian, Halo, Arctic, Sakura, Twilight, Ember), тёмный/светлый режим, плотность (Compact/Comfortable/Spacious), радиус (Sharp/Default/Rounded), размер шрифта (S/M/L), анимации вкл/выкл.
-- **Сохранение настроек**: тема и режим хранятся в БД (`user_preferences`, таблица закреплена за пользователем), остальное — в `localStorage`. Настройки темы/режима рендерятся на `<html>` сервером ещё до загрузки JS.
-- **Командная палитра** — `Ctrl+K` (или клик по строке поиска в шапке): быстрый переход между разделами.
-- **DataGrid** (`core/DataGrid.php`) — единый рендерер таблиц админки: сортировка, empty-состояния, действия с подтверждением (`data-confirm`).
-- **Анимация**: анимированный mesh-фон, glass-карточки, плавные появления; уважает `prefers-reduced-motion` и отключается настройкой «Анимации».
-- **Иконки** — inline Lucide (stroke-based) через `icon($name, $class)`.
-
-> Структура CSS: `public/css/panel/` (токены → темы → база → эффекты → компоненты → таблицы → layout). Файлы админки не превышают 500 строк.
-
-## 🗄️ База данных
-
-### Таблицы
-
-| Таблица | Описание |
-|---------|----------|
-| `users` | Пользователи (логин, email, пароль, роль) |
-| `posts` | Посты (заголовок, контент, статус, категория) |
-| `categories` | Категории постов |
-| `pages` | Статические страницы |
-| `comments` | Комментарии к постам |
-| `tags` | Теги |
-| `post_tags` | Связь постов и тегов |
-| `menus` | Пункты меню |
-| `settings` | Настройки сайта |
-| `media` | Медиафайлы |
-| `user_preferences` | Настройки вида панели (тема, режим и др., по пользователю) |
-
-## 🔐 Безопасность
-
-- Хеширование паролей (bcrypt)
-- CSRF-токены для всех форм
-- Prepared statements для защиты от SQL-инъекций
-- Экранирование вывода (XSS защита)
-- Проверка прав доступа (роли)
-- Защита от удаления критических данных
-
-## 🎨 Шаблонизатор
-
-### Использование в шаблонах
-
-```php
-// Переменные
-<?= $variable ?>
-
-// Экранирование
-<?= TemplateEngine::e($variable) ?>
-
-// URL
-<?= TemplateEngine::url('page/slug') ?>
-
-// Assets
-<?= TemplateEngine::asset('css/style.css') ?>
-
-// Изображения
-<?= TemplateEngine::image($post['image']) ?>
-
-// Активный пункт меню
-<?= TemplateEngine::isActive('about') ?>
-```
-
-### Layouts
-
-```php
-// В контроллере
-$template->setLayout('layouts/main');
-$template->display('template');
-```
-
-## 🛠️ Вспомогательные функции
-
-| Функция | Описание |
-|---------|----------|
-| `slugify($string)` | Генерация URL-friendly строки с транслитерацией |
-| `truncate($text, $length)` | Обрезка текста |
-| `e($string)` | Экранирование HTML |
-| `redirect($url)` | Редирект |
-| `csrf_field()` | CSRF поле для формы |
-| `verify_csrf()` | Проверка CSRF токена |
-| `config($key)` | Получение настройки |
-| `dd($vars)` | Отладка (dump + die) |
-
-## 📝 Конфигурация
-
-После установки создаётся файл `config/config.php`:
-
-```php
-// База данных
-define('DB_HOST', 'localhost');
-define('DB_NAME', 'cms');
-define('DB_USER', 'root');
-define('DB_PASS', '');
-define('DB_CHARSET', 'utf8mb4');
-
-// Настройки сайта
-define('SITE_NAME', 'Моя CMS');
-define('SITE_URL', 'http://localhost');
-define('ADMIN_EMAIL', 'admin@localhost');
-
-// Пути
-define('ROOT_PATH', '/path/to/root');
-define('PUBLIC_PATH', ROOT_PATH . '/public');
-define('ADMIN_PATH', ROOT_PATH . '/admin');
-define('CORE_PATH', ROOT_PATH . '/core');
-define('TEMPLATES_PATH', ROOT_PATH . '/templates');
-
-// Настройки
-define('DEBUG', true);
-define('POSTS_PER_PAGE', 10);
-define('SESSION_LIFETIME', 3600);
-```
-
-## 🔌 Расширение
-
-### Добавление модели
-
-```php
-// core/models/MyModel.php
-class MyModel
-{
-    private $db;
-
-    public function __construct()
-    {
-        $this->db = Database::getInstance();
-    }
-
-    public function getAll(): array
-    {
-        return $this->db->fetchAll("SELECT * FROM my_table");
-    }
-}
-```
-
-### Добавление контроллера
-
-```php
-// admin/controllers/MyController.php
-class AdminMyController
-{
-    public function index()
-    {
-        Auth::requireAdmin();
-        
-        $template = new TemplateEngine(ADMIN_PATH . '/templates');
-        $template->set('title', 'Мой раздел');
-        $template->set('user', Auth::user());
-        $template->setLayout('layouts/main');
-        $template->display('my/index');
-    }
-}
-```
-
-### Добавление маршрута
-
-```php
-// core/routes.php
-$router->get('my-page', function() {
-    $template = new TemplateEngine();
-    $template->set('title', 'Моя страница');
-    $template->setLayout('layouts/main');
-    $template->display('my-page');
-});
+# Локальный запуск без Docker (Open Server Panel)
+# 1. Импортировать database.sql в MySQL
+# 2. Настроить config/config.php
+# 3. Создать install.lock
+# 4. Открыть http://hexacms
 ```
 
 ## 🐛 Отладка
 
-Включите режим отладки в `config/config.php`:
+```bash
+# PHP ошибки
+docker compose logs app
 
-```php
-define('DEBUG', true);
-```
+# Nginx ошибки
+docker compose logs web
 
-Логирование в `logs/app.log`:
+# PostgreSQL логи
+docker compose logs db
 
-```php
-log_message('Сообщение', 'error');
-```
-
-## 🎨 Шаблоны и темы
-
-### Темы оформления
-
-CMS поддерживает переключение тем для всего сайта. Тема выбирается в настройках админ-панели.
-
-| Тема | Описание |
-|------|----------|
-| 📄 Classic (default) | Классический дизайн с header и footer |
-| 🚀 Modern | Современный дизайн с градиентами, sticky header и hero-секцией |
-| 📝 Minimal | Минималистичный дизайн без лишних элементов |
-
-### Переключение темы
-
-1. Откройте админ-панель → Настройки
-2. В разделе "Внешний вид" выберите тему
-3. Сохраните настройки
-4. Сайт обновится с новой темой
-
-### Шаблоны страниц
-
-Для отдельных страниц можно выбрать индивидуальный шаблон:
-
-| Шаблон | Файл | Описание |
-|--------|------|----------|
-| 📄 Default | `page/default.php` | Стандартный шаблон с боковыми отступами |
-| 📐 Fullwidth | `page/fullwidth.php` | На всю ширину с яркой hero-секцией |
-| 🎯 Landing | `page/landing.php` | Лендинг с секциями и footer |
-| 📝 Blank | `page/blank.php` | Чистый шаблон без layout (для спец. страниц) |
-
-### Создание своего шаблона
-
-1. Создайте файл `templates/page/your-template.php`
-2. Используйте переменную `$page` для доступа к данным:
-   - `$page['title']` — заголовок
-   - `$page['content']` — содержимое
-   - `$page['meta_description']` — SEO описание
-3. Выберите шаблон в админ-панели при редактировании страницы
-
-### Пример простого шаблона
-
-```php
-<?php
-/**
- * Мой шаблон страницы
- */
-?>
-<article class="my-template">
-    <h1><?= TemplateEngine::e($page['title']) ?></h1>
-    <div class="content">
-        <?= $page['content'] ?>
-    </div>
-</article>
-
-<style>
-.my-template {
-    padding: 40px;
-    background: #f5f5f5;
-}
-</style>
+# SQL-запросы (включить логирование в PostgreSQL)
+docker compose exec db psql -U cms -c "ALTER SYSTEM SET log_statement = 'all';"
+docker compose restart db
 ```
 
 ## 📄 Лицензия
 
 Свободное использование и модификация.
 
-## 👥 Авторы
-
-Разработано для обучения и личного использования.
-
-## 📞 Поддержка
-
-При возникновении проблем:
-1. Проверьте требования
-2. Включите режим отладки
-3. Проверьте логи ошибок PHP
-4. Убедитесь, что БД доступна
-
 ---
 
-**Версия**: 1.0  
-**Дата обновления**: 2026-03-16
+**Версия**: 2.0  
+**Дата обновления**: 2026-09-26

@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: hexacms_app
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/var/www/html
+      - uploads_data:/var/www/html/public/uploads
+    networks:
+      - cms-network
+
+  web:
+    image: nginx:alpine
+    container_name: hexacms_web
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - .:/var/www/html
+      - ./.docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - cms-network
+
+  db:
+    image: postgres:16-alpine
+    container_name: hexacms_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cms}
+      POSTGRES_USER: ${DB_USER:-cms}
+      POSTGRES_PASSWORD: ${DB_PASS:-cms_secret}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/postgres/init:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cms} -d ${DB_NAME:-cms}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - cms-network
+
+volumes:
+  pgdata:
+  uploads_data:
+
+networks:
+  cms-network:
+    driver: bridge

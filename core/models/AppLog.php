@@ -18,7 +18,7 @@ class AppLog
         try {
             $db = Database::getInstance();
             $db->query(
-                'INSERT INTO app_logs (`level`, `channel`, `message`, `context`) VALUES (?, ?, ?, ?)',
+                'INSERT INTO app_logs (level, channel, message, context) VALUES (?, ?, ?, ?)',
                 [
                     $level,
                     $channel,
@@ -54,7 +54,7 @@ class AppLog
 
         $offset = max(0, ($page - 1) * $perPage);
         $rows = $this->db->fetchAll(
-            'SELECT * FROM app_logs' . $whereSql . ' ORDER BY id DESC LIMIT ' . (int)$offset . ', ' . (int)$perPage,
+            'SELECT * FROM app_logs' . $whereSql . ' ORDER BY id DESC LIMIT ' . (int)$perPage . ' OFFSET ' . (int)$offset,
             $params
         );
 

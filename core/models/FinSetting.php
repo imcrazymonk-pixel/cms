@@ -35,8 +35,8 @@ class FinSetting
     public function set(string $key, $value): void
     {
         $this->db->query(
-            'INSERT INTO fin_settings (setting_key, setting_value) VALUES (?, ?)
-             ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)',
+'INSERT INTO fin_settings (setting_key, setting_value) VALUES (?, ?)
+              ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value',
             [$key, (string)$value]
         );
     }

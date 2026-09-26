@@ -29,7 +29,7 @@ class UserPreference
     {
         $this->db->query(
             "INSERT INTO user_preferences (user_id, pref_key, pref_value) VALUES (?, ?, ?)
-             ON DUPLICATE KEY UPDATE pref_value = VALUES(pref_value)",
+             ON CONFLICT (user_id, pref_key) DO UPDATE SET pref_value = EXCLUDED.pref_value",
             [$userId, $key, $value]
         );
     }

@@ -1,5 +1,4 @@
-# Конфигурация и метка установки (генерируются установщиком)
-/config/config.php
+# Метка установки (создаётся docker-entrypoint.sh)
 /install.lock
 
 # Логи, кеш и временные файлы
@@ -42,3 +41,7 @@ Thumbs.db
 # Кеш Python
 __pycache__/
 *.pyc
+
+# Docker
+/.env
+/docker-compose.override.yml

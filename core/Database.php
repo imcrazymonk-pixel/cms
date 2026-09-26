@@ -14,7 +14,12 @@ class Database
      */
     private function __construct()
     {
-        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+        $driver = DB_DRIVER;
+        if ($driver === 'pgsql') {
+            $dsn = "pgsql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME;
+        } else {
+            $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=" . DB_CHARSET;
+        }
         
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
