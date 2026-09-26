@@ -2,18 +2,35 @@
 
 ## Что это за проект
 
-Собственная **PHP CMS** (без фреймворков) поверх MySQL. Изначально — стандартный
-блог-движок, сейчас превращается в **многофункциональный сайт VPN-сервиса**:
+Собственная **PHP CMS** (vanilla, без фреймворков) с поддержкой MySQL и PostgreSQL.
+Изначально — стандартный блог-движок, сейчас — **многофункциональный сайт VPN-сервиса**:
 
 - **Публичная часть** — лендинг HexaVeil (тема `hexaveil`) с 3D-глобусом серверов,
-  тарифами, FAQ и **блогом** (добавлено недавно, см. `/blog`)
+  тарифами, FAQ и **блогом**
 - **Админ-панель** — собственная система управления контентом с редизайном в стиле
   remnawave (тёмная тема, mesh-фон, glass-эффекты, командная палитра)
 
-### Домен и окружение
+### Деплоймент (production, 26.09.2026)
 
-- **Docker**: `http://localhost` (PHP 8.1 + Nginx + PostgreSQL 16)
-- **Локально**: `http://hexacms` (Open Server Panel, Apache + MySQL)
+| Параметр | Значение |
+|---|---|
+| **Домен** | `https://test.hexaveil.xyz` |
+| **Админка** | `https://test.hexaveil.xyz/admin/` |
+| **Логин** | `admin` |
+| **Пароль** | `admin12345` |
+| **Сервер** | Ubuntu, Docker Compose |
+| **PHP** | 8.1-FPM (Debian-based) |
+| **Web** | Nginx (alpine), 2 уровня: nginx-selfsteal (reverse proxy) → hexacms_web (FastCGI) |
+| **БД** | PostgreSQL 16 (alpine) |
+| **Сеть** | 2 IP: `159.194.221.84` (нода) + `85.198.99.102` (CMS) |
+| **SSL** | Let's Encrypt, `test.hexaveil.xyz` |
+| **Reverse proxy** | nginx-selfsteal (`network_mode: host`) на портах 80/443 |
+| **Node** | Remnawave node (VLESS/Reality + XTLS-Vision) на порту 2222 |
+
+### Локальная разработка
+
+- **Docker**: `docker compose up --build -d` (PHP 8.1 + Nginx + PostgreSQL 16)
+- **Open Server Panel**: `http://hexacms` (Apache + MySQL)
 - Поддержка MySQL и PostgreSQL через `DB_DRIVER` в config.php
 
 ---
@@ -339,10 +356,10 @@ NewWeb/
 
 ### 🟢 Фаза 4 — Переезд на свой сервер + PostgreSQL ✅
 
-> **Статус: выполнено (26.09.2026).** Проект полностью контейнеризирован и работает на PostgreSQL.
+> **Статус: выполнено (26.09.2026).** Проект полностью контейнеризирован, работает на PostgreSQL, развёрнут на production-сервере с SSL.
 
 #### Docker-инфраструктура
-- [x] `Dockerfile` — PHP 8.1-FPM (alpine) с pdo_pgsql, pdo_mysql, intl, mbstring, opcache
+- [x] `Dockerfile` — PHP 8.1-FPM (Debian) с pdo_pgsql, pdo_mysql, intl, mbstring, opcache
 - [x] `docker-compose.yml` — 3 сервиса: app (PHP-FPM), web (Nginx), db (PostgreSQL 16)
 - [x] `.docker/nginx/default.conf` — Nginx vhost с deny доступа к служебным директориям
 - [x] `.docker/php/php.ini` — upload 64M, memory 256M, opcache
@@ -359,9 +376,16 @@ NewWeb/
 - [x] `AppLog.php` — убраны backtick-кавычки, `LIMIT a,b` → `LIMIT b OFFSET a`
 - [x] `index.php` — убран редирект на установщик, install.lock создаётся автоматически
 
-#### Установщик
-- [x] Убран редирект на `/install/` — в Docker приложение стартует сразу
-- [x] `install.lock` удалён из `.gitignore` для config.php (теперь это универсальный шаблон)
+#### Настройка reverse proxy (nginx-selfsteal)
+- [x] На сервере стоит nginx-selfsteal (network_mode: host) для Reality ноды
+- [x] CMS поднята на отдельном IP `85.198.99.102` через reverse proxy
+- [x] Конфиг: `/opt/nginx-selfsteal/conf.d/cms.conf`
+- [x] HTTP (порт 80) → HTTPS редирект
+- [x] HTTPS (порт 443) → proxy_pass 127.0.0.1:3000 → hexacms_web
+
+#### HTTPS
+- [x] Выпущен сертификат Let's Encrypt для `test.hexaveil.xyz`
+- [x] Авто-обновление через cron (docker + certbot)
 
 #### Использование
 
@@ -452,7 +476,20 @@ $template->display('template-name'); // templates/themes/{theme}/template-name.p
 
 ## Как запустить
 
-### Docker (рекомендуется)
+### Production (сервер, 26.09.2026)
+
+```bash
+# Сайт: https://test.hexaveil.xyz
+# Админка: https://test.hexaveil.xyz/admin/  (admin / admin12345)
+```
+
+**Архитектура сервера:**
+- nginx-selfsteal (`network_mode: host`, порты 80/443) — reverse proxy для CMS + selfsteal для Reality ноды
+- hexacms_web (Nginx, порт 127.0.0.1:3000) — FastCGI
+- hexacms_app (PHP 8.1-FPM) — обработка PHP
+- hexacms_db (PostgreSQL 16) — база данных
+
+### Docker (локальная разработка)
 
 ```bash
 docker compose up --build -d
