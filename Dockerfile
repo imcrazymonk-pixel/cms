@@ -4,6 +4,7 @@ FROM php:8.1-fpm
 RUN apt-get update && apt-get install -y \
         libpq-dev \
         libicu-dev \
+        libonig-dev \
         unzip \
         git \
     && rm -rf /var/lib/apt/lists/*
@@ -12,8 +13,8 @@ RUN apt-get update && apt-get install -y \
 RUN docker-php-ext-install \
         pdo_pgsql \
         pdo_mysql \
-        intl \
         mbstring \
+        intl \
         opcache
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
