@@ -8,7 +8,7 @@ $isEdit = !empty($post['id']);
 $cats = $categories ?? [];
 $postStatus = $post['status'] ?? 'draft';
 ?>
-<link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/editor.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/editor.css') ?>">
+<link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/editor.css?v=<?= @filemtime(PUBLIC_PATH . '/css/panel/editor.css') ?>">
 
 <!-- ================= ВЕРХНЯЯ ПАНЕЛЬ ПОСТА ================= -->
 <div class="editor-topbar">
@@ -281,7 +281,7 @@ $postStatus = $post['status'] ?? 'draft';
 
 <div id="editor-toast" class="editor-toast hidden"><?= icon('check-circle-2') ?><span id="editor-toast-msg">Сохранено</span></div>
 
-<script src="<?= SITE_URL ?>/admin/js/editor.js?v=<?= filemtime(ADMIN_PATH . '/js/editor.js') ?>"></script>
+<script src="<?= SITE_URL ?>/admin/js/editor.js?v=<?= @filemtime(ADMIN_PATH . '/js/editor.js') ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof tinymce !== 'undefined' && tinymce.get('content')) {

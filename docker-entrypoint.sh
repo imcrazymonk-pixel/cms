@@ -17,13 +17,14 @@ if [ ! -f /var/www/html/install.lock ]; then
 fi
 
 # Generate admin password hash if it's still a placeholder (safe mode, no fail)
-ADMIN_PW="${ADMIN_PASSWORD:-admin12345}"
+ADMIN_PW="${ADMIN_PASSWORD:-Cke;bkb2Njdfhbof}"
 ADMIN_HASH=$(php -r "echo password_hash('$ADMIN_PW', PASSWORD_BCRYPT);" 2>/dev/null || true)
 if [ -n "$ADMIN_HASH" ]; then
-    PG_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM users WHERE login='admin' AND password='\$2y\$10\$change_this_to_a_real_bcrypt_hash';" 2>/dev/null || echo "0")
+    # Update user 'admn' if its password is still the placeholder
+    PG_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM users WHERE login='admn' AND password='\$2y\$10\$change_this_to_a_real_bcrypt_hash';" 2>/dev/null || echo "0")
     if [ "$PG_COUNT" = "1" ]; then
-        echo "Updating admin password hash..."
-        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "UPDATE users SET password='$ADMIN_HASH' WHERE login='admin';" >/dev/null 2>&1 || true
+        echo "Updating admn password hash..."
+        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "UPDATE users SET password='$ADMIN_HASH' WHERE login='admn';" >/dev/null 2>&1 || true
     fi
 fi
 

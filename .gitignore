@@ -42,6 +42,19 @@ Thumbs.db
 __pycache__/
 *.pyc
 
+# Установщики и бинарники в корне
+/*.exe
+/*.pdf
+
+# Временные HTML
+/login_out.html
+
+# AI/Kilo конфиги агентов — не часть проекта
+/agent/
+/.agents/
+/.claude/
+/skills-lock.json
+
 # Docker
 /.env
 /docker-compose.override.yml

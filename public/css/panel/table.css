@@ -180,7 +180,7 @@
   -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  overflow: clip;
   box-shadow: var(--shadow-glass);
 }
 

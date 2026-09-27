@@ -559,60 +559,12 @@
   }
 
   function openSettings() {
-    qs('#finSetCurrency').value = settings.currency || '₽';
-    qs('#finSetDecimals').value = String(settings.decimals || 2);
-    qs('#finSetAutoRefresh').value = String(settings.auto_refresh || 0);
-    qs('#finSetAvgPeriod').value = settings.avg_period || 'day';
-    qs('#finSetExcludeCats').value = jsonOrArray(settings.avg_exclude_categories).join(', ');
-    qs('#finSetQuickCats').value = jsonOrArray(settings.quick_categories).join(', ');
-    qs('#finSetQuickParts').value = jsonOrArray(settings.quick_participants).join(', ');
-    qs('#finSetPlategaMerchant').value = settings.platega_merchant_id || '';
-    qs('#finSetPlategaSecret').value = settings.platega_secret_raw || '';
-    qs('#finSetPlategaDays').value = settings.platega_days_back || '150';
-    qs('#finSetPlategaAuto').value = settings.platega_auto_sync || '0';
-    qs('#finSettingsError').hidden = true;
-    showModal('finSettingsModal');
+    // Настройки перенесены на /admin/settings?tab=finance
+    window.location.href = '/admin/settings?tab=finance';
   }
 
   function saveSettings() {
-    var toArr = function (v) {
-      return String(v || '').split(',').map(function (s) { return s.trim(); }).filter(Boolean);
-    };
-    var payload = {
-      csrf_token: CSRF,
-      currency: qs('#finSetCurrency').value,
-      decimals: Number(qs('#finSetDecimals').value),
-      auto_refresh: Number(qs('#finSetAutoRefresh').value),
-      avg_period: qs('#finSetAvgPeriod').value,
-      avg_exclude_categories: toArr(qs('#finSetExcludeCats').value),
-      quick_categories: toArr(qs('#finSetQuickCats').value),
-      quick_participants: toArr(qs('#finSetQuickParts').value),
-      platega_merchant_id: qs('#finSetPlategaMerchant').value,
-      platega_secret: qs('#finSetPlategaSecret').value,
-      platega_days_back: Number(qs('#finSetPlategaDays').value),
-      platega_auto_sync: Number(qs('#finSetPlategaAuto').value),
-    };
-    fetch('/admin/finance/api/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-      .then(function (r) {
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        return r.json();
-      })
-      .then(function (res) {
-        if (res.success) {
-          settings = Object.assign({}, settings, payload);
-          hideModal('finSettingsModal');
-          toast('Настройки сохранены');
-          loadData();
-          startPlategaAutoSync();
-          startYookassaAutoSync();
-        } else {
-          showError('#finSettingsError', res.error || 'Ошибка сохранения');
-        }
-      });
+    // Более не используется — настройки сохраняются через Settings → Финансы
   }
 
 
@@ -1189,7 +1141,7 @@
     qs('#finTxnSave').addEventListener('click', saveTxn);
     qs('#finConfirmOk').addEventListener('click', doDelete);
     qs('#finImportBtn').addEventListener('click', doImport);
-    qs('#finSettingsSave').addEventListener('click', saveSettings);
+    // Настройки сохранены через Settings → Финансы
 
     // Bulk toolbar
     qs('#finBulkExport').addEventListener('click', function (e) { e.stopPropagation(); toggleDropdown('finBulkExportMenu'); });

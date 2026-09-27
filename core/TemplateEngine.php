@@ -116,16 +116,20 @@ class TemplateEngine
         ob_start();
 
         if ($this->layout) {
+            echo "\n<!-- LAYOUT_HIT=" . $this->layout . " -->\n";
             $content = $this->renderTemplate($templateFile, $compiledFile);
             $this->data['content'] = $content;
             extract($this->data);
             $layoutFile = $this->findTemplate($this->layout);
             if (file_exists($layoutFile)) {
+                echo "\n<!-- INCLUDE_LAYOUT: " . $layoutFile . " -->\n";
                 include $layoutFile;
             } else {
+                echo "\n<!-- LAYOUT_NOT_FOUND: " . $this->layout . " at " . $layoutFile . " -->\n";
                 echo $content;
             }
         } else {
+            echo "\n<!-- NO_LAYOUT_SET -->\n";
             if ($compiledFile) {
                 include $compiledFile;
             } else {

@@ -37,13 +37,14 @@ class User
     public function getAll(): array
     {
         return $this->db->fetchAll("
-            SELECT u.id, u.login, u.email, u.role, u.created_at,
+            SELECT u.id, u.login, u.email, u.role, u.display_name, u.status,
+                   u.created_at, u.updated_at,
                    COUNT(DISTINCT p.id) AS posts_count,
                    COUNT(DISTINCT c.id) AS comments_count
             FROM users u
             LEFT JOIN posts p ON u.id = p.user_id
             LEFT JOIN comments c ON u.id = c.user_id
-            GROUP BY u.id, u.login, u.email, u.role, u.created_at
+            GROUP BY u.id, u.login, u.email, u.role, u.display_name, u.status, u.created_at, u.updated_at
             ORDER BY u.id
         ");
     }
