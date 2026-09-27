@@ -51,6 +51,22 @@ class Router
     }
 
     /**
+     * Добавить PUT маршрут
+     */
+    public function put(string $path, $handler): void
+    {
+        $this->addRoute('PUT', $path, $handler);
+    }
+
+    /**
+     * Добавить DELETE маршрут
+     */
+    public function delete(string $path, $handler): void
+    {
+        $this->addRoute('DELETE', $path, $handler);
+    }
+
+    /**
      * Обработать текущий запрос
      * @return mixed Результат работы контроллера
      */

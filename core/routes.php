@@ -359,13 +359,182 @@ $router->addRoute('DELETE', 'api/posts/(\d+)', function($id) {
 
 // Categories API
 $router->addRoute('OPTIONS', 'api/categories', function() { apiCorsHeaders(); http_response_code(204); exit; });
+$router->addRoute('OPTIONS', 'api/categories/(\d+)', function() { apiCorsHeaders(); http_response_code(204); exit; });
 
 $router->get('api/categories', function() {
     apiCorsHeaders();
     apiAuth();
-
     $category = new Category();
     apiJson(['success' => true, 'data' => $category->getAll()]);
+});
+
+$router->post('api/categories', function() {
+    apiCorsHeaders();
+    apiAuth();
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $name = trim($body['name'] ?? '');
+    if (empty($name)) apiError('Название обязательно');
+    $slug = trim($body['slug'] ?? strtolower(trim(preg_replace('/[^a-z0-9-]+/', '-', $name), '-')));
+    $category = new Category();
+    $id = $category->create(['name' => $name, 'slug' => $slug, 'description' => $body['description'] ?? '']);
+    apiJson(['success' => true, 'data' => ['id' => $id]], 201);
+});
+
+$router->post('api/categories/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+    $category = new Category();
+    if (!$category->getById((int)$id)) apiError('Категория не найдена', 404);
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $data = [];
+    foreach (['name', 'slug', 'description'] as $f) {
+        if (isset($body[$f])) $data[$f] = trim($body[$f]);
+    }
+    if (!empty($data)) $category->update((int)$id, $data);
+    apiJson(['success' => true]);
+});
+
+$router->delete('api/categories/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+    $category = new Category();
+    if (!$category->getById((int)$id)) apiError('Категория не найдена', 404);
+    $category->delete((int)$id);
+    apiJson(['success' => true]);
+});
+
+// Pages API
+$router->addRoute('OPTIONS', 'api/pages', function() { apiCorsHeaders(); http_response_code(204); exit; });
+$router->addRoute('OPTIONS', 'api/pages/(\d+)', function() { apiCorsHeaders(); http_response_code(204); exit; });
+
+$router->get('api/pages', function() {
+    apiCorsHeaders();
+    apiAuth();
+    $page = new Page();
+    apiJson(['success' => true, 'data' => $page->getAll()]);
+});
+
+$router->get('api/pages/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+    $page = new Page();
+    $entity = $page->getById((int)$id);
+    if (!$entity) apiError('Страница не найдена', 404);
+    apiJson(['success' => true, 'data' => $entity]);
+});
+
+$router->post('api/pages', function() {
+    apiCorsHeaders();
+    apiAuth();
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $title = trim($body['title'] ?? '');
+    if (empty($title)) apiError('Заголовок обязателен');
+    $slug = trim($body['slug'] ?? strtolower(trim(preg_replace('/[^a-z0-9-]+/', '-', $title), '-')));
+    $page = new Page();
+    $id = $page->create([
+        'title' => $title,
+        'slug' => $slug,
+        'content' => $body['content'] ?? '',
+        'meta_description' => $body['meta_description'] ?? '',
+        'status' => $body['status'] ?? 'draft',
+    ]);
+    apiJson(['success' => true, 'data' => ['id' => $id]], 201);
+});
+
+$router->post('api/pages/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+    $page = new Page();
+    if (!$page->getById((int)$id)) apiError('Страница не найдена', 404);
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $data = [];
+    foreach (['title', 'slug', 'content', 'meta_description', 'status'] as $f) {
+        if (isset($body[$f])) $data[$f] = trim($body[$f]);
+    }
+    if (!empty($data)) {
+        $data['updated_at'] = date('Y-m-d H:i:s');
+        $page->update((int)$id, $data);
+    }
+    apiJson(['success' => true]);
+});
+
+$router->delete('api/pages/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+    $page = new Page();
+    if (!$page->getById((int)$id)) apiError('Страница не найдена', 404);
+    $page->delete((int)$id);
+    apiJson(['success' => true]);
+});
+
+// Users API
+$router->addRoute('OPTIONS', 'api/users', function() { apiCorsHeaders(); http_response_code(204); exit; });
+$router->addRoute('OPTIONS', 'api/users/(\d+)', function() { apiCorsHeaders(); http_response_code(204); exit; });
+
+$router->get('api/users', function() {
+    apiCorsHeaders();
+    apiAuth();
+    $user = new User();
+    $users = $user->getAll();
+    // Strip passwords from output
+    foreach ($users as &$u) unset($u['password']);
+    apiJson(['success' => true, 'data' => $users]);
+});
+
+$router->get('api/users/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+    $user = new User();
+    $entity = $user->getById((int)$id);
+    if (!$entity) apiError('Пользователь не найден', 404);
+    unset($entity['password']);
+    apiJson(['success' => true, 'data' => $entity]);
+});
+
+$router->post('api/users', function() {
+    apiCorsHeaders();
+    apiAuth();
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $login = trim($body['login'] ?? '');
+    $password = $body['password'] ?? '';
+    if (empty($login) || empty($password)) apiError('Логин и пароль обязательны');
+    $user = new User();
+    $id = $user->create([
+        'login' => $login,
+        'email' => trim($body['email'] ?? ''),
+        'password' => password_hash($password, HASH_ALGO),
+        'role' => $body['role'] ?? 'author',
+        'display_name' => trim($body['display_name'] ?? ''),
+        'status' => $body['status'] ?? 'active',
+    ]);
+    apiJson(['success' => true, 'data' => ['id' => $id]], 201);
+});
+
+$router->post('api/users/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+    $user = new User();
+    if (!$user->getById((int)$id)) apiError('Пользователь не найден', 404);
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $data = [];
+    foreach (['login', 'email', 'role', 'display_name', 'status'] as $f) {
+        if (isset($body[$f])) $data[$f] = trim($body[$f]);
+    }
+    if (!empty($body['password'])) {
+        $data['password'] = password_hash($body['password'], HASH_ALGO);
+    }
+    if (!empty($data)) $user->update((int)$id, $data);
+    apiJson(['success' => true]);
+});
+
+$router->delete('api/users/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+    if ((int)$id === (int)apiAuth()['sub']) apiError('Нельзя удалить самого себя');
+    $user = new User();
+    if (!$user->getById((int)$id)) apiError('Пользователь не найден', 404);
+    $user->delete((int)$id);
+    apiJson(['success' => true]);
 });
 
 // ============================================
