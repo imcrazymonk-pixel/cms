@@ -203,6 +203,34 @@ $router->get('api/auth/me', function() {
     ]);
 });
 
+// OPTIONS preflight for all API routes
+$router->addRoute('OPTIONS', 'api/dashboard/stats', function() {
+    apiCorsHeaders();
+    http_response_code(204);
+    exit;
+});
+
+// GET /api/dashboard/stats — dashboard statistics
+$router->get('api/dashboard/stats', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $post = new Post();
+    $category = new Category();
+    $user = new User();
+    $comment = new Comment();
+
+    apiJson([
+        'success' => true,
+        'stats' => [
+            'posts' => $post->getCount(),
+            'comments' => class_exists('Comment') ? $comment->getCountByStatus('pending') : 0,
+            'users' => $user->getCount(),
+            'categories' => $category->getCount(),
+        ],
+    ]);
+});
+
 // ============================================
 // Маршруты админки
 // ============================================
