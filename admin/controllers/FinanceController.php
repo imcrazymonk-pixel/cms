@@ -132,7 +132,7 @@ class AdminFinanceController
             $this->jsonResponse(['success' => true, 'id' => $id]);
         } catch (\Throwable $e) {
             error_log('[Finance] apiAdd error: ' . $e->getMessage());
-            AppLog::add('error', 'finance', 'apiAdd error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiAdd error: ' . $e->getMessage(), [], 'finance', 'finance');
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка сохранения'], 500);
         }
     }
@@ -164,7 +164,7 @@ class AdminFinanceController
             $this->jsonResponse(['success' => true]);
         } catch (\Throwable $e) {
             error_log('[Finance] apiEdit error: ' . $e->getMessage());
-            AppLog::add('error', 'finance', 'apiEdit error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiEdit error: ' . $e->getMessage(), [], 'finance', 'finance');
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка сохранения'], 500);
         }
     }
@@ -191,7 +191,7 @@ class AdminFinanceController
             $this->jsonResponse(['success' => true]);
         } catch (\Throwable $e) {
             error_log('[Finance] apiDelete error: ' . $e->getMessage());
-            AppLog::add('error', 'finance', 'apiDelete error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiDelete error: ' . $e->getMessage(), [], 'finance', 'finance');
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка удаления'], 500);
         }
     }
@@ -227,7 +227,7 @@ class AdminFinanceController
             $this->jsonResponse(['success' => true, 'deleted' => $deleted]);
         } catch (\Throwable $e) {
             error_log('[Finance] apiDeleteBulk error: ' . $e->getMessage());
-            AppLog::add('error', 'finance', 'apiDeleteBulk error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiDeleteBulk error: ' . $e->getMessage(), [], 'finance', 'finance');
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка удаления'], 500);
         }
     }
@@ -258,7 +258,7 @@ class AdminFinanceController
             $this->jsonResponse(['success' => true, 'updated' => $updated]);
         } catch (\Throwable $e) {
             error_log('[Finance] apiBulkType error: ' . $e->getMessage());
-            AppLog::add('error', 'finance', 'apiBulkType error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiBulkType error: ' . $e->getMessage(), [], 'finance', 'finance');
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
         }
     }
@@ -287,7 +287,7 @@ class AdminFinanceController
             $this->jsonResponse(['success' => true, 'updated' => $updated]);
         } catch (\Throwable $e) {
             error_log('[Finance] apiBulkCategory error: ' . $e->getMessage());
-            AppLog::add('error', 'finance', 'apiBulkCategory error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiBulkCategory error: ' . $e->getMessage(), [], 'finance', 'finance');
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
         }
     }
@@ -312,7 +312,7 @@ class AdminFinanceController
             $this->jsonResponse(['success' => true, 'updated' => $updated]);
         } catch (\Throwable $e) {
             error_log('[Finance] apiBulkParticipant error: ' . $e->getMessage());
-            AppLog::add('error', 'finance', 'apiBulkParticipant error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiBulkParticipant error: ' . $e->getMessage(), [], 'finance', 'finance');
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
         }
     }
@@ -337,7 +337,7 @@ class AdminFinanceController
             $this->jsonResponse(['success' => true, 'updated' => $updated]);
         } catch (\Throwable $e) {
             error_log('[Finance] apiBulkDescription error: ' . $e->getMessage());
-            AppLog::add('error', 'finance', 'apiBulkDescription error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiBulkDescription error: ' . $e->getMessage(), [], 'finance', 'finance');
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
         }
     }
@@ -538,11 +538,11 @@ class AdminFinanceController
                 'merchant_id' => $merchantId,
                 'days_back' => $daysBack,
                 'rows' => count($preview),
-            ]);
+            ], 'modules', 'platega');
             $this->jsonResponse(['success' => true, 'transactions' => $preview]);
         } catch (\Throwable $e) {
             $msg = 'Platega preview error: ' . $e->getMessage();
-            AppLog::add('error', 'platega', $msg, ['merchant_id' => $merchantId, 'days_back' => $daysBack]);
+            AppLog::add('error', 'platega', $msg, ['merchant_id' => $merchantId, 'days_back' => $daysBack], 'modules', 'platega');
             error_log($msg);
             $this->jsonResponse(['success' => false, 'error' => $msg], 500);
         }
@@ -586,10 +586,10 @@ class AdminFinanceController
             AppLog::add('info', 'platega', 'Platega import', [
                 'added' => $result['added'],
                 'skipped' => $result['skipped'],
-            ]);
+            ], 'modules', 'platega');
             $this->jsonResponse(['success' => true, 'added' => $result['added'], 'skipped' => $result['skipped']]);
         } catch (\Throwable $e) {
-            AppLog::add('error', 'platega', 'Platega import error: ' . $e->getMessage(), []);
+            AppLog::add('error', 'platega', 'Platega import error: ' . $e->getMessage(), [], 'modules', 'platega');
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка импорта: ' . $e->getMessage()], 500);
         }
     }
@@ -631,9 +631,9 @@ class AdminFinanceController
                 'added' => $res['added'] ?? 0,
                 'skipped' => $res['skipped'] ?? 0,
                 'new' => $res['new'] ?? 0,
-            ]);
+            ], 'modules', 'platega');
         } else {
-            AppLog::add('error', 'platega', 'Platega cron sync error: ' . ($res['error'] ?? 'unknown'));
+            AppLog::add('error', 'platega', 'Platega cron sync error: ' . ($res['error'] ?? 'unknown'), [], 'modules', 'platega');
         }
         $this->jsonResponse($res, $res['success'] ? 200 : ($res['code'] ?? 500));
     }
@@ -655,7 +655,7 @@ class AdminFinanceController
         if (!$merchantId || !$secret) {
             $this->settings->set('platega_last_error', 'Platega не настроен (merchant_id/secret пусты)');
             $this->settings->set('platega_last_sync_ok', '0');
-            AppLog::add('warning', 'platega', 'Platega sync skipped: merchant_id/secret empty');
+            AppLog::add('warning', 'platega', 'Platega sync skipped: merchant_id/secret empty', [], 'modules', 'platega');
             return ['success' => false, 'error' => 'Platega не настроен (merchant_id/secret пусты)', 'code' => 400];
         }
 
@@ -693,18 +693,17 @@ class AdminFinanceController
             $this->settings->set('platega_last_sync_ok', '1');
             $this->settings->set('platega_sync_lock', '');
 
-            AppLog::add('info', 'platega', 'Platega sync OK', [
+AppLog::add('info', 'platega', 'Platega sync OK', [
                 'added' => $added,
                 'skipped' => $skipped,
                 'new' => count($newRows),
-            ]);
-
+            ], 'modules', 'platega');
             return ['success' => true, 'added' => $added, 'skipped' => $skipped, 'new' => count($newRows)];
         } catch (\Throwable $e) {
             $this->settings->set('platega_sync_lock', '');
             $this->settings->set('platega_last_error', $e->getMessage());
             $this->settings->set('platega_last_sync_ok', '0');
-            AppLog::add('error', 'platega', 'Platega sync error: ' . $e->getMessage());
+            AppLog::add('error', 'platega', 'Platega sync error: ' . $e->getMessage(), [], 'modules', 'platega');
             error_log('Platega sync error: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage(), 'code' => 500];
         }
@@ -792,7 +791,7 @@ class AdminFinanceController
             'secret_updated' => $secretUpdated,
             'days_back' => (int)$this->settings->get('platega_days_back', 150),
             'auto_sync' => (int)$this->settings->get('platega_auto_sync', 0),
-        ]);
+        ], 'modules', 'platega');
 
         $this->jsonResponse(['success' => true]);
     }
@@ -840,11 +839,11 @@ class AdminFinanceController
                 'shop_id' => $shopId,
                 'days_back' => $daysBack,
                 'rows' => count($preview),
-            ]);
+            ], 'modules', 'yookassa');
             $this->jsonResponse(['success' => true, 'transactions' => $preview]);
         } catch (\Throwable $e) {
             $msg = 'YooKassa preview error: ' . $e->getMessage();
-            AppLog::add('error', 'yookassa', $msg, ['shop_id' => $shopId, 'days_back' => $daysBack]);
+            AppLog::add('error', 'yookassa', $msg, ['shop_id' => $shopId, 'days_back' => $daysBack], 'modules', 'yookassa');
             error_log($msg);
             $this->jsonResponse(['success' => false, 'error' => $msg], 500);
         }
@@ -888,10 +887,10 @@ class AdminFinanceController
             AppLog::add('info', 'yookassa', 'YooKassa import', [
                 'added' => $result['added'],
                 'skipped' => $result['skipped'],
-            ]);
+            ], 'modules', 'yookassa');
             $this->jsonResponse(['success' => true, 'added' => $result['added'], 'skipped' => $result['skipped']]);
         } catch (\Throwable $e) {
-            AppLog::add('error', 'yookassa', 'YooKassa import error: ' . $e->getMessage(), []);
+            AppLog::add('error', 'yookassa', 'YooKassa import error: ' . $e->getMessage(), [], 'modules', 'yookassa');
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка импорта: ' . $e->getMessage()], 500);
         }
     }
@@ -933,9 +932,9 @@ class AdminFinanceController
                 'added' => $res['added'] ?? 0,
                 'skipped' => $res['skipped'] ?? 0,
                 'new' => $res['new'] ?? 0,
-            ]);
+            ], 'modules', 'yookassa');
         } else {
-            AppLog::add('error', 'yookassa', 'YooKassa cron sync error: ' . ($res['error'] ?? 'unknown'));
+            AppLog::add('error', 'yookassa', 'YooKassa cron sync error: ' . ($res['error'] ?? 'unknown'), [], 'modules', 'yookassa');
         }
         $this->jsonResponse($res, $res['success'] ? 200 : ($res['code'] ?? 500));
     }
@@ -957,7 +956,7 @@ class AdminFinanceController
         if (!$shopId || !$secret) {
             $this->settings->set('yookassa_last_error', 'YooKassa не настроена (shop_id/secret пусты)');
             $this->settings->set('yookassa_last_sync_ok', '0');
-            AppLog::add('warning', 'yookassa', 'YooKassa sync skipped: shop_id/secret empty');
+            AppLog::add('warning', 'yookassa', 'YooKassa sync skipped: shop_id/secret empty', [], 'modules', 'yookassa');
             return ['success' => false, 'error' => 'YooKassa не настроена (shop_id/secret пусты)', 'code' => 400];
         }
 
@@ -995,18 +994,17 @@ class AdminFinanceController
             $this->settings->set('yookassa_last_sync_ok', '1');
             $this->settings->set('yookassa_sync_lock', '');
 
-            AppLog::add('info', 'yookassa', 'YooKassa sync OK', [
+AppLog::add('info', 'yookassa', 'YooKassa sync OK', [
                 'added' => $added,
                 'skipped' => $skipped,
                 'new' => count($newRows),
-            ]);
-
+            ], 'modules', 'yookassa');
             return ['success' => true, 'added' => $added, 'skipped' => $skipped, 'new' => count($newRows)];
         } catch (\Throwable $e) {
             $this->settings->set('yookassa_sync_lock', '');
             $this->settings->set('yookassa_last_error', $e->getMessage());
             $this->settings->set('yookassa_last_sync_ok', '0');
-            AppLog::add('error', 'yookassa', 'YooKassa sync error: ' . $e->getMessage());
+            AppLog::add('error', 'yookassa', 'YooKassa sync error: ' . $e->getMessage(), [], 'modules', 'yookassa');
             error_log('YooKassa sync error: ' . $e->getMessage());
             return ['success' => false, 'error' => $e->getMessage(), 'code' => 500];
         }
@@ -1097,7 +1095,7 @@ class AdminFinanceController
             'secret_updated' => $secretUpdated,
             'days_back' => (int)$this->settings->get('yookassa_days_back', 30),
             'auto_sync' => (int)$this->settings->get('yookassa_auto_sync', 0),
-        ]);
+        ], 'modules', 'yookassa');
 
         $this->jsonResponse(['success' => true]);
     }

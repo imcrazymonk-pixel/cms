@@ -8,7 +8,14 @@ RUN apt-get update && apt-get install -y \
         postgresql-client \
         unzip \
         git \
+        ca-certificates \
+        curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Docker CLI (static binary, no daemon needed)
+RUN curl -fsSL https://download.docker.com/linux/static/stable/x86_64/docker-27.3.1.tgz -o /tmp/docker.tgz \
+    && tar -xzf /tmp/docker.tgz -C /usr/local/bin --strip=1 docker/docker \
+    && rm /tmp/docker.tgz
 
 # Install PHP extensions
 RUN docker-php-ext-install \

@@ -320,99 +320,26 @@ window.FIN = {
     </div>
 </div>
 
-<!-- Модалка: настройки -->
+<!-- Модалка: настройки (перенесены в /admin/settings?tab=finance) -->
 <div class="finance-modal-overlay" id="finSettingsModal" hidden>
-    <div class="finance-modal">
+    <div class="finance-modal finance-modal-sm">
         <div class="finance-modal-header">
             <h3>Настройки</h3>
             <button type="button" class="finance-modal-close" data-close="finSettingsModal"><?= icon('x') ?></button>
         </div>
-        <div class="finance-modal-body">
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Валюта</label>
-                    <select id="finSetCurrency">
-                        <option value="₽">₽</option>
-                        <option value="$">$</option>
-                        <option value="€">€</option>
-                        <option value="руб">руб</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Знаков после запятой</label>
-                    <select id="finSetDecimals">
-                        <option value="0">0</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Автообновление</label>
-                    <select id="finSetAutoRefresh">
-                        <option value="0">Нет</option>
-                        <option value="10">10 сек</option>
-                        <option value="30">30 сек</option>
-                        <option value="60">60 сек</option>
-                        <option value="120">2 мин</option>
-                        <option value="300">5 мин</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>Период средних</label>
-                    <select id="finSetAvgPeriod">
-                        <option value="day">День</option>
-                        <option value="week">Неделя</option>
-                        <option value="month">Месяц</option>
-                        <option value="year">Год</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-group">
-                <label>Исключить категории из средних (через запятую)</label>
-                <input type="text" id="finSetExcludeCats" placeholder="Инвестиции, Взнос…">
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Быстрые категории</label>
-                    <input type="text" id="finSetQuickCats" placeholder="Прибыль, Сервер, Домен…">
-                </div>
-                <div class="form-group">
-                    <label>Быстрые участники</label>
-                    <input type="text" id="finSetQuickParts" placeholder="Platega, Beget…">
-                </div>
-            </div>
-            <div class="finance-error" id="finSettingsError" hidden></div>
-            <hr class="finance-hr">
-            <h4 class="finance-subtitle">Platega</h4>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Merchant ID</label>
-                    <input type="text" id="finSetPlategaMerchant" placeholder="c66751a9-...">
-                </div>
-                <div class="form-group">
-                    <label>Secret Key</label>
-                    <input type="password" id="finSetPlategaSecret" placeholder="••••••••">
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group">
-                    <label>Дней назад</label>
-                    <input type="number" id="finSetPlategaDays" value="150" min="1" max="730">
-                </div>
-                <div class="form-group">
-                    <label>Автоимпорт</label>
-                    <select id="finSetPlategaAuto">
-                        <option value="0">Нет</option>
-                        <option value="1">Да</option>
-                    </select>
-                </div>
-            </div>
+        <div class="finance-modal-body" style="text-align:center;padding:32px 24px">
+            <?= icon('settings', 'icon-lg') ?>
+            <p style="margin-top:16px;font-size:1.05rem;color:var(--text-primary)">
+                Настройки финансового модуля перенесены
+            </p>
+            <p style="margin-top:8px;font-size:0.9rem;color:var(--text-muted)">
+                Валюта, автообновление, быстрые категории, реквизиты Platega и ЮKassa<br>
+                теперь управляются на странице <strong>Настройки → Финансы</strong>
+            </p>
         </div>
-        <div class="finance-modal-footer">
+        <div class="finance-modal-footer" style="justify-content:center">
+            <a href="/admin/settings?tab=finance" class="btn btn-primary btn-sm"><?= icon('settings') ?> Открыть настройки</a>
             <button type="button" class="btn btn-secondary btn-sm" data-close="finSettingsModal">Закрыть</button>
-            <button type="button" class="btn btn-primary btn-sm" id="finSettingsSave">Сохранить</button>
         </div>
     </div>
 </div>
@@ -563,8 +490,8 @@ window.FIN = {
 <!-- Уведомление -->
 <div class="finance-toast" id="finToast" hidden></div>
 
-<link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/finance.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/finance.css') ?>">
+<link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/finance.css?v=<?= @filemtime(PUBLIC_PATH . '/css/panel/finance.css') ?>">
 <script src="<?= SITE_URL ?>/public/finance/vendor/chart.umd.min.js"></script>
-<script src="<?= SITE_URL ?>/admin/js/finance/chart.js?v=<?= filemtime(ADMIN_PATH . '/js/finance/chart.js') ?>"></script>
-<script src="<?= SITE_URL ?>/admin/js/finance/finance.js?v=<?= filemtime(ADMIN_PATH . '/js/finance/finance.js') ?>"></script>
+<script src="<?= SITE_URL ?>/admin/js/finance/chart.js?v=<?= @filemtime(ADMIN_PATH . '/js/finance/chart.js') ?>"></script>
+<script src="<?= SITE_URL ?>/admin/js/finance/finance.js?v=<?= @filemtime(ADMIN_PATH . '/js/finance/finance.js') ?>"></script>
 <script>Finance.init();</script>

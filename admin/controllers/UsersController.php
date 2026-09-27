@@ -44,6 +44,8 @@ class AdminUsersController
         $email = trim(Request::post('email', ''));
         $password = Request::post('password', '');
         $role = Request::post('role', 'author');
+        $displayName = trim(Request::post('display_name', ''));
+        $status = Request::post('status', 'active');
 
         $errors = [];
         if (empty($login)) {
@@ -68,9 +70,39 @@ class AdminUsersController
             'email' => $email,
             'password' => password_hash($password, HASH_ALGO),
             'role' => $role,
+            'display_name' => $displayName ?: null,
+            'status' => $status,
         ]);
 
         redirect('/admin/users?success=created');
+    }
+
+    /**
+     * Страница редактирования пользователя
+     */
+    public function edit($id)
+    {
+        Auth::requireAdmin();
+
+        $user = $this->user->getById($id);
+        if (!$user) {
+            redirect('/admin/users?error=not_found');
+            return;
+        }
+
+        $template = new TemplateEngine(ADMIN_PATH . '/templates');
+        $template->set('title', 'Редактирование пользователя');
+        $template->set('user', Auth::user());
+        $template->set('editUser', $user);
+        $template->set('errors', Session::flash('user_errors'));
+        $template->set('old', Session::flash('user_old'));
+        $template->set('success', Session::flash('user_success'));
+        $template->set('breadcrumbs', [
+            ['url' => '/admin/users', 'title' => 'Пользователи'],
+            ['title' => 'Редактирование: ' . $user['login']],
+        ]);
+        $template->setLayout('layouts/main');
+        $template->display('users/form');
     }
 
     /**
@@ -94,6 +126,8 @@ class AdminUsersController
         $email = trim(Request::post('email', ''));
         $password = Request::post('password', '');
         $role = Request::post('role', 'author');
+        $displayName = trim(Request::post('display_name', ''));
+        $status = Request::post('status', 'active');
 
         $errors = [];
         if (empty($login)) {
@@ -114,6 +148,8 @@ class AdminUsersController
             'login' => $login,
             'email' => $email,
             'role' => $role,
+            'display_name' => $displayName ?: null,
+            'status' => $status,
         ];
 
         if (!empty($password)) {
@@ -122,7 +158,7 @@ class AdminUsersController
 
         $this->user->update($id, $data);
 
-        redirect('/admin/users?success=updated');
+        redirect('/admin/users/edit/' . $id . '?success=updated');
     }
 
     /**

@@ -20,13 +20,34 @@ class Auth
             ['login' => $login, 'email' => $login]
         );
 
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $forwarded = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? '';
+        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? '';
+
         if ($user && password_verify($password, $user['password'])) {
             Session::set('user_id', $user['id']);
             Session::set('user_login', $user['login']);
             Session::set('user_role', $user['role']);
 
+            // Успешная аутентификация — логируем (пароль НЕ пишем)
+            AppLog::add('info', 'auth', 'Successful login: ' . $login, [
+                'ip' => $ip,
+                'forwarded' => $forwarded,
+                'user_id' => $user['id'],
+                'role' => $user['role'],
+            ], 'system', 'auth');
+
             return $user;
         }
+
+        // Неудачная попытка — логируем с маскированным паролем
+        $masked = str_repeat('*', min(mb_strlen($password), 12));
+        AppLog::add('warning', 'auth', 'Failed login attempt: ' . $login, [
+            'ip' => $ip,
+            'forwarded' => $forwarded,
+            'password_masked' => $masked,
+            'user_agent' => $userAgent,
+        ], 'system', 'auth');
 
         return null;
     }

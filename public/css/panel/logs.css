@@ -1,56 +1,413 @@
 /* ============================================
    Логи — стили для страницы app_logs
+   Двухуровневые табы + категории + уровни
    ============================================ */
 
+.logs-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+/* ====== Табы (общие) ====== */
+.logs-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.logs-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-sans);
+    font-size: 0.857rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background var(--transition-fast), color var(--transition-fast),
+                border-color var(--transition-fast), box-shadow var(--transition-fast);
+    white-space: nowrap;
+}
+.logs-tab svg {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}
+.logs-tab:hover {
+    background: var(--glass-bg);
+    color: var(--text-body);
+}
+.logs-tab.active {
+    background: var(--surface-hover);
+    color: var(--text-heading);
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 18px -4px rgba(var(--glow-rgb), 0.35);
+}
+
+/* ====== Табы категорий (ряд 1, крупнее) ====== */
+.logs-cat-tabs .logs-tab {
+    padding: 9px 16px;
+    font-size: 0.9rem;
+}
+
+/* ====== Табы уровней (ряд 2 с цветными плашками) ====== */
+.logs-level-tabs {
+    gap: 6px;
+}
+.logs-level-tab {
+    padding: 6px 14px;
+    font-size: 0.81rem;
+    font-weight: 500;
+    border-radius: 20px;
+    border-color: transparent;
+    background: var(--glass-bg);
+}
+.logs-level-tab svg {
+    width: 13px;
+    height: 13px;
+}
+.logs-level-tab:hover {
+    background: var(--surface-hover);
+    border-color: var(--glass-border);
+}
+/* Неактивные уровни — лёгкий цветовой намёк */
+.logs-level-tab.level-info {
+    color: #818cf8;
+    border-color: rgba(99, 102, 241, 0.15);
+}
+.logs-level-tab.level-info.active {
+    background: rgba(99, 102, 241, 0.2);
+    border-color: #818cf8;
+    box-shadow: 0 0 18px -4px rgba(99, 102, 241, 0.4);
+    color: #a5b4fc;
+}
+.logs-level-tab.level-warning {
+    color: #fbbf24;
+    border-color: rgba(245, 158, 11, 0.15);
+}
+.logs-level-tab.level-warning.active {
+    background: rgba(245, 158, 11, 0.2);
+    border-color: #fbbf24;
+    box-shadow: 0 0 18px -4px rgba(245, 158, 11, 0.4);
+    color: #fcd34d;
+}
+.logs-level-tab.level-error {
+    color: #f87171;
+    border-color: rgba(239, 68, 68, 0.15);
+}
+.logs-level-tab.level-error.active {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #f87171;
+    box-shadow: 0 0 18px -4px rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+}
+
+/* ====== Фильтры ====== */
 .logs-actions {
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 16px;
     flex-wrap: wrap;
+    padding: 12px 16px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
 }
-
 .logs-filters {
     display: flex;
     align-items: flex-end;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
     flex: 1;
 }
-
 .logs-filters .form-group {
     margin-bottom: 0;
 }
-
+.logs-filters .form-group label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.logs-filters input[type="text"] {
+    padding: 7px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 0.857rem;
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+.logs-filters input[type="text"]:focus {
+    outline: none;
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 0 2px rgba(var(--glow-rgb), 0.15);
+}
 .logs-clear-wrap {
     flex-shrink: 0;
 }
 
+/* ====== Таблица ====== */
 .logs-table-scroll {
     overflow-x: auto;
+    overflow-y: hidden;
+    margin-top: 12px;
 }
-
+.dg-table.logs-table {
+    table-layout: fixed;
+    width: 100%;
+}
 .logs-table .logs-date {
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 0.78rem;
 }
-
 .logs-table .logs-msg {
     word-break: break-word;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+.logs-table .logs-msg code {
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 0.81rem;
+    color: var(--text-body);
+    background: transparent;
+    padding: 0;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 100%;
+    display: block;
+}
+.logs-row:hover {
+    background: var(--row-hover, rgba(255,255,255,0.03));
 }
 
-.badge-info {
-    background: rgba(99, 102, 241, 0.15);
+/* ====== Пилюли категорий ====== */
+.logs-category-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 5px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+    background: var(--glass-bg);
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+}
+.logs-category-pill svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+}
+.logs-category-pill.logs-cat-system {
+    border-color: rgba(99, 102, 241, 0.25);
     color: #818cf8;
 }
-.badge-warning {
-    background: rgba(245, 158, 11, 0.15);
+.logs-category-pill.logs-cat-site {
+    border-color: rgba(16, 185, 129, 0.25);
+    color: #34d399;
+}
+.logs-category-pill.logs-cat-modules {
+    border-color: rgba(245, 158, 11, 0.25);
     color: #fbbf24;
 }
-.badge-error {
-    background: rgba(239, 68, 68, 0.15);
+.logs-category-pill.logs-cat-infrastructure {
+    border-color: rgba(107, 114, 128, 0.3);
+    color: #9ca3af;
+}
+.logs-category-pill.logs-cat-finance {
+    border-color: rgba(168, 85, 247, 0.25);
+    color: #a78bfa;
+}
+.logs-category-pill.logs-cat-users {
+    border-color: rgba(59, 130, 246, 0.25);
+    color: #60a5fa;
+}
+.logs-category-pill.logs-cat-docker {
+    border-color: rgba(6, 182, 212, 0.25);
+    color: #22d3ee;
+}
+.logs-category-pill.logs-cat-loki {
+    border-color: rgba(248, 113, 113, 0.25);
     color: #f87171;
+}
+
+/* ====== Канал ====== */
+.logs-channel {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--glass-bg);
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+.logs-channel svg {
+    width: 12px;
+    height: 12px;
+    opacity: 0.7;
+}
+
+/* ====== Source badge (компактный) ====== */
+.logs-source-badge {
+    display: inline-block;
+    margin-left: 3px;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(255,255,255,0.05);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    font-family: var(--font-mono, monospace);
+    vertical-align: middle;
+    letter-spacing: 0.3px;
+}
+
+/* ====== Контекст (pre-блок) ====== */
+.logs-context {
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+    font-size: 0.8rem;
+    background: var(--bg-surface);
+    padding: 8px 10px;
+    border-radius: 6px;
+    overflow-x: auto;
+    max-width: 600px;
+    border: 1px solid var(--border-color);
+    margin: 0;
+    width: 100%;
+    color: var(--text-muted);
+    line-height: 1.4;
+}
+
+/* ====== Badge-уровни ====== */
+.badge-info {
+    background: rgba(99, 102, 241, 0.18);
+    color: #a5b4fc;
+}
+.badge-warning {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fcd34d;
+}
+.badge-error {
+    background: rgba(239, 68, 68, 0.18);
+    color: #fca5a5;
+}
+
+/* ====== Шапка таблицы ====== */
+.dg-table.logs-table th {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-secondary);
+    padding: 10px 12px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border-color);
+}
+.dg-table.logs-table td {
+    padding: 8px 12px;
+    vertical-align: middle;
+}
+
+/* ====== Пагинация ====== */
+.dg-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius);
+}
+.pagination-links {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.pagination-links .page-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--glass-border);
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.857rem;
+    text-decoration: none;
+    transition: all var(--transition-fast);
+}
+.pagination-links .page-link:hover {
+    background: var(--glass-bg);
+    color: var(--text-body);
+    border-color: hsl(var(--ring));
+}
+.pagination-links .page-link.active {
+    background: hsl(var(--ring));
+    color: #fff;
+    border-color: hsl(var(--ring));
+    box-shadow: 0 0 12px -4px rgba(var(--glow-rgb), 0.4);
+}
+.per-page-selector select {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    cursor: pointer;
+}
+.per-page-selector select:hover {
+    border-color: hsl(var(--ring));
+}
+.finance-total {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+/* ====== Внешние источники (Docker/Loki) ====== */
+.ex-log-hint {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 200px;
+}
+.ex-log-hint a {
+    color: hsl(var(--ring));
+    text-decoration: underline;
+}
+
+/* ====== Кнопка xs ====== */
+.btn-xs {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    gap: 4px;
+    border-radius: 5px;
+    line-height: 1;
+}
+.btn-xs svg {
+    width: 13px;
+    height: 13px;
 }

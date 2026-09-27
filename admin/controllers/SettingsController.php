@@ -21,12 +21,28 @@ class AdminSettingsController
 
         $settings = $this->setting->getAll();
         $finSettings = (new FinSetting())->getAll();
+        $dockerConfig = $this->loadJsonSetting('docker_config', [
+            'docker_ssh_host' => 'localhost',
+            'docker_ssh_user' => 'kilo',
+            'docker_ssh_port' => 356,
+            'docker_containers' => '',
+            'docker_lines' => 100,
+        ]);
+        $lokiConfig = $this->loadJsonSetting('loki_config', [
+            'loki_url' => '',
+            'loki_user' => '',
+            'loki_password' => '',
+            'loki_query' => '{job="varlog"}',
+            'loki_limit' => 100,
+        ]);
 
         $template = new TemplateEngine(ADMIN_PATH . '/templates');
         $template->set('title', 'Настройки');
         $template->set('user', Auth::user());
         $template->set('settings', $settings);
         $template->set('finSettings', $finSettings);
+        $template->set('dockerConfig', $dockerConfig);
+        $template->set('lokiConfig', $lokiConfig);
         $template->setLayout('layouts/main');
         $template->display('settings/index');
     }
@@ -52,7 +68,44 @@ class AdminSettingsController
             $this->saveFinSettings($finData);
         }
 
-        redirect('/admin/settings?tab=integrations&success=updated');
+        // Docker / Loki config (JSON blobs)
+        $dockerRaw = Request::post('docker_config', []);
+        if (is_array($dockerRaw)) {
+            $this->setting->set('docker_config', json_encode($dockerRaw, JSON_UNESCAPED_UNICODE));
+        }
+        $lokiRaw = Request::post('loki_config', []);
+        if (is_array($lokiRaw)) {
+            // Не перезаписываем пароль пустым значением
+            if (empty($lokiRaw['loki_password'])) {
+                unset($lokiRaw['loki_password']);
+            }
+            $this->setting->set('loki_config', json_encode($lokiRaw, JSON_UNESCAPED_UNICODE));
+        }
+
+        $tab = Request::post('tab', 'basic');
+        if (!in_array($tab, ['basic', 'appearance', 'finance', 'integrations', 'logs'], true)) {
+            $tab = 'basic';
+        }
+        redirect('/admin/settings?tab=' . urlencode($tab) . '&success=updated');
+    }
+
+    /**
+     * Загрузить JSON-настройку из таблицы settings.
+     */
+    private function loadJsonSetting(string $key, array $defaults): array
+    {
+        try {
+            $row = $this->setting->get($key);
+            if ($row) {
+                $decoded = json_decode($row, true);
+                if (is_array($decoded)) {
+                    return array_merge($defaults, $decoded);
+                }
+            }
+        } catch (\Throwable $e) {
+            // defaults
+        }
+        return $defaults;
     }
 
     /**
@@ -70,13 +123,31 @@ class AdminSettingsController
 
         $secretKeys = ['platega_secret', 'yookassa_secret_key'];
         $stringKeys = [
+            // Общие настройки финансов
+            'currency',
+            'auto_refresh',
+            'avg_period',
+            // Platega
             'platega_merchant_id',
             'platega_days_back',
             'platega_auto_sync',
+            // YooKassa
             'yookassa_shop_id',
             'yookassa_days_back',
             'yookassa_auto_sync',
         ];
+
+        // Ключи, хранящиеся как JSON-массивы (из формы приходит строка через запятую → JSON)
+        $jsonArrayKeys = [
+            'avg_exclude_categories',
+            'avg_exclude_income_keywords',
+            'avg_exclude_expense_keywords',
+            'quick_categories',
+            'quick_participants',
+        ];
+
+        // Целочисленные настройки
+        $intKeys = ['decimals'];
 
         foreach ($finData as $key => $value) {
             // Секретные ключи: пустое значение не трогаем, непустое шифруем
@@ -109,6 +180,21 @@ class AdminSettingsController
                     }
                 }
                 $fin->set($key, json_encode($commissions, JSON_UNESCAPED_UNICODE));
+                continue;
+            }
+
+            // JSON-массивы (строка через запятую из textarea/input → JSON array)
+            if (in_array($key, $jsonArrayKeys, true)) {
+                $arr = array_values(array_filter(array_map('trim', explode(',', (string)$value)), function ($s) {
+                    return $s !== '';
+                }));
+                $fin->set($key, json_encode($arr, JSON_UNESCAPED_UNICODE));
+                continue;
+            }
+
+            // Целочисленные
+            if (in_array($key, $intKeys, true)) {
+                $fin->set($key, (string)(int)$value);
                 continue;
             }
 

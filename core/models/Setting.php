@@ -38,32 +38,35 @@ class Setting
     }
 
     /**
-     * Обновить настройку
+     * Сохранить настройку (upsert — INSERT ON CONFLICT DO UPDATE).
+     * Избегает проблем с sequence в PostgreSQL.
      */
     public function set(string $key, string $value): bool
     {
         $db = Database::getInstance();
-        
-        // Проверяем, существует ли настройка
-        $existing = $db->fetch(
-            "SELECT id FROM settings WHERE setting_key = :key",
-            ['key' => $key]
-        );
-        
-        if ($existing) {
-            // Обновляем существующую
-            return $db->update('settings', ['setting_value' => $value], 'setting_key = :key', ['key' => $key]) > 0;
+        $driver = DB_DRIVER;
+
+        if ($driver === 'pgsql') {
+            // Сброс sequence на max(id)+1, чтобы избежать конфликта первичного ключа
+            $db->query("SELECT setval('settings_id_seq', COALESCE((SELECT MAX(id) FROM settings), 0) + 1, false)");
+            $db->query(
+                'INSERT INTO settings (setting_key, setting_value) VALUES (:key, :value)
+                 ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value',
+                ['key' => $key, 'value' => $value]
+            );
         } else {
-            // Создаём новую
-            return $db->insert('settings', [
-                'setting_key' => $key,
-                'setting_value' => $value
-            ]) > 0;
+            // MySQL fallback
+            $db->query(
+                'INSERT INTO settings (setting_key, setting_value) VALUES (:key, :value)
+                 ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)',
+                ['key' => $key, 'value' => $value]
+            );
         }
+        return true;
     }
 
     /**
-     * Обновить несколько настроек
+     * Сохранить несколько настроек
      */
     public function setMultiple(array $settings): bool
     {

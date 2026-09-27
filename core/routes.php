@@ -210,6 +210,8 @@ $router->post('admin/menus/update/{id}', [$menusController, 'update']);
 // Логи
 $router->get('admin/logs', [AdminLogController::class, 'index']);
 $router->post('admin/logs/clear', [AdminLogController::class, 'clear']);
+$router->get('admin/logs/docker/preview', [AdminLogController::class, 'dockerPreview']);
+$router->get('admin/logs/loki/preview', [AdminLogController::class, 'lokiPreview']);
 
 // Финансовый модуль
 $router->get('admin/finance', [AdminFinanceController::class, 'index']);

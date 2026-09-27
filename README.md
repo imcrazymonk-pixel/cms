@@ -24,7 +24,7 @@ open http://localhost
 - **Сайт**: `http://localhost`
 - **Админка**: `http://localhost/admin`
 - **Логин**: `admin`
-- **Пароль**: `admin12345`
+- **Пароль**: `Cke;bkb2Njdfhbof`
 
 ### Основные команды
 

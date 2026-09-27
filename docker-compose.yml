@@ -10,6 +10,7 @@ services:
     volumes:
       - .:/var/www/html
       - uploads_data:/var/www/html/public/uploads
+      - /var/run/docker.sock:/var/run/docker.sock
     networks:
       - cms-network
 
@@ -38,6 +39,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/postgres/init:/docker-entrypoint-initdb.d
+      - ./db/postgres/migrations:/migrations
     ports:
       - "5432:5432"
     healthcheck:

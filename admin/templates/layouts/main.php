@@ -46,19 +46,19 @@ $panelStateJson = json_encode($panelPrefs, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Unbounded:wght@400;600;700&family=JetBrains+Mono:wght@400;500&subset=cyrillic,cyrillic-ext&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/tokens.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/tokens.css') ?>">
-    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/themes.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/themes.css') ?>">
-    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/base.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/base.css') ?>">
-    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/effects.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/effects.css') ?>">
-    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/components.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/components.css') ?>">
-    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/table.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/table.css') ?>">
-    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/layout.css?v=<?= filemtime(PUBLIC_PATH . '/css/panel/layout.css') ?>">
+    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/tokens.css?v=<?= @filemtime(PUBLIC_PATH . '/css/panel/tokens.css') ?>">
+    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/themes.css?v=<?= @filemtime(PUBLIC_PATH . '/css/panel/themes.css') ?>">
+    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/base.css?v=<?= @filemtime(PUBLIC_PATH . '/css/panel/base.css') ?>">
+    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/effects.css?v=<?= @filemtime(PUBLIC_PATH . '/css/panel/effects.css') ?>">
+    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/components.css?v=<?= @filemtime(PUBLIC_PATH . '/css/panel/components.css') ?>">
+    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/table.css?v=<?= @filemtime(PUBLIC_PATH . '/css/panel/table.css') ?>">
+    <link rel="stylesheet" href="<?= SITE_URL ?>/public/css/panel/layout.css?v=<?= @filemtime(PUBLIC_PATH . '/css/panel/layout.css') ?>">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%236366f1'/%3E%3Ctext x='50' y='72' font-size='56' font-family='Arial' font-weight='bold' text-anchor='middle' fill='white'%3EC%3C/text%3E%3C/svg%3E">
     <!-- TinyMCE 7 -->
     <script src="https://cdn.jsdelivr.net/npm/tinymce@7/tinymce.min.js"></script>
     <script>window.__panelState=<?= $panelStateJson ?>;</script>
-    <script src="<?= SITE_URL ?>/admin/js/panel.js?v=<?= filemtime(ADMIN_PATH . '/js/panel.js') ?>" defer></script>
-    <script src="<?= SITE_URL ?>/admin/js/command-palette.js?v=<?= filemtime(ADMIN_PATH . '/js/command-palette.js') ?>" defer></script>
+    <script src="<?= SITE_URL ?>/admin/js/panel.js?v=<?= @filemtime(ADMIN_PATH . '/js/panel.js') ?>" defer></script>
+    <script src="<?= SITE_URL ?>/admin/js/command-palette.js?v=<?= @filemtime(ADMIN_PATH . '/js/command-palette.js') ?>" defer></script>
 </head>
 <body>
     <a href="#main-content" class="skip-link">Перейти к содержимому</a>

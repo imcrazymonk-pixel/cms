@@ -63,12 +63,18 @@ NewWeb/
 │   ├── helpers.php        # Утилиты (truncate, format_date, createTemplate)
 │   ├── helpers_icons.php  # Inline Lucide SVG-иконки (icon())
 │   ├── DataGrid.php       # Рендерер таблиц для списков админки
+│   ├── Hooks.php          # Система хуков (do_action, add_action)
+│   ├── Request.php        # HTTP-запрос (post/get/clean)
+│   ├── Session.php        # Сессии
+│   ├── Crypto.php         # AES-256 шифрование
 │   └── Autoloader.php     # PSR-4 автозагрузка
 ├── admin/                 # Админ-панель
-│   ├── controllers/       # Контроллеры (Posts, Pages, Categories, Media, etc.)
-│   ├── templates/         # PHP-шаблоны (layouts/main, posts/form, login, etc.)
-│   ├── js/panel.js        # JS панели (настройки вида, DataGrid, превью)
-│   └── js/command-palette.js # Командная палитра (Ctrl+K)
+│   ├── controllers/       # 11 контроллеров (Posts, Pages, Categories, Media, etc.)
+│   ├── templates/         # 13 папок с PHP-шаблонами
+│   ├── js/
+│   │   ├── panel.js       # JS панели (настройки вида, DataGrid, превью)
+│   │   └── command-palette.js # Командная палитра (Ctrl+K)
+│   └── css/admin.css      # Наследие (не используется)
 ├── templates/
 │   └── themes/
 │       ├── hexaveil/      # АКТИВНАЯ ТЕМА — VPN лендинг + блог
@@ -77,17 +83,35 @@ NewWeb/
 │       └── default/       # Базовая блог-тема
 ├── public/
 │   ├── hexaveil/          # CSS/JS/ассеты темы HexaVeil
-│   │   └── css/
-│   │       ├── variables.css  # CSS-переменные (цвета, шрифты)
-│   │       ├── global.css     # Глобальные стили (контейнер, кнопки, типографика)
-│   │       └── style.css      # Стили секций + БЛОГ (добавлено недавно)
-│   └── css/panel/         # Дизайн-система админки (7 файлов)
+│   │   ├── css/
+│   │   │   ├── variables.css  # CSS-переменные (цвета, шрифты)
+│   │   │   ├── global.css     # Глобальные стили (контейнер, кнопки, типографика)
+│   │   │   ├── style.css      # Стили секций + БЛОГ
+│   │   │   └── stars.css      # Звёздный фон
+│   │   ├── js/
+│   │   │   ├── star.js        # Particle system (Simplex Noise)
+│   │   │   ├── main.js        # Основной JS
+│   │   │   ├── data.js        # Данные для 3D-глобуса
+│   │   │   ├── planet.js      # Three.js 3D-глобус
+│   │   │   ├── server-panel.js # Панель серверов
+│   │   │   └── telemetry.js   # Телеметрия
+│   │   └── assets/            # earth-night.jpg, favicon и др.
+│   ├── css/panel/         # Дизайн-система админки (7 файлов)
+│   ├── uploads/           # Загруженные медиа
+│   └── finance/           # Экспорты CSV
 ├── db/
 │   ├── postgres/init/     # PostgreSQL авто-инициализация
-│   │   └── 01-schema.sql  # Полная схема БД
+│   │   └── 01-schema.sql  # Полная схема БД (307 строк)
 │   └── prod_data.sql      # Дамп production БД (data-only, для локальной синхронизации)
-└── docs/decisions/
-    └── ADR-001-panel-design-system.md  # Документация редизайна админки
+├── plugins/               # PHP-плагины (хуки)
+├── core/payments/         # Платёжные клиенты
+│   └── YooKassaClient.php # YooKassa API-клиент
+└── docs/
+    ├── decisions/
+    │   └── ADR-001-panel-design-system.md  # Документация редизайна админки
+    └── superpowers/
+        ├── plans/
+        └── specs/
 ```
 
 ---
@@ -104,7 +128,9 @@ NewWeb/
 - [x] CSRF-защита
 - [x] Сессии
 - [x] DataGrid — единый рендерер таблиц для админки
-- [x] Inline Lucide SVG-иконки (icon())
+- [x] Inline Lucide SVG-иконки (icon(), 40+ иконок)
+- [x] Система хуков (Hooks.php)
+- [x] AES-256 шифрование чувствительных данных (Crypto.php)
 
 #### Блог
 - [x] Таблицы: posts, categories, tags, post_tags, comments
@@ -145,12 +171,13 @@ NewWeb/
 - [x] **isActive() — подсветка родительского пункта** — при открытой категории подсвечивается и пункт «Посты»
 - [x] **Полный визуальный рефакторинг админ-панели (Remnawave-style):** усилен фон, glass-эффекты, кастомный dropzone, мини-мокап превью тем, скруглённые бары графика с HTML-легендой, приглушённые цвета KPI, KPI-иконки в тонированных квадратах, хедер с колокольчиком и pill Онлайн, page-subtitle, аккордеон с иконками и счётчиками, единая высота инпутов 44px, DataGrid-чекбоксы + mass-actions + kebab-меню, бейджи soft-bg, ghost-кнопки действий, dot-grid текстура фона, все радиусы через токены
 - [x] **Починен ₽** — добавлен Segoe UI в font-stack + cyrillic subset в Google Fonts
+- [x] Финансовый модуль: YooKassa + Platega интеграции, CSV-экспорт, bulk actions
 
 #### Технические исправления
 - [x] **Удалены остатки Nova VPN** — ссылка `t.me/nova_vpn` заменена на `t.me/HexaVeil_bot` в theme.php и layouts/main.php
 - [x] **Удалена совместимость с Open Server Panel** — `_deploy.bat` удалён, дефолтный DB_HOST изменён на `db`, драйвер по умолчанию `pgsql`, домен `http://hexacms` → `http://localhost`, очищены все упоминания OSP в документации и конфигах
 - [x] **Исправлен Nginx root** — `/var/www/html/public` → `/var/www/html` (админ-панель лежит вне public/)
-- [x] **entrypoint генерирует пароль** — `docker-entrypoint.sh` автоматически заменяет плейсхолдер bcrypt-хеша в seed-данных при первом запуске (через переменную `ADMIN_PASSWORD`, по умолчанию `admin12345`)
+- [x] **entrypoint генерирует пароль** — `docker-entrypoint.sh` автоматически заменяет плейсхолдер bcrypt-хеша в seed-данных при первом запуске (через переменную `ADMIN_PASSWORD`)
 
 ---
 
@@ -397,7 +424,7 @@ NewWeb/
 docker compose up --build -d
 
 # Админка
-open http://localhost/admin        # admin / admin12345
+open http://localhost/admin        # admn / Cke;bkb2Njdfhbof
 ```
 
 #### Если решено переезжать на Laravel
@@ -483,7 +510,7 @@ $template->display('template-name'); // templates/themes/{theme}/template-name.p
 
 ```bash
 # Сайт: https://test.hexaveil.xyz
-# Админка: https://test.hexaveil.xyz/admin/  (admn / admin12345)
+# Админка: https://test.hexaveil.xyz/admin/  (admn / Cke;bkb2Njdfhbof)
 ```
 
 **Архитектура сервера:**
@@ -497,7 +524,7 @@ $template->display('template-name'); // templates/themes/{theme}/template-name.p
 ```bash
 docker compose up --build -d
 # Сайт: http://localhost
-# Админка: http://localhost/admin  (admn / admin12345)
+# Админка: http://localhost/admin  (admn / Cke;bkb2Njdfhbof)
 ```
 
 ### Синхронизация БД с production
@@ -516,9 +543,9 @@ docker compose exec -T db psql -U cms -d cms -c "SET session_replication_role = 
 docker compose exec -T db psql -U cms -d cms -c "TRUNCATE users, posts, categories, tags, post_tags, comments, pages, media, menus, menu_items, widgets, settings, fin_transactions, fin_settings, user_preferences RESTART IDENTITY CASCADE;"
 Get-Content db/prod_data.sql | docker compose exec -T db psql -U cms -d cms
 docker compose exec -T db psql -U cms -d cms -c "SET session_replication_role = 'origin';"
-
 # Сбросить пароль администратора (если импортирован плейсхолдер):
-docker compose exec app php -r "\$pdo = new PDO('pgsql:host=db;port=5432;dbname=cms','cms','cms_secret_2026'); \$pdo->prepare('UPDATE users SET password=? WHERE login=?')->execute([password_hash('admin12345',PASSWORD_BCRYPT),'admn']); echo 'done';"
+
+docker compose exec app php -r "\$pdo = new PDO('pgsql:host=db;port=5432;dbname=cms','cms','cms_secret_2026'); \$pdo->prepare('UPDATE users SET password=? WHERE login=?')->execute([password_hash('Cke;bkb2Njdfhbof',PASSWORD_BCRYPT),'admn']); echo 'done';"
 ```
 
 ## Технические ограничения
@@ -529,3 +556,362 @@ docker compose exec app php -r "\$pdo = new PDO('pgsql:host=db;port=5432;dbname=
 - **Не менять маршруты/контроллеры/логику/имена полей форм** без необходимости
 - **PHP 8.1+**
 - **Не коммитить папку `Fin/`**
+
+---
+
+---
+
+# ════════════════════════════════════════
+# НОВЫЕ СЕКЦИИ — инфраструктура нод + Bedolaga
+# ════════════════════════════════════════
+
+---
+
+# * * * ВНИМАНИЕ * * *
+# Секции ниже добавлены при объединении с проектом «Заглушка»
+# (C:\Users\Andre\Desktop\VPN\Заглушка) — инфраструктура нод,
+# панель, бот, кабинет Bedolaga. Содержат credentials.
+# НЕ КОММИТИТЬ с секретами.
+# * * *
+
+---
+
+# 🖥 ИНФРАСТРУКТУРА НОД (Remnawave + Xray)
+
+## Общая архитектура
+
+```
+Клиент (VLESS+Reality/Hysteria2/XHTTP)
+    │
+    ▼
+Нода (сервер, remnanode Docker)
+    │  rw-core (Xray 26.7.28) на :443
+    │  rw-node (агент) на :2222
+    │  nginx-decoy на 127.0.0.1:9443 (fallback Reality)
+    │
+    ├──→ Панель Remnawave (144.31.156.172)
+    │       ├── Управление нодами/пользователями
+    │       ├── Bedolaga Bot (@HexaVeil_bot)
+    │       └── Bedolaga Cabinet (cabinet.fortf.ru)
+    │
+    └──→ DNS-маршрутизация (сплит-туннель)
+            ├── Российские сервисы → DIRECT
+            ├── Telegram/Social/TikTok → VLESS_BALANCER
+            ├── YouTube → RU_BALANCER
+            ├── AI/Dev-tools → VLESS_BALANCER
+            └── Остальное → VLESS_BALANCER / fallback HYSTERIA2
+```
+
+## Состав инфраструктуры (7 нод)
+
+| Нода | IP | Роль | Протоколы | Decoy-страница |
+|------|----|------|-----------|----------------|
+| **files.monolist.art** | 144.31.96.78 | DE-origin, CDN-релей | VLESS+Reality | Файловый конвертер |
+| **audio.monolist.art** | 31.77.128.251 | FI | VLESS+Reality | Аудио-конвертер |
+| **photo.monolist.art** | 31.77.146.75 | NL | VLESS+Reality + Hysteria2 | Фото/фильтры |
+| **video.monolist.art** | 159.194.221.84 | RU (Beget) | VLESS+Reality | Видео-конвертер |
+| **data.monolist.art** | 162.217.248.186 | US (RemnaSetup) | VLESS+Reality | Конвертер данных |
+| **istra.pwrngers.ru** | 85.198.98.18 | VK CDN-релей | XHTTP (LTE БС) | — |
+| **vps.zaqxs1.ru** | 155.212.131.4 | Yandex CDN-релей | XHTTP → files(DE) | — |
+
+Панель Remnawave **3.4.3** («HexaVeil») на `panel.fortf.ru`.
+
+---
+
+## Панельный сервер — 144.31.156.172
+
+- **Роль:** Remnawave-панель + Bedolaga-бот + админка + контрол Spectral/Happ
+- **SSH:** порт **356**, user `kilo` / `kilorules123` (sudo). Сохранена учётка `ImCrazyMonk`/`Vjyr356jyr!`
+- **Hostname:** `RemnaDashFin`. ОС Ubuntu 24.04
+- **Docker-сервисы (все в `/opt/...`):**
+  - `remnawave-panel` (+`-db`, `-redis`) — панель Remnawave
+  - `remnawave-subscription-page`, `remnawave-web-frontend`, `remnawave-web-backend`
+  - `remnawave_bot` (+`_db`, `_redis`) — Bedolaga v4.7.0, код `/opt/remnawave-bedolaga-telegram-bot`
+  - Кабинет Bedolaga: **v1.71.0**, статика `/srv/cabinet`, источник `ghcr.io/bedolaga-dev/bedolaga-cabinet:latest`
+  - `caddy-remnawave`: домены `panel.fortf.ru`, `bot.fortf.ru`, `cabinet.fortf.ru`, `admin.fortf.ru`
+  - `remnawave-admin-bot-1`, `remnawave-admin-db`, `vpn_support_bot`
+
+### Обновление панели и бота
+- Апгрейд 04–06.09.2026: панель 2.8.0→3.4.3, бот 3.67.0→4.4.0
+- Бот+кабинет 08.09.2026: 4.4.0→4.7.0 (+кабинет→1.71.0)
+- Снапшот/откат: `/home/ImCrazyMonk/pre-update-20260904/` (+`rollback.sh`)
+- **Правило:** при правках `.env` бота — пересоздавать контейнер (`--force-recreate`), простой `docker restart` env_file НЕ перечитывает
+- v3 требует `APP_SECRET` (не `change_me`) — ставим = старому `JWT_AUTH_SECRET`
+
+### Отложенные задачи:
+- **Сменить дефолтный `POSTGRES_PASSWORD` БД бота** (`secure_password_123`) — отложено 08.09.2026
+
+---
+
+## Spectral / GhostOS (контрольный слой)
+
+- Панель управления (Happ/Spectral) — на 144.31.156.172 («Master IP»)
+- Аккаунт/license: `GHOST_ID=8ba4d3a41eab359c`, `GHOST_LIC=7b036dbf`
+- Хосты: `sh.ghostos.space` (скрипты/шаблоны), `info.ghostos.space` (справка)
+- Установочные скрипты:
+  - `nk-f6.sh @ --nginx install` — ядро + nginx-decoy (GhostCloak 2.9.0)
+  - `sc-decoy.sh` (env `GHOST_DECOY=convertit`, `GHOST_DECOY_NGINX=1`, `GHOST_DECOY_DOMAIN=<домен>`)
+  - Менеджер decoy: `/usr/local/bin/selfsteal`
+- Установка в неинтерактивном режиме требует `TERM=xterm-256color`
+
+---
+
+## Ноды — доступ, состав, особенности
+
+**Общие правила:**
+- SSH на **356** (кроме data: 22). Операционный пользователь: `kilo`/`kilorules123` (sudo+docker)
+- Всё в контейнере **remnanode** (host-network, `remnawave/node:latest`, Xray 26.7.28)
+- Конфиг: `/opt/remnanode/docker-compose.yml`
+- Decoy-nginx: на files/audio/video — docker `nginx-selfsteal`; на photo/data — системный nginx
+- **Грабли:** в контейнере remnanode обязан существовать `/var/log/remnanode/` (иначе ядро падает при старте). Лечение: `docker exec remnanode mkdir -p /var/log/remnanode`
+- Reality: `serverNames` = decoy-домен, `target` = `127.0.0.1:9443`, `xver: 1`
+- Decoy-сертификаты: LE через acme.sh, аккаунт-email `admin@monolist.art`
+- ufw: ВКЛЮЧЁН на всех; открыты 80,443/tcp,443/udp,2222, ssh-порт, 4443, 8443, 8080. На data-ноде ufw НЕ настроен.
+
+### files.monolist.art — 144.31.96.78 (DE-origin)
+- Хостнейм `RemnanodeDE01`, DE. **Origin для CDN-цепочек** (на него PROXY-уходят zaqxs1-ноды)
+- Decoy: docker `nginx-selfsteal`, страница `files/index.html`
+
+### audio.monolist.art — 31.77.128.251
+- Хостнейм `RemnaNODEFI01`, FI. Decoy: docker `nginx-selfsteal`
+
+### photo.monolist.art — 31.77.146.75 (NL)
+- Хостнейм `RemnanodeNL01`. **Decoy = системный nginx** (НЕ docker)
+- **Hysteria2 активна** (UDP 443) — профиль `/opt/remnanode/hysteria2-config-profile.json`
+
+### video.monolist.art — 159.194.221.84 (RU, Beget)
+- Хостнейм `qvkhlqltsa`. Decoy: docker `nginx-selfsteal`
+
+### data.monolist.art — 162.217.248.186 (US)
+- Хостнейм `CLY787435`. Ubuntu 26.04, Docker 29.8.0. SSH **22**: `kilo` и `root`
+- Установлена через **RemnaSetup** v2.5 (`/opt/remnasetup`)
+- Decoy: системный nginx, сертификат certbot (ECDSA secp384r1)
+- **TODO:** cron renewal для certbot НЕ настроен
+
+### istra.pwrngers.ru — 85.198.98.18 (VK-Cloud)
+- Роль: **VK CDN-релей** (xhttp, LTE БС). Inbound `VKCDN`, путь `/api/product/include` ✅ кастомный
+- Host в панели: `LTE | БС | №1` (address `new.pwrngers.ru`, port 443, path `/api/product/include`)
+
+### vps.zaqxs1.ru — 155.212.131.4
+- Роль: **CDN-релей** (Yandex). Inbound `yandex-cdn-inbound01`
+- **⚠️ XHTTP-путь `/uploadfiles/` — стандартный, запланирована смена**
+
+---
+
+## Порты (сводно)
+
+| Порт | Что | Кто |
+|------|-----|-----|
+| 22 / 356 | SSH | sshd |
+| 2222 | Агент rw-node, связь с панелью | ноды |
+| 443/tcp | VLESS+Reality + HTTPS-decoys | rw-core (xray) |
+| 443/udp | Hysteria2 (QUIC) — photo | rw-core |
+| 80 | HTTP→HTTPS / ACME-challenge | nginx |
+| 4443, 8443, 8080 | Доп. порты Spectral/CDN | по стеку |
+| 9443 | Decoy-nginx (loopback, proxy_protocol) | nginx |
+| /dev/shm/nginx.sock | unix-сокет nginx | nginx (host-core) |
+| 3001 / 8080 / 2222 на панели | health панели / health бота / (node) | 144.31.156.172 |
+
+---
+
+## Типовые операции (чеклисты)
+
+### Обновление remnanode на ноде
+```bash
+docker compose -f /opt/remnanode/docker-compose.yml pull remnanode
+docker compose -f /opt/remnanode/docker-compose.yml up -d remnanode
+docker exec remnanode mkdir -p /var/log/remnanode
+# подождать ~60–70 c, проверить: ss -ltnp | grep ':443' ; decoy https = 200
+```
+На data-ноде шаг `docker exec mkdir` не нужен — `/var/log/remnanode` смонтирован с хоста.
+
+### Установка decoy/selfsteal (GhostOS/nk-f6)
+```bash
+curl -sL https://sh.ghostos.space/spectral/u/8ba4d3a41eab359c/spectral/core/net/nk-f6.sh -o /tmp/nk-f6.sh
+TERM=xterm-256color bash /tmp/nk-f6.sh @ --nginx --force --domain <ДОМЕН> install
+# затем: docker exec remnanode mkdir -p /var/log/remnanode
+# добавить TCP-листенер 127.0.0.1:9443 в conf.d selfsteal (для container-core)
+# в панели Spectral: serverNames = <домен>, target = 127.0.0.1:9443, xver 1
+```
+
+### data-нода через RemnaSetup
+```bash
+DOMAIN=data.monolist.art MONITOR_PORT=9443 NODE_PORT=2222 SECRET_KEY='<key>' \
+WEBSERVER=nginx USE_PROXY_PROTOCOL=y CERT_METHOD=2 LE_EMAIL=admin@monolist.art \
+SKIP_WARP=true BBR_ANSWER=y NON_INTERACTIVE=true \
+bash /opt/remnasetup/remnasetup.sh install-node
+# после: заменить /var/www/site/index.html на decoy; nginx -t && systemctl reload nginx
+# Reality: target 127.0.0.1:9443, xver 1
+# ВАЖНО: cron renew для certbot добавить вручную
+```
+
+### Типовые неисправности и причины
+- Нода не поднимается / ядро падает → чаще всего отсутствует `/var/log/remnanode`
+- Decoy по https молчит → target в панели указывает на сокет, а ядро в контейнере → ставить `127.0.0.1:9443`
+- acme.sh «invalidContact» → в `/root/.acme.sh/account.conf` битый email (домен `.local`) → заменить на `admin@monolist.art`
+- YouTube «через Германию» → правило роутинга google→PROXY(files DE) — это норма
+- Бот спамит `RemnaWaveConfigurationError` → в `.env` бота добавить `REMNAWAVE_API_URL=http://remnawave-panel:3000`
+- `docker logs` бота «короткий» → полная история в `/opt/remnawave-bedolaga-telegram-bot/logs/bot.log`
+
+### Смена домена на ноде
+1. Поменять домен везде: nginx, `/etc/letsencrypt/live`, профили `/opt/remnanode/*-profile.json`
+2. Перевыпустить LE на новый домен
+3. В панели Spectral: Reality `serverNames` + все упоминания домена
+
+---
+
+## Ключевые пути/файлы (шпаргалка)
+
+| Что | Где |
+|-----|-----|
+| compose ноды | `/opt/remnanode/docker-compose.yml` |
+| access-лог (внутри контейнера!) | `/var/log/remnanode/` |
+| docker-decoy (files/audio/video) | `/opt/nginx-selfsteal/` |
+| системный decoy (photo) | `/etc/nginx/sites-available/decoy-9443`, root `/var/www/decoy` |
+| системный decoy (data) | `/etc/nginx/conf.d/selfsteal.conf`, root `/var/www/site` |
+| RemnaSetup (data) | `/opt/remnasetup/` |
+| сертификаты acme.sh | `/root/.acme.sh/<домен>_ecc/` |
+| сертификаты certbot | `/etc/letsencrypt/live/<домен>/` |
+| профили протоколов на ноде | `/opt/remnanode/hysteria2-config-profile.json` |
+| менеджер selfsteal | `/usr/local/bin/selfsteal` |
+| панель .env / креды | `/opt/remnawave-panel/.env`, `/opt/remnawave-panel/admin-credentials.txt` |
+| бот | `/opt/remnawave-bedolaga-telegram-bot` (.env там же) |
+| полный лог бота | `/opt/remnawave-bedolaga-telegram-bot/logs/bot.log` |
+| кабинет Bedolaga (статик) | `/srv/cabinet` |
+| бэкап/откат панели | `/home/ImCrazyMonk/pre-update-20260904/` |
+| MCP remnawave | `~/.config/kilo/kilo.json` (URL+токен panel.fortf.ru) |
+| MCP ssh-mcp (ноды) | `~/.ssh/ssh-mcp-hosts.json` (8 нод) |
+| исходники decoy-страниц | `C:\Users\Andre\Desktop\VPN\Заглушка\decoy\` |
+
+---
+
+## Доступы (сводка)
+
+| Сервер | IP | SSH | Пользователь | Пароль |
+|--------|----|-----|-------------|--------|
+| Панель | 144.31.156.172 | 356 | kilo | kilorules123 |
+| files | 144.31.96.78 | 356 | kilo | kilorules123 |
+| audio | 31.77.128.251 | 356 | kilo | kilorules123 |
+| photo | 31.77.146.75 | 356 | kilo | kilorules123 |
+| video | 159.194.221.84 | 356 | kilo | kilorules123 |
+| data | 162.217.248.186 | **22** | kilo (+ root) | kilorules123 / Vjyr356jyr! |
+| istra.pwrngers.ru | 85.198.98.18 | 356 | kilo / ImCrazyMonk | kilorules123 / Vjyr356jyr! |
+| vps.zaqxs1.ru | 155.212.131.4 | 356 | kilo | kilorules123 |
+
+SSH-ключ: `~/.ssh/id_ed25519` (`kilo-ops@desktop`)
+
+### OPSEC: XHTTP-пути
+Каждый XHTTP-инбаунд должен иметь УНИКАЛЬНЫЙ, НЕОЧЕВИДНЫЙ путь:
+| Нода | Профиль | Путь | Статус |
+|------|---------|------|--------|
+| VK-Cloud | `LTE_VK_BS_02` | `/api/product/include` | ✅ Кастомный |
+| Yandex (vps.zaqxs1.ru) | — | `/uploadfiles/` | ⚠️ Запланирована смена |
+
+---
+
+---
+
+# 🤖 BEDOLAGA BOT + CABINET — анализ и планы
+
+## Состояние (2026-09-09)
+
+| Способ входа | Статус | Детали |
+|-------------|--------|--------|
+| Telegram | ✅ | `@HexaVeil_bot`, Login Widget |
+| Email | ✅ | Верификация обязательна |
+| Google OAuth | ✅ | Единственный OAuth-провайдер |
+| Яндекс | ❌ | В конфиге есть, `enabled:false` |
+| Discord / VK | ❌ | В конфиге есть, `enabled:false` |
+| Telegram OIDC | ❌ | Нет client_id |
+
+## Функциональность связки (уже реализована в v4.7.0)
+
+Бэкенд (бот, `/opt/remnawave-bedolaga-telegram-bot`):
+- **Авторизация** (`auth.py`): Telegram (initData, Login Widget, OIDC), email (регистрация, логин, верификация, восстановление пароля), refresh, logout
+- **OAuth** (`oauth.py`): Google, Яндекс, Discord, VK — авторизация и автопривязка
+- **Привязка/отвязка** (`account_linking.py`): полные механики link/unlink для всех провайдеров, слияние (merge) аккаунтов, deep-link
+
+Фронтенд (кабинет, `/srv/cabinet`):
+- `/profile/accounts` — ConnectedAccounts: все провайдеры с кнопками привязать/отвязать
+- `/merge/:mergeToken` — MergeAccounts: превью и слияние двух аккаунтов
+- `/profile` — Profile: карточка-ссылка на `/profile/accounts`
+- Dashboard `/` — компонент `uf` с приветствием, подписками, балансом, **условными баннерами**
+
+**Вывод:** нужная механика УЖЕ полностью реализована. Не хватает заметности.
+
+## План доработок кабинета
+
+1. **Баннер-напоминание на главной** — если у пользователя ≤1 способ входа, показать dismissable-баннер с CTA на `/profile/accounts`
+2. **Показ после регистрации** — «момент входа» (сессионный флаг `just_registered`)
+3. **Включение Telegram OIDC** — если нужно, настройка client_id
+4. **Включение Яндекс/Discord/VK** — credentials + redirect URI
+
+## Локальная разработка кабинета
+```bash
+git clone https://github.com/BEDOLAGA-DEV/bedolaga-cabinet.git
+cd bedolaga-cabinet
+cp .env.example .env
+# VITE_API_URL=/api, VITE_TELEGRAM_BOT_USERNAME=HexaVeil_bot
+npm install
+npm run dev  # dev-прокси → cabinet.fortf.ru
+# после проверки: npm run build → deploy в /srv/cabinet
+```
+
+## Правила безопасности
+- **На живом сервере — только чтение.** Любая запись — только с явного одобрения владельца
+- Не поднимать второй бот на том же `BOT_TOKEN`
+- Не давать локальному боту `REMNAWAVE_API_URL` прод-панели
+- Тестовые действия — только тестовым аккаунтом
+- Не коммитить секреты (`.env`, пароли, токены)
+
+---
+
+---
+
+# 🔗 СВЯЗИ МЕЖДУ ПРОЕКТАМИ
+
+| CMS NewWeb | Инфраструктура | Пояснение |
+|------------|----------------|-----------|
+| `test.hexaveil.xyz` | `panel.fortf.ru`, `cabinet.fortf.ru` | Единый бренд HexaVeil |
+| 3D-глобус (координаты серверов) | Ноды monoList (DE, FI, NL, RU, US) | Визуализация локаций нод |
+| `connectUrl` в 3D-глобусе → `cabinet.fortf.ru` | Bedolaga Cabinet | Пользователь с лендинга → в кабинет |
+| `t.me/HexaVeil_bot` в ссылках | Bedolaga Bot `@HexaVeil_bot` | Единый Telegram-бот |
+| IP `159.194.221.84` (нода на Beget) | video.monolist.art (RU-нода) | CMS и нода на одном сервере |
+| nginx-selfsteal (reverse proxy для CMS) | decoy-nginx на нодах | Одинаковая схема nginx |
+| Финансовый модуль (Platega/YooKassa) | Bedolaga (подписки/балансы) | В перспективе — объединение данных через API |
+| `db/prod_data.sql` | Бэкапы панели в `/home/ImCrazyMonk/pre-update-*` | Разные БД, одна экосистема |
+
+---
+
+---
+
+# 📁 Отдельная папка «Заглушка» — `C:\Users\Andre\Desktop\VPN\Заглушка`
+
+Содержит параллельный проект управления инфраструктурой нод:
+
+```
+Заглушка/
+├── docs/INFRASTRUCTURE.md       # Полная инфраструктурная сводка (пароли, IP, архитектура)
+├── profiles/                    # Шаблоны конфигов Xray / подписок
+│   ├── Autobalancer.json        # Балансировщик VLESS/Hysteria2 для клиентов
+│   └── EU_Whitelist.json        # EU whitelist
+├── decoy/                       # HTML-заглушки для нод
+│   ├── index.html               # Главная студии
+│   ├── files/index.html         # Файловый конвертер (DE)
+│   ├── audio/index.html         # Аудио-конвертер (FI)
+│   ├── photo/index.html         # Фото/фильтры (NL, Hysteria2)
+│   ├── video/index.html         # Видео-конвертер (RU)
+│   ├── data/index.html          # Конвертер данных (US)
+│   ├── hash/index.html          # Хэши
+│   └── qrcode/index.html        # QR-генератор
+├── PROJECT.md                   # Описание проекта нод
+├── AGENTS.md                    # Инструкции для агентов (стек Remnawave)
+├── РАБОЧАЯ-СВОДКА-2026-09-09-Кабинет-Связка-Аккаунтов.md  # Полный анализ Bedolaga
+├── _analysis_src/               # Копии исходников для анализа (read-only)
+├── VPS_Security_Hardening_Menu.sh
+└── rwa_plugin_live_flow-0.17.5-py3-none-any.whl
+```
+
+---
+
+*Дата: 2026-09-27. При изменении инфраструктуры обновлять секции нод и доступов.*
