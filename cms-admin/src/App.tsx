@@ -4,6 +4,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Layout from './components/layout/Layout'
 import LoginPage from './pages/Login'
 import DashboardPage from './pages/Dashboard'
+import PostsListPage from './pages/posts/PostsList'
+import PostFormPage from './pages/posts/PostForm'
 import PlaceholderPage from './pages/Placeholder'
 
 export default function App() {
@@ -21,7 +23,9 @@ export default function App() {
             }
           >
             <Route index element={<DashboardPage />} />
-            <Route path="posts" element={<PlaceholderPage />} />
+            <Route path="posts" element={<PostsListPage />} />
+            <Route path="posts/create" element={<PostFormPage />} />
+            <Route path="posts/:id" element={<PostFormPage />} />
             <Route path="posts/categories" element={<PlaceholderPage />} />
             <Route path="pages" element={<PlaceholderPage />} />
             <Route path="users" element={<PlaceholderPage />} />

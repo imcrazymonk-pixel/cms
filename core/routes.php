@@ -231,6 +231,143 @@ $router->get('api/dashboard/stats', function() {
     ]);
 });
 
+// OPTIONS preflight for posts API
+$router->addRoute('OPTIONS', 'api/posts', function() { apiCorsHeaders(); http_response_code(204); exit; });
+$router->addRoute('OPTIONS', 'api/posts/(\d+)', function() { apiCorsHeaders(); http_response_code(204); exit; });
+
+// GET /api/posts — paginated list
+$router->get('api/posts', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $page = max(1, (int)($_GET['page'] ?? 1));
+    $perPage = min(100, max(1, (int)($_GET['per_page'] ?? 20)));
+    $sort = $_GET['sort'] ?? 'created_at';
+    $dir = strtoupper($_GET['dir'] ?? 'DESC') === 'ASC' ? 'ASC' : 'DESC';
+    $search = trim($_GET['search'] ?? '');
+
+    $allowedSort = ['id', 'title', 'status', 'created_at', 'updated_at'];
+    if (!in_array($sort, $allowedSort)) $sort = 'created_at';
+
+    $db = Database::getInstance();
+    $where = '';
+    $params = [];
+    if ($search) {
+        $where = "WHERE (p.title ILIKE :search OR p.slug ILIKE :search2)";
+        $params['search'] = "%{$search}%";
+        $params['search2'] = "%{$search}%";
+    }
+
+    $total = (int)$db->fetchOne("SELECT COUNT(*) FROM posts p {$where}", $params);
+    $offset = ($page - 1) * $perPage;
+
+    $posts = $db->fetchAll(
+        "SELECT p.*, c.name as category_name, u.login as author_name
+         FROM posts p
+         LEFT JOIN categories c ON p.category_id = c.id
+         LEFT JOIN users u ON p.user_id = u.id
+         {$where}
+         ORDER BY p.{$sort} {$dir}
+         LIMIT {$perPage} OFFSET {$offset}",
+        $params
+    );
+
+    apiJson([
+        'success' => true,
+        'data' => $posts,
+        'total' => $total,
+        'page' => $page,
+        'per_page' => $perPage,
+    ]);
+});
+
+// GET /api/posts/{id} — single post
+$router->get('api/posts/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+    $post = new Post();
+    $entity = $post->getById((int)$id);
+    if (!$entity) apiError('Пост не найден', 404);
+    apiJson(['success' => true, 'data' => $entity]);
+});
+
+// POST /api/posts — create
+$router->post('api/posts', function() {
+    apiCorsHeaders();
+    $auth = apiAuth();
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $title = trim($body['title'] ?? '');
+    if (empty($title)) apiError('Заголовок обязателен');
+
+    $slug = trim($body['slug'] ?? '');
+    if (empty($slug)) {
+        $slug = strtolower(trim(preg_replace('/[^a-zA-Z0-9\-]+/', '-', $title), '-'));
+    }
+
+    $post = new Post();
+    $id = $post->create([
+        'title' => $title,
+        'slug' => $slug,
+        'content' => $body['content'] ?? '',
+        'excerpt' => $body['excerpt'] ?? '',
+        'category_id' => (int)($body['category_id'] ?? 0) ?: null,
+        'status' => $body['status'] ?? 'draft',
+        'image' => $body['image'] ?? '',
+        'user_id' => (int)$auth['sub'],
+    ]);
+
+    apiJson(['success' => true, 'data' => ['id' => $id]], 201);
+});
+
+// POST /api/posts/{id} — update
+$router->post('api/posts/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+
+    $post = new Post();
+    $existing = $post->getById((int)$id);
+    if (!$existing) apiError('Пост не найден', 404);
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $data = [];
+    foreach (['title', 'slug', 'content', 'excerpt', 'status', 'image'] as $field) {
+        if (isset($body[$field])) $data[$field] = trim($body[$field]);
+    }
+    if (isset($body['category_id'])) $data['category_id'] = (int)$body['category_id'] ?: null;
+
+    if (!empty($data)) {
+        $data['updated_at'] = date('Y-m-d H:i:s');
+        $post->update((int)$id, $data);
+    }
+
+    apiJson(['success' => true]);
+});
+
+// DELETE /api/posts/{id} — delete
+$router->addRoute('DELETE', 'api/posts/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+
+    $post = new Post();
+    $existing = $post->getById((int)$id);
+    if (!$existing) apiError('Пост не найден', 404);
+
+    $post->delete((int)$id);
+    apiJson(['success' => true]);
+});
+
+// Categories API
+$router->addRoute('OPTIONS', 'api/categories', function() { apiCorsHeaders(); http_response_code(204); exit; });
+
+$router->get('api/categories', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $category = new Category();
+    apiJson(['success' => true, 'data' => $category->getAll()]);
+});
+
 // ============================================
 // Маршруты админки
 // ============================================
