@@ -2,7 +2,7 @@
 
 ## Что это за проект
 
-Собственная **PHP CMS** (vanilla, без фреймворков) с поддержкой MySQL и PostgreSQL.
+Собственная **PHP CMS** (vanilla, без фреймворков) на PostgreSQL.
 Изначально — стандартный блог-движок, сейчас — **многофункциональный сайт VPN-сервиса**:
 
 - **Публичная часть** — лендинг HexaVeil (тема `hexaveil`) с 3D-глобусом серверов,
@@ -16,8 +16,8 @@
 |---|---|
 | **Домен** | `https://test.hexaveil.xyz` |
 | **Админка** | `https://test.hexaveil.xyz/admin/` |
-| **Логин** | `admin` |
-| **Пароль** | `admin12345` |
+| **Логин** | `admn` |
+| **Пароль** | `Cke;bkb2Njdfhbof` |
 | **Сервер** | Ubuntu, Docker Compose |
 | **PHP** | 8.1-FPM (Debian-based) |
 | **Web** | Nginx (alpine), 2 уровня: nginx-selfsteal (reverse proxy) → hexacms_web (FastCGI) |
@@ -27,11 +27,12 @@
 | **Reverse proxy** | nginx-selfsteal (`network_mode: host`) на портах 80/443 |
 | **Node** | Remnawave node (VLESS/Reality + XTLS-Vision) на порту 2222 |
 
-### Локальная разработка
+### Локальная разработка (Docker)
 
-- **Docker**: `docker compose up --build -d` (PHP 8.1 + Nginx + PostgreSQL 16)
-- **Open Server Panel**: `http://hexacms` (Apache + MySQL)
-- Поддержка MySQL и PostgreSQL через `DB_DRIVER` в config.php
+```bash
+docker compose up --build -d
+```
+(PHP 8.1 + Nginx + PostgreSQL 16)
 
 ---
 
@@ -53,7 +54,7 @@ NewWeb/
 │   ├── Router.php         # Маршрутизатор (GET/POST, паттерны {slug})
 │   ├── routes.php         # Все маршруты сайта
 │   ├── TemplateEngine.php # Шаблонизатор (set/display, layouts)
-│   ├── Database.php       # PDO-обёртка
+│   ├── Database.php          # PDO-обёртка (pgsql)
 │   ├── Post.php           # Модель постов (CRUD, категории, теги, комменты)
 │   ├── Category.php       # Модель категорий
 │   ├── Page.php           # Модель страниц
@@ -83,9 +84,8 @@ NewWeb/
 │   └── css/panel/         # Дизайн-система админки (7 файлов)
 ├── db/
 │   ├── postgres/init/     # PostgreSQL авто-инициализация
-│   │   └── 01-schema.sql  # Полная схема БД (PG)
-│   └── migrations/        # MySQL-миграции (legacy)
-├── database.sql           # MySQL схема (legacy)
+│   │   └── 01-schema.sql  # Полная схема БД
+│   └── prod_data.sql      # Дамп production БД (data-only, для локальной синхронизации)
 └── docs/decisions/
     └── ADR-001-panel-design-system.md  # Документация редизайна админки
 ```
@@ -107,7 +107,7 @@ NewWeb/
 - [x] Inline Lucide SVG-иконки (icon())
 
 #### Блог
-- [x] Таблицы: posts, categories, tags, post_tags, comments (MySQL)
+- [x] Таблицы: posts, categories, tags, post_tags, comments
 - [x] Полный CRUD постов (админка)
 - [x] TinyMCE → CKEditor 5 (ESM, все плагины, esm.sh CDN)
 - [x] Категории, теги, комментарии (модерация)
@@ -148,6 +148,9 @@ NewWeb/
 
 #### Технические исправления
 - [x] **Удалены остатки Nova VPN** — ссылка `t.me/nova_vpn` заменена на `t.me/HexaVeil_bot` в theme.php и layouts/main.php
+- [x] **Удалена совместимость с Open Server Panel** — `_deploy.bat` удалён, дефолтный DB_HOST изменён на `db`, драйвер по умолчанию `pgsql`, домен `http://hexacms` → `http://localhost`, очищены все упоминания OSP в документации и конфигах
+- [x] **Исправлен Nginx root** — `/var/www/html/public` → `/var/www/html` (админ-панель лежит вне public/)
+- [x] **entrypoint генерирует пароль** — `docker-entrypoint.sh` автоматически заменяет плейсхолдер bcrypt-хеша в seed-данных при первом запуске (через переменную `ADMIN_PASSWORD`, по умолчанию `admin12345`)
 
 ---
 
@@ -211,7 +214,7 @@ NewWeb/
 
 #### Блог (доработки)
 - [ ] **RSS-лента** — `/blog/rss.xml`, последние посты в RSS 2.0
-- [ ] **Поиск по постам** — MySQL FULLTEXT, строка поиска, результаты
+- [ ] **Поиск по постам** — полнотекстовый поиск (PostgreSQL tsvector), строка поиска, результаты
 - [ ] **Related posts на странице поста** — отобразить (метод `getRelated()` уже есть в Post, в роуте тоже)
 - [ ] **Пагинация на /blog** — ссылки «далее/назад» (сейчас только `POSTS_PER_PAGE`)
 
@@ -363,13 +366,13 @@ NewWeb/
 - [x] `docker-compose.yml` — 3 сервиса: app (PHP-FPM), web (Nginx), db (PostgreSQL 16)
 - [x] `.docker/nginx/default.conf` — Nginx vhost с deny доступа к служебным директориям
 - [x] `.docker/php/php.ini` — upload 64M, memory 256M, opcache
-- [x] `docker-entrypoint.sh` — ожидание PG, создание install.lock, запуск PHP-FPM
+- [x] `docker-entrypoint.sh` — ожидание PG, создание install.lock, автогенерация bcrypt-хеша пароля админа, запуск PHP-FPM
 - [x] `db/postgres/init/01-schema.sql` — полная PostgreSQL-схема (307 строк, все таблицы + seed-данные)
 - [x] `.env` / `.env.example` — переменные окружения для Docker
 
 #### PostgreSQL-миграция (код)
 - [x] `Database.php` — динамический DSN (pgsql/mysql) через DB_DRIVER
-- [x] `config/config.php` — все константы читаются из env с fallback
+- [x] `config/config.php` — все константы читаются из env с fallback (дефолты под Docker, PostgreSQL-only)
 - [x] `UserPreference.php` — `ON DUPLICATE KEY` → `ON CONFLICT DO UPDATE`
 - [x] `FinSetting.php` — `ON DUPLICATE KEY` → `ON CONFLICT DO UPDATE`
 - [x] `FinTransaction.php` — убраны backtick-кавычки, `LIMIT a,b` → `LIMIT b OFFSET a`
@@ -480,7 +483,7 @@ $template->display('template-name'); // templates/themes/{theme}/template-name.p
 
 ```bash
 # Сайт: https://test.hexaveil.xyz
-# Админка: https://test.hexaveil.xyz/admin/  (admin / admin12345)
+# Админка: https://test.hexaveil.xyz/admin/  (admn / admin12345)
 ```
 
 **Архитектура сервера:**
@@ -494,26 +497,29 @@ $template->display('template-name'); // templates/themes/{theme}/template-name.p
 ```bash
 docker compose up --build -d
 # Сайт: http://localhost
-# Админка: http://localhost/admin  (admin / admin12345)
+# Админка: http://localhost/admin  (admn / admin12345)
 ```
 
-### Локальная разработка (Open Server Panel)
+### Синхронизация БД с production
 
-Проект также работает на **Open Server Panel**:
-- Домен: `http://hexacms`
-- Админка: `http://hexacms/admin`
-- Логин: `admin`
-- Пароль: `admin12345`
-- MySQL: `127.127.126.26`, БД: `cms`
+После деплоя новой версии кода на сервер локальную БД можно обновить дампом с прода:
 
-Обычная установка:
-1. Скопировать файлы в `C:\OSPanel\home\HexaCMS\public\`
-2. Импортировать `database.sql` в MySQL
-3. Создать `install.lock` в корне проекта
-4. Настроить `config/config.php` (или использовать переменные окружения)
-5. Открыть `http://hexacms` в браузере
+```bash
+# Дамп с сервера:
+ssh -p 356 ImCrazyMonk@85.198.99.102 \
+  "cd /opt/HexaVeil_CMS && docker compose exec db pg_dump -U cms -d cms \
+  --data-only --column-inserts --exclude-table=app_logs --disable-triggers" \
+  > db/prod_data.sql
 
----
+# Очистка локальных таблиц и импорт:
+docker compose exec -T db psql -U cms -d cms -c "SET session_replication_role = 'replica';"
+docker compose exec -T db psql -U cms -d cms -c "TRUNCATE users, posts, categories, tags, post_tags, comments, pages, media, menus, menu_items, widgets, settings, fin_transactions, fin_settings, user_preferences RESTART IDENTITY CASCADE;"
+Get-Content db/prod_data.sql | docker compose exec -T db psql -U cms -d cms
+docker compose exec -T db psql -U cms -d cms -c "SET session_replication_role = 'origin';"
+
+# Сбросить пароль администратора (если импортирован плейсхолдер):
+docker compose exec app php -r "\$pdo = new PDO('pgsql:host=db;port=5432;dbname=cms','cms','cms_secret_2026'); \$pdo->prepare('UPDATE users SET password=? WHERE login=?')->execute([password_hash('admin12345',PASSWORD_BCRYPT),'admn']); echo 'done';"
+```
 
 ## Технические ограничения
 
@@ -521,5 +527,5 @@ docker compose up --build -d
 - **Избегать монолитных файлов** — разделять на логические модули
 - **Не трогать публичную часть** (если задача только про админку)
 - **Не менять маршруты/контроллеры/логику/имена полей форм** без необходимости
-- **PHP 7.4+** для совместимости с OSPanel
+- **PHP 8.1+**
 - **Не коммитить папку `Fin/`**

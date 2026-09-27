@@ -32,7 +32,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SQLITE_PATH = os.path.join(ROOT, 'db', 'backups', 'fin-source', 'finance.db')
 BACKUP_DIR = os.path.join(ROOT, 'db', 'backups')
 
-DB_HOST = '127.127.126.26'
+DB_HOST = 'localhost'
 DB_NAME = 'cms'
 DB_USER = 'root'
 DB_PASS = ''

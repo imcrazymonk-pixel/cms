@@ -21,6 +21,7 @@ window.FIN = {
     <button type="button" class="btn btn-secondary btn-sm" id="fin-btn-import"><?= icon('upload') ?> Импорт</button>
     <button type="button" class="btn btn-secondary btn-sm" id="fin-btn-export"><?= icon('download') ?> Экспорт</button>
     <button type="button" class="btn btn-secondary btn-sm" id="fin-btn-platega"><?= icon('credit-card') ?> Platega</button>
+    <button type="button" class="btn btn-secondary btn-sm" id="fin-btn-yookassa"><?= icon('wallet') ?> ЮKassa</button>
     <span class="finance-spacer"></span>
     <button type="button" class="btn btn-secondary btn-sm" id="fin-btn-settings"><?= icon('settings') ?> Настройки</button>
     <button type="button" class="btn btn-icon btn-sm" id="fin-btn-refresh" title="Обновить"><?= icon('refresh-cw') ?></button>
@@ -491,6 +492,70 @@ window.FIN = {
         <div class="finance-modal-footer">
             <button type="button" class="btn btn-secondary btn-sm" data-close="finPlategaModal">Закрыть</button>
             <button type="button" class="btn btn-primary btn-sm" id="finPlategaImportBtn">Импортировать выбранные</button>
+        </div>
+    </div>
+</div>
+
+<!-- Модалка: YooKassa preview -->
+<div class="finance-modal-overlay" id="finYookassaModal" hidden>
+    <div class="finance-modal" style="max-width:860px">
+        <div class="finance-modal-header">
+            <h3>Импорт из ЮKassa</h3>
+            <button type="button" class="finance-modal-close" data-close="finYookassaModal"><?= icon('x') ?></button>
+        </div>
+        <div class="finance-modal-body">
+            <p class="finance-help">Настройки подключения и превью платежей. Импортируются только успешные платежи.</p>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Shop ID</label>
+                    <input type="text" id="finYookassaShopId" placeholder="123456">
+                </div>
+                <div class="form-group">
+                    <label>Secret Key</label>
+                    <input type="password" id="finYookassaSecret" placeholder="••••••••">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Дней назад</label>
+                    <input type="number" id="finYookassaDays" value="30" min="1" max="730">
+                </div>
+                <div class="form-group" style="display:flex;align-items:flex-end;gap:8px">
+                    <button type="button" class="btn btn-secondary btn-sm" id="finYookassaSaveBtn"><?= icon('save') ?> Сохранить настройки</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="finYookassaPreviewBtn">Превью</button>
+                </div>
+            </div>
+            <div class="finance-error" id="finYookassaError" hidden></div>
+            <div class="finance-help" id="finYookassaSyncStatus" style="margin-top:8px"></div>
+            <div style="max-height:50vh;overflow-y:auto;margin-top:12px">
+                <table class="dg-table finance-table" id="finYookassaTable">
+                    <thead>
+                    <tr>
+                        <th style="width:40px"><input type="checkbox" id="finYookassaSelectAll" checked></th>
+                        <th>Дата</th>
+                        <th>Описание (кто оплатил)</th>
+                        <th>Способ оплаты</th>
+                        <th>Сумма gross</th>
+                        <th>Комиссия</th>
+                        <th>К зачислению</th>
+                    </tr>
+                    </thead>
+                    <tbody id="finYookassaBody">
+                    <tr><td colspan="7" class="fin-empty-cell">Нажмите «Превью» для загрузки платежей</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="finance-help" id="finYookassaSummary" style="margin-top:8px"></div>
+            <?php if (!empty($yookassaCronToken)): ?>
+            <div class="finance-help" style="margin-top:10px;font-size:12px;line-height:1.5">
+                <strong>Автоимпорт без открытой страницы (cron):</strong><br>
+                <code style="word-break:break-all">*/5 * * * * curl -s "<?= rtrim(SITE_URL, '/') ?>/admin/finance/api/yookassa/cron-sync?token=<?= $yookassaCronToken ?>" &gt; /dev/null</code>
+            </div>
+            <?php endif; ?>
+        </div>
+        <div class="finance-modal-footer">
+            <button type="button" class="btn btn-secondary btn-sm" data-close="finYookassaModal">Закрыть</button>
+            <button type="button" class="btn btn-primary btn-sm" id="finYookassaImportBtn">Импортировать выбранные</button>
         </div>
     </div>
 </div>

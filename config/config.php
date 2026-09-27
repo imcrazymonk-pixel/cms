@@ -5,16 +5,14 @@
  */
 
 // Доступ к базе данных.
-// Поддержка MySQL и PostgreSQL через переменные окружения Docker.
-$defaultDriver = 'mysql';
-define('DB_DRIVER', getenv('DB_DRIVER') ?: $defaultDriver);
-define('DB_HOST', getenv('DB_HOST') ?: '127.127.126.26');
-$driverPort = DB_DRIVER === 'pgsql' ? '5432' : '3306';
-define('DB_PORT', getenv('DB_PORT') ?: $driverPort);
+// PostgreSQL через переменные окружения Docker.
+define('DB_DRIVER', getenv('DB_DRIVER') ?: 'pgsql');
+define('DB_HOST', getenv('DB_HOST') ?: 'db');
+define('DB_PORT', getenv('DB_PORT') ?: '5432');
 define('DB_NAME', getenv('DB_NAME') ?: 'cms');
-define('DB_USER', getenv('DB_USER') ?: 'root');
-define('DB_PASS', getenv('DB_PASS') ?: '');
-define('DB_CHARSET', 'utf8mb4');
+define('DB_USER', getenv('DB_USER') ?: 'cms');
+define('DB_PASS', getenv('DB_PASS') ?: 'cms');
+define('DB_CHARSET', 'utf8');
 
 // Настройки сайта
 define('SITE_NAME', getenv('SITE_NAME') ?: 'Моя CMS');

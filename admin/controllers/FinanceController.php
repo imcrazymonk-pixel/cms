@@ -30,7 +30,8 @@ class AdminFinanceController
         $template->set('title', 'Финансы');
         $template->set('user', Auth::user());
         $template->set('finSettings', $this->settings->getAll());
-        $template->set('cronToken', $this->ensureCronToken());
+        $template->set('cronToken', $this->ensureCronToken('platega_cron_token'));
+        $template->set('yookassaCronToken', $this->ensureCronToken('yookassa_cron_token'));
         $template->setLayout('layouts/main');
         $template->display('finance/index');
     }
@@ -83,12 +84,20 @@ class AdminFinanceController
                     'auto_refresh' => (int)$this->settings->get('auto_refresh', 0),
                     'avg_period' => $this->settings->get('avg_period', 'day'),
                     'platega_merchant_id' => $this->settings->get('platega_merchant_id', ''),
-                    'platega_secret_raw' => $this->settings->get('platega_secret', ''),
+                    'platega_secret_raw' => Crypto::decrypt((string)$this->settings->get('platega_secret', '')),
                     'platega_days_back' => (int)$this->settings->get('platega_days_back', 150),
                     'platega_auto_sync' => (int)$this->settings->get('platega_auto_sync', 0),
                     'platega_last_sync' => $this->settings->get('platega_last_sync', ''),
                     'platega_last_error' => $this->settings->get('platega_last_error', ''),
                     'platega_last_sync_ok' => (int)$this->settings->get('platega_last_sync_ok', 0),
+                    'yookassa_shop_id' => $this->settings->get('yookassa_shop_id', ''),
+                    'yookassa_secret_raw' => Crypto::decrypt((string)$this->settings->get('yookassa_secret_key', '')),
+                    'yookassa_days_back' => (int)$this->settings->get('yookassa_days_back', 30),
+                    'yookassa_auto_sync' => (int)$this->settings->get('yookassa_auto_sync', 0),
+                    'yookassa_last_sync' => $this->settings->get('yookassa_last_sync', ''),
+                    'yookassa_last_error' => $this->settings->get('yookassa_last_error', ''),
+                    'yookassa_last_sync_ok' => (int)$this->settings->get('yookassa_last_sync_ok', 0),
+                    'yookassa_commissions' => $this->yookassaCommissions(),
                 ],
                 'all_months' => $this->allMonths(),
                 'all_categories' => $this->model->distinctValues('category'),
@@ -122,6 +131,8 @@ class AdminFinanceController
             $id = $this->model->create($this->cleanTransaction($body));
             $this->jsonResponse(['success' => true, 'id' => $id]);
         } catch (\Throwable $e) {
+            error_log('[Finance] apiAdd error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiAdd error: ' . $e->getMessage());
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка сохранения'], 500);
         }
     }
@@ -152,6 +163,8 @@ class AdminFinanceController
             $this->model->update($id, $this->cleanTransaction($body));
             $this->jsonResponse(['success' => true]);
         } catch (\Throwable $e) {
+            error_log('[Finance] apiEdit error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiEdit error: ' . $e->getMessage());
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка сохранения'], 500);
         }
     }
@@ -177,6 +190,8 @@ class AdminFinanceController
             $this->model->delete($id);
             $this->jsonResponse(['success' => true]);
         } catch (\Throwable $e) {
+            error_log('[Finance] apiDelete error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiDelete error: ' . $e->getMessage());
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка удаления'], 500);
         }
     }
@@ -211,6 +226,8 @@ class AdminFinanceController
             $deleted = $this->model->deleteByIds($ids);
             $this->jsonResponse(['success' => true, 'deleted' => $deleted]);
         } catch (\Throwable $e) {
+            error_log('[Finance] apiDeleteBulk error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiDeleteBulk error: ' . $e->getMessage());
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка удаления'], 500);
         }
     }
@@ -240,6 +257,8 @@ class AdminFinanceController
             $updated = $this->model->bulkUpdate($ids, ['type' => $type]);
             $this->jsonResponse(['success' => true, 'updated' => $updated]);
         } catch (\Throwable $e) {
+            error_log('[Finance] apiBulkType error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiBulkType error: ' . $e->getMessage());
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
         }
     }
@@ -267,6 +286,8 @@ class AdminFinanceController
             $updated = $this->model->bulkUpdate($ids, ['category' => $category]);
             $this->jsonResponse(['success' => true, 'updated' => $updated]);
         } catch (\Throwable $e) {
+            error_log('[Finance] apiBulkCategory error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiBulkCategory error: ' . $e->getMessage());
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
         }
     }
@@ -290,6 +311,8 @@ class AdminFinanceController
             $updated = $this->model->bulkUpdate($ids, ['participant' => $participant]);
             $this->jsonResponse(['success' => true, 'updated' => $updated]);
         } catch (\Throwable $e) {
+            error_log('[Finance] apiBulkParticipant error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiBulkParticipant error: ' . $e->getMessage());
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
         }
     }
@@ -313,6 +336,8 @@ class AdminFinanceController
             $updated = $this->model->bulkUpdate($ids, ['description' => $description]);
             $this->jsonResponse(['success' => true, 'updated' => $updated]);
         } catch (\Throwable $e) {
+            error_log('[Finance] apiBulkDescription error: ' . $e->getMessage());
+            AppLog::add('error', 'finance', 'apiBulkDescription error: ' . $e->getMessage());
             $this->jsonResponse(['success' => false, 'error' => 'Ошибка обновления'], 500);
         }
     }
@@ -499,7 +524,7 @@ class AdminFinanceController
             $merchantId = trim((string)$this->settings->get('platega_merchant_id', ''));
         }
         if ($secret === '') {
-            $secret = trim((string)$this->settings->get('platega_secret', ''));
+            $secret = trim(Crypto::decrypt((string)$this->settings->get('platega_secret', '')));
         }
 
         if (!$merchantId || !$secret) {
@@ -621,7 +646,7 @@ class AdminFinanceController
     private function runPlategaSync(): array
     {
         $merchantId = trim((string)$this->settings->get('platega_merchant_id', ''));
-        $secret = trim((string)$this->settings->get('platega_secret', ''));
+        $secret = trim(Crypto::decrypt((string)$this->settings->get('platega_secret', '')));
         $daysBack = (int)$this->settings->get('platega_days_back', 150);
         if ($daysBack < 1 || $daysBack > 730) {
             $daysBack = 150;
@@ -687,13 +712,14 @@ class AdminFinanceController
 
     /**
      * Гарантировать наличие токена для cron-синка (создать при первом обращении).
+     * @param string $key ключ настройки, где хранится токен
      */
-    private function ensureCronToken(): string
+    private function ensureCronToken(string $key = 'platega_cron_token'): string
     {
-        $token = (string)$this->settings->get('platega_cron_token', '');
+        $token = (string)$this->settings->get($key, '');
         if ($token === '') {
             $token = bin2hex(random_bytes(24));
-            $this->settings->set('platega_cron_token', $token);
+            $this->settings->set($key, $token);
         }
         return $token;
     }
@@ -706,7 +732,7 @@ class AdminFinanceController
     {
         Auth::requireAdmin();
         $merchantId = $this->settings->get('platega_merchant_id', '');
-        $secret = $this->settings->get('platega_secret', '');
+        $secret = Crypto::decrypt((string)$this->settings->get('platega_secret', ''));
         $daysBack = (int)$this->settings->get('platega_days_back', 150);
         $autoSync = (int)$this->settings->get('platega_auto_sync', 0);
         $lastSync = $this->settings->get('platega_last_sync', '');
@@ -753,6 +779,9 @@ class AdminFinanceController
             if ($key === 'platega_secret' && $value === '') {
                 continue;
             }
+            if ($key === 'platega_secret' && $value !== '') {
+                $value = Crypto::encrypt($value);
+            }
             $this->settings->set($key, $value);
         }
 
@@ -766,6 +795,644 @@ class AdminFinanceController
         ]);
 
         $this->jsonResponse(['success' => true]);
+    }
+
+    /* ─────────────────────────── YooKassa ─────────────────────────── */
+
+    /**
+     * POST /admin/finance/api/yookassa/preview
+     * Body: { shop_id?, secret?, days_back? }
+     * Возвращает строки превью: status new|duplicate|skipped.
+     * Если shop_id/secret пустые — берутся из сохранённых настроек.
+     */
+    public function apiYooKassaPreview()
+    {
+        Auth::requireAdmin();
+        $body = $this->jsonBody();
+        if (!$this->verifyJsonCsrf($body)) {
+            $this->jsonResponse(['success' => false, 'error' => 'CSRF token invalid'], 403);
+            return;
+        }
+
+        $shopId = trim((string)($body['shop_id'] ?? ''));
+        $secret = trim((string)($body['secret'] ?? ''));
+        $daysBack = (int)($body['days_back'] ?? 30);
+        if ($daysBack < 1 || $daysBack > 730) {
+            $daysBack = 30;
+        }
+
+        // Если поля пустые — берём сохранённые настройки
+        if ($shopId === '') {
+            $shopId = trim((string)$this->settings->get('yookassa_shop_id', ''));
+        }
+        if ($secret === '') {
+            $secret = trim(Crypto::decrypt((string)$this->settings->get('yookassa_secret_key', '')));
+        }
+
+        if (!$shopId || !$secret) {
+            $this->jsonResponse(['success' => false, 'error' => 'Укажите shop_id и secret_key'], 400);
+            return;
+        }
+
+        try {
+            $preview = $this->fetchYooKassaPreview($shopId, $secret, $daysBack);
+            AppLog::add('info', 'yookassa', 'YooKassa preview OK', [
+                'shop_id' => $shopId,
+                'days_back' => $daysBack,
+                'rows' => count($preview),
+            ]);
+            $this->jsonResponse(['success' => true, 'transactions' => $preview]);
+        } catch (\Throwable $e) {
+            $msg = 'YooKassa preview error: ' . $e->getMessage();
+            AppLog::add('error', 'yookassa', $msg, ['shop_id' => $shopId, 'days_back' => $daysBack]);
+            error_log($msg);
+            $this->jsonResponse(['success' => false, 'error' => $msg], 500);
+        }
+    }
+
+    /**
+     * POST /admin/finance/api/yookassa/import
+     * Body: { transactions: [...], include: true }
+     * Import только строки с include=true (и статусом new).
+     */
+    public function apiYooKassaImport()
+    {
+        Auth::requireAdmin();
+        $body = $this->jsonBody();
+        if (!$this->verifyJsonCsrf($body)) {
+            $this->jsonResponse(['success' => false, 'error' => 'CSRF token invalid'], 403);
+            return;
+        }
+
+        $txnList = $body['transactions'] ?? [];
+        if (!is_array($txnList)) {
+            $this->jsonResponse(['success' => false, 'error' => 'Некорректные данные'], 400);
+            return;
+        }
+
+        $includeIds = [];
+        foreach ($txnList as $t) {
+            if (!empty($t['include']) && isset($t['record_id'])) {
+                $includeIds[] = (string)$t['record_id'];
+            }
+        }
+
+        if (empty($includeIds)) {
+            $this->jsonResponse(['success' => true, 'added' => 0, 'skipped' => 0]);
+            return;
+        }
+
+        try {
+            $result = $this->commitYooKassaImport($txnList, $includeIds);
+            $this->settings->set('yookassa_last_sync', date('c'));
+            AppLog::add('info', 'yookassa', 'YooKassa import', [
+                'added' => $result['added'],
+                'skipped' => $result['skipped'],
+            ]);
+            $this->jsonResponse(['success' => true, 'added' => $result['added'], 'skipped' => $result['skipped']]);
+        } catch (\Throwable $e) {
+            AppLog::add('error', 'yookassa', 'YooKassa import error: ' . $e->getMessage(), []);
+            $this->jsonResponse(['success' => false, 'error' => 'Ошибка импорта: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * POST /admin/finance/api/yookassa/sync
+     * Автоимпорт YooKassa одним вызовом (для клиентского таймера):
+     * preview новых платежей по сохранённым настройкам → импорт всех 'new' → обновление last_sync.
+     */
+    public function apiYooKassaSync()
+    {
+        Auth::requireAdmin();
+        $body = $this->jsonBody();
+        if (!$this->verifyJsonCsrf($body)) {
+            $this->jsonResponse(['success' => false, 'error' => 'CSRF token invalid'], 403);
+            return;
+        }
+        $this->jsonResponse($this->runYooKassaSync());
+    }
+
+    /**
+     * GET /admin/finance/api/yookassa/cron-sync?token=XXX
+     * Серверный автоимпорт для cron — работает БЕЗ сессии/CSRF, защищён токеном.
+     * Вызывается cron'ом каждые 5 минут, например:
+     *   curl -s "https://site/admin/finance/api/yookassa/cron-sync?token=XXX"
+     */
+    public function apiYooKassaCronSync()
+    {
+        $token = (string)Request::get('token', '');
+        $stored = (string)$this->settings->get('yookassa_cron_token', '');
+        if ($stored === '' || !hash_equals($stored, $token)) {
+            $this->jsonResponse(['success' => false, 'error' => 'forbidden'], 403);
+            return;
+        }
+        $res = $this->runYooKassaSync();
+        $res['cron'] = true;
+        if ($res['success']) {
+            AppLog::add('info', 'yookassa', 'YooKassa cron sync OK', [
+                'added' => $res['added'] ?? 0,
+                'skipped' => $res['skipped'] ?? 0,
+                'new' => $res['new'] ?? 0,
+            ]);
+        } else {
+            AppLog::add('error', 'yookassa', 'YooKassa cron sync error: ' . ($res['error'] ?? 'unknown'));
+        }
+        $this->jsonResponse($res, $res['success'] ? 200 : ($res['code'] ?? 500));
+    }
+
+    /**
+     * Общая логика YooKassa-синка (preview → импорт новых → last_sync).
+     * Используется клиентским таймером и cron-эндпоинтом.
+     * @return array ['success', 'added', 'skipped', 'new', ...]
+     */
+    private function runYooKassaSync(): array
+    {
+        $shopId = trim((string)$this->settings->get('yookassa_shop_id', ''));
+        $secret = trim(Crypto::decrypt((string)$this->settings->get('yookassa_secret_key', '')));
+        $daysBack = (int)$this->settings->get('yookassa_days_back', 30);
+        if ($daysBack < 1 || $daysBack > 730) {
+            $daysBack = 30;
+        }
+
+        if (!$shopId || !$secret) {
+            $this->settings->set('yookassa_last_error', 'YooKassa не настроена (shop_id/secret пусты)');
+            $this->settings->set('yookassa_last_sync_ok', '0');
+            AppLog::add('warning', 'yookassa', 'YooKassa sync skipped: shop_id/secret empty');
+            return ['success' => false, 'error' => 'YooKassa не настроена (shop_id/secret пусты)', 'code' => 400];
+        }
+
+        $lock = (int)$this->settings->get('yookassa_sync_lock', 0);
+        if ($lock && (time() - $lock) < 30) {
+            return ['success' => true, 'added' => 0, 'skipped' => 0, 'new' => 0, 'skipped_lock' => true];
+        }
+        $this->settings->set('yookassa_sync_lock', (string)time());
+
+        try {
+            $preview = $this->fetchYooKassaPreview($shopId, $secret, $daysBack);
+
+            $newRows = [];
+            foreach ($preview as $t) {
+                if (isset($t['status']) && $t['status'] === 'new') {
+                    $newRows[] = $t;
+                }
+            }
+
+            $added = 0;
+            $skipped = 0;
+            if ($newRows) {
+                $includeIds = array_map(function ($t) {
+                    return (string)$t['record_id'];
+                }, $newRows);
+                $result = $this->commitYooKassaImport($newRows, $includeIds);
+                $added = (int)$result['added'];
+                $skipped = (int)$result['skipped'];
+            }
+
+            $this->stitchYooKassaOrphanRecordIds($preview);
+
+            $this->settings->set('yookassa_last_sync', date('c'));
+            $this->settings->set('yookassa_last_error', '');
+            $this->settings->set('yookassa_last_sync_ok', '1');
+            $this->settings->set('yookassa_sync_lock', '');
+
+            AppLog::add('info', 'yookassa', 'YooKassa sync OK', [
+                'added' => $added,
+                'skipped' => $skipped,
+                'new' => count($newRows),
+            ]);
+
+            return ['success' => true, 'added' => $added, 'skipped' => $skipped, 'new' => count($newRows)];
+        } catch (\Throwable $e) {
+            $this->settings->set('yookassa_sync_lock', '');
+            $this->settings->set('yookassa_last_error', $e->getMessage());
+            $this->settings->set('yookassa_last_sync_ok', '0');
+            AppLog::add('error', 'yookassa', 'YooKassa sync error: ' . $e->getMessage());
+            error_log('YooKassa sync error: ' . $e->getMessage());
+            return ['success' => false, 'error' => $e->getMessage(), 'code' => 500];
+        }
+    }
+
+    /**
+     * GET /admin/finance/api/yookassa/settings
+     * Returns YooKassa-specific settings (secret masked + расшифрованный secret_raw).
+     */
+    public function apiYooKassaSettings()
+    {
+        Auth::requireAdmin();
+        $shopId = $this->settings->get('yookassa_shop_id', '');
+        $secretRaw = Crypto::decrypt((string)$this->settings->get('yookassa_secret_key', ''));
+        $daysBack = (int)$this->settings->get('yookassa_days_back', 30);
+        $autoSync = (int)$this->settings->get('yookassa_auto_sync', 0);
+        $lastSync = $this->settings->get('yookassa_last_sync', '');
+        $lastSyncOk = (int)$this->settings->get('yookassa_last_sync_ok', 0);
+        $lastError = (string)$this->settings->get('yookassa_last_error', '');
+
+        $this->jsonResponse([
+            'shop_id' => $shopId,
+            'secret' => $secretRaw ? '***' . substr($secretRaw, -4) : '',
+            'secret_raw' => $secretRaw,
+            'days_back' => $daysBack,
+            'auto_sync' => $autoSync,
+            'commissions' => $this->yookassaCommissions(),
+            'last_sync' => $lastSync,
+            'last_sync_ok' => $lastSyncOk,
+            'last_error' => $lastError,
+        ]);
+    }
+
+    /**
+     * POST /admin/finance/api/yookassa/settings
+     * Saves YooKassa-specific settings (secret шифруется).
+     */
+    public function apiYooKassaSaveSettings()
+    {
+        Auth::requireAdmin();
+        $body = $this->jsonBody();
+        if (!$this->verifyJsonCsrf($body)) {
+            $this->jsonResponse(['success' => false, 'error' => 'CSRF token invalid'], 403);
+            return;
+        }
+
+        $oldSecret = (string)$this->settings->get('yookassa_secret_key', '');
+        $oldShopId = (string)$this->settings->get('yookassa_shop_id', '');
+
+        if (array_key_exists('shop_id', $body)) {
+            $this->settings->set('yookassa_shop_id', trim((string)$body['shop_id']));
+        }
+
+        if (array_key_exists('secret', $body)) {
+            $secret = trim((string)$body['secret']);
+            if ($secret !== '') {
+                $this->settings->set('yookassa_secret_key', Crypto::encrypt($secret));
+            }
+        }
+
+        if (array_key_exists('days_back', $body)) {
+            $daysBack = (int)$body['days_back'];
+            if ($daysBack < 1 || $daysBack > 730) {
+                $daysBack = 30;
+            }
+            $this->settings->set('yookassa_days_back', (string)$daysBack);
+        }
+
+        if (array_key_exists('auto_sync', $body)) {
+            $this->settings->set('yookassa_auto_sync', (int)$body['auto_sync'] ? '1' : '0');
+        }
+
+        if (isset($body['commissions']) && is_array($body['commissions'])) {
+            // Нормализуем: значения float, ключи только из supportedMethods()
+            $commissions = [];
+            foreach (YooKassaClient::supportedMethods() as $method) {
+                if (array_key_exists($method, $body['commissions'])) {
+                    $commissions[$method] = round((float)$body['commissions'][$method], 2);
+                }
+            }
+            $this->settings->set('yookassa_commissions', json_encode($commissions, JSON_UNESCAPED_UNICODE));
+        }
+
+        $newSecret = (string)$this->settings->get('yookassa_secret_key', '');
+        $secretUpdated = $newSecret !== '' && $newSecret !== $oldSecret;
+        AppLog::add('info', 'yookassa', 'YooKassa settings saved', [
+            'shop_id_changed' => ($oldShopId !== (string)$this->settings->get('yookassa_shop_id', '')),
+            'secret_updated' => $secretUpdated,
+            'days_back' => (int)$this->settings->get('yookassa_days_back', 30),
+            'auto_sync' => (int)$this->settings->get('yookassa_auto_sync', 0),
+        ]);
+
+        $this->jsonResponse(['success' => true]);
+    }
+
+    /* ─────────────────────────── YooKassa helpers ─────────────────────────── */
+
+    /**
+     * Карта комиссий по методам оплаты: сохранённые значения (yookassa_commissions)
+     * поверх дефолтов YooKassaClient::defaultCommissions().
+     */
+    private function yookassaCommissions(): array
+    {
+        $defaults = YooKassaClient::defaultCommissions();
+        $raw = (string)$this->settings->get('yookassa_commissions', '');
+        if ($raw === '') {
+            return $defaults;
+        }
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return $defaults;
+        }
+        $out = $defaults;
+        foreach (YooKassaClient::supportedMethods() as $method) {
+            if (isset($decoded[$method])) {
+                $v = (float)$decoded[$method];
+                if ($v >= 0) {
+                    $out[$method] = $v;
+                }
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Описание платежа ЮKassa: кто именно проплатил.
+     * ЮKassa не отдаёт имя плательщика напрямую, но description и metadata
+     * содержат данные заказа. Дописываем непустые значения metadata
+     * (order_id, username/user/name, tg_id/telegram_id, email),
+     * итоговая строка — не длиннее 140 символов.
+     */
+    private function yookassaDescription(string $description, array $metadata): string
+    {
+        $desc = $description !== '' ? trim($description) : 'Пополнение баланса';
+
+        $labelMap = [
+            'order_id'    => 'order',
+            'username'    => 'user',
+            'user'        => 'user',
+            'name'        => 'name',
+            'tg_id'       => 'tg',
+            'telegram_id' => 'tg',
+            'email'       => 'email',
+        ];
+        $metaParts = [];
+        foreach ($labelMap as $key => $label) {
+            if (!isset($metadata[$key])) {
+                continue;
+            }
+            $v = trim((string)$metadata[$key]);
+            if ($v === '') {
+                continue;
+            }
+            $metaParts[] = $label . ': ' . mb_substr($v, 0, 40);
+        }
+        if ($metaParts) {
+            $desc .= ' (' . implode(', ', $metaParts) . ')';
+        }
+        return mb_substr($desc, 0, 140);
+    }
+
+    /**
+     * Собрать превью-строки платежей ЮKassa за период.
+     * Импортируем только успешные платежи (succeeded + paid == true).
+     * Для не-успешных — строка со status=skipped и amount=0.
+     */
+    private function fetchYooKassaPreview(string $shopId, string $secret, int $daysBack): array
+    {
+        $from = gmdate('Y-m-d\TH:i:s.000\Z', strtotime('-' . $daysBack . ' days'));
+        $to = gmdate('Y-m-d\TH:i:s.000\Z');
+
+        $client = new YooKassaClient($shopId, $secret);
+        $payments = $client->fetchAllPayments($from, $to);
+
+        $commissions = $this->yookassaCommissions();
+        $existingKeys = $this->yookassaExistingKeys();
+        $existingRecordIds = $this->yookassaExistingRecordIds();
+
+        $preview = [];
+        foreach ($payments as $payment) {
+            $id = (string)($payment['id'] ?? '');
+            $status = (string)($payment['status'] ?? '');
+            $paid = !empty($payment['paid']);
+            $createdAt = (string)($payment['created_at'] ?? '');
+            $method = (string)($payment['payment_method']['type'] ?? 'bank_card');
+            $description = (string)($payment['description'] ?? '');
+            $metadata = is_array($payment['metadata'] ?? null) ? $payment['metadata'] : [];
+            $gross = (float)($payment['amount']['value'] ?? 0);
+
+            // record_id для дедупликации: префикс yk_ — чтобы не пересечься с Platega
+            $recordId = $id !== '' ? 'yk_' . $id : '';
+            $date = substr($createdAt, 0, 10);
+            $desc = $this->yookassaDescription($description, $metadata);
+            $methodLabel = YooKassaClient::methodLabel($method);
+
+            // ЮKassa подтверждает платёж статусом 'succeeded' (+ флаг paid == true)
+            if ($status !== 'succeeded' || !$paid) {
+                $preview[] = [
+                    'record_id' => $recordId,
+                    'date' => $date,
+                    'type' => 'Доход',
+                    'participant' => 'YooKassa',
+                    'category' => 'Прибыль',
+                    'amount' => 0,
+                    'gross' => $gross,
+                    'commission_pct' => null,
+                    'method' => $method,
+                    'method_label' => $methodLabel,
+                    'description' => $desc,
+                    'status' => 'skipped',
+                ];
+                continue;
+            }
+
+            $pct = $commissions[$method] ?? 3.0;
+            $net = round($gross * (1 - $pct / 100), 2);
+
+            // Дедупликация: основной ключ — уникальный record_id (yk_ + id).
+            // Фолбэк 1: если record_id не найден — проверяем «осиротевшие»
+            // записи (record_id IS NULL), импортированные вручную через CSV.
+            // Фолбэк 2 (строки без id): составной ключ yookassaDupKey.
+            if ($recordId !== '') {
+                $isDup = in_array($recordId, $existingRecordIds, true);
+                if (!$isDup) {
+                    $isDup = $this->model->findOrphanByKey([
+                        'date' => $date,
+                        'type' => 'income',
+                        'category' => 'Прибыль',
+                        'participant' => 'YooKassa',
+                        'amount' => $net,
+                    ]) !== null;
+                }
+            } else {
+                $dupKey = $this->yookassaDupKey($date, 'Доход', 'YooKassa', $net);
+                $isDup = in_array($dupKey, $existingKeys, true);
+            }
+
+            $preview[] = [
+                'record_id' => $recordId,
+                'date' => $date,
+                'type' => 'Доход',
+                'participant' => 'YooKassa',
+                'category' => 'Прибыль',
+                'amount' => $net,
+                'gross' => $gross,
+                'commission_pct' => $pct,
+                'method' => $method,
+                'method_label' => $methodLabel,
+                'description' => $desc,
+                'status' => $isDup ? 'duplicate' : 'new',
+            ];
+        }
+
+        return $preview;
+    }
+
+    /**
+     * Уникальные record_id уже импортированных YooKassa-платежей.
+     * Ключ: 'yk_' + id платежа ЮKassa (уникален для каждой транзакции).
+     */
+    private function yookassaExistingRecordIds(): array
+    {
+        $rows = $this->db->fetchAll(
+            'SELECT "record_id" FROM fin_transactions WHERE participant = ? AND "record_id" IS NOT NULL AND "record_id" != \'\'',
+            ['YooKassa']
+        );
+        $out = [];
+        foreach ($rows as $r) {
+            $out[] = (string)$r['record_id'];
+        }
+        return $out;
+    }
+
+    /**
+     * Составные ключи уже импортированных YooKassa-платежей.
+     */
+    private function yookassaExistingKeys(): array
+    {
+        $rows = $this->db->fetchAll(
+            'SELECT "date", "type", COALESCE("participant", \'\') AS participant, "amount" FROM fin_transactions WHERE participant = ?',
+            ['YooKassa']
+        );
+        $keys = [];
+        foreach ($rows as $r) {
+            $keys[] = $this->yookassaDupKey($r['date'], $r['type'], $r['participant'], $r['amount']);
+        }
+        return $keys;
+    }
+
+    /**
+     * Канонический ключ дедупликации YooKassa-транзакции (без record_id).
+     * Нормализует тип и сумму так же, как plategaDupKey.
+     */
+    private function yookassaDupKey(string $date, string $type, string $participant, $amount): string
+    {
+        $t = mb_strtolower(trim($type));
+        if (in_array($t, ['доход', 'income', 'приход', 'плюс', 'прибыль'], true)) {
+            $t = 'income';
+        } else {
+            $t = 'expense';
+        }
+        $amt = number_format(round((float)$amount, 2), 2, '.', '');
+        return $date . '|' . $t . '|' . trim($participant) . '|' . $amt;
+    }
+
+    /**
+     * Коммит выбранных строк превью YooKassa: дедупликация по record_id
+     * ('yk_'+id) и фолбэк-поиск «осиротевших» записей (record_id IS NULL).
+     * @return array ['added' => int, 'skipped' => int]
+     */
+    private function commitYooKassaImport(array $previewRows, array $includeIds): array
+    {
+        $existingKeys = $this->yookassaExistingKeys();
+        $existingRecordIds = $this->yookassaExistingRecordIds();
+        $added = 0;
+        $skipped = 0;
+
+        $map = [];
+        foreach ($previewRows as $t) {
+            $map[(string)$t['record_id']] = $t;
+        }
+
+        foreach ($includeIds as $rid) {
+            $t = $map[$rid] ?? null;
+            if (!$t) {
+                $skipped++;
+                continue;
+            }
+            // Строка могла прийти из модалки (поля + include) или из автосинка
+            // (с полем status). Если статус не передан — считаем кандидатом:
+            // финальную защиту даёт проверка record_id/составного ключа ниже.
+            $rowStatus = (string)($t['status'] ?? 'new');
+            if ($rowStatus !== 'new') {
+                $skipped++;
+                continue;
+            }
+
+            $recordId = (string)($t['record_id'] ?? '');
+            if ($recordId !== '') {
+                if (in_array($recordId, $existingRecordIds, true)) {
+                    $skipped++;
+                    continue;
+                }
+                // Фолбэк: платёж мог быть импортирован вручную через CSV —
+                // прошиваем record_id в существующую запись вместо дубликата.
+                $orphanId = $this->model->findOrphanByKey([
+                    'date' => (string)($t['date'] ?? ''),
+                    'type' => 'income',
+                    'category' => (string)($t['category'] ?? ''),
+                    'participant' => (string)($t['participant'] ?? ''),
+                    'amount' => (float)($t['amount'] ?? 0),
+                ]);
+                if ($orphanId !== null) {
+                    $this->model->attachRecordId($orphanId, $recordId);
+                    $existingRecordIds[] = $recordId;
+                    $skipped++;
+                    continue;
+                }
+            } else {
+                $dupKey = $this->yookassaDupKey(
+                    (string)($t['date'] ?? ''),
+                    (string)($t['type'] ?? 'Доход'),
+                    (string)($t['participant'] ?? 'YooKassa'),
+                    $t['amount'] ?? 0
+                );
+                if (in_array($dupKey, $existingKeys, true)) {
+                    $skipped++;
+                    continue;
+                }
+            }
+
+            try {
+                $this->model->create([
+                    'date' => (string)($t['date'] ?? ''),
+                    'type' => 'income',
+                    'category' => (string)($t['category'] ?? 'Прибыль'),
+                    'participant' => (string)($t['participant'] ?? 'YooKassa'),
+                    'amount' => (float)($t['amount'] ?? 0),
+                    'description' => (string)($t['description'] ?? ''),
+                    'record_id' => $recordId,
+                ]);
+                if ($recordId !== '') {
+                    $existingRecordIds[] = $recordId;
+                } else {
+                    $existingKeys[] = $dupKey;
+                }
+                $added++;
+            } catch (\Throwable $e) {
+                $skipped++;
+            }
+        }
+
+        return ['added' => $added, 'skipped' => $skipped];
+    }
+
+    /**
+     * Прошить record_id ('yk_...') в записи, импортированные вручную через CSV
+     * (record_id IS NULL) — когда в preview они совпали с платежами ЮKassa
+     * по составному ключу. Дальше дедупликация идёт по record_id.
+     * @param array $previewRows строки preview YooKassa
+     * @return int количество прошитых записей
+     */
+    private function stitchYooKassaOrphanRecordIds(array $previewRows): int
+    {
+        $stitched = 0;
+        foreach ($previewRows as $t) {
+            $recordId = (string)($t['record_id'] ?? '');
+            if ($recordId === '') {
+                continue;
+            }
+            if ($this->model->findByRecordId($recordId) !== null) {
+                continue;
+            }
+            $orphanId = $this->model->findOrphanByKey([
+                'date' => (string)($t['date'] ?? ''),
+                'type' => 'income',
+                'category' => (string)($t['category'] ?? ''),
+                'participant' => (string)($t['participant'] ?? ''),
+                'amount' => (float)($t['amount'] ?? 0),
+            ]);
+            if ($orphanId !== null) {
+                $this->model->attachRecordId($orphanId, $recordId);
+                $stitched++;
+            }
+        }
+        return $stitched;
     }
 
     /* ─────────────────────────── Настройки ─────────────────────────── */
@@ -794,6 +1461,7 @@ class AdminFinanceController
             'avg_exclude_categories', 'avg_exclude_income_keywords',
             'avg_exclude_expense_keywords', 'quick_categories', 'quick_participants',
             'platega_merchant_id', 'platega_secret', 'platega_days_back', 'platega_auto_sync',
+            'yookassa_shop_id', 'yookassa_secret_key', 'yookassa_days_back', 'yookassa_auto_sync',
         ];
         foreach ($allowed as $key) {
             if (!array_key_exists($key, $body)) {
@@ -803,14 +1471,29 @@ class AdminFinanceController
             if (in_array($key, ['decimals', 'auto_refresh'], true)) {
                 $value = (int)$value;
             }
+            if ($key === 'yookassa_days_back') {
+                $value = (int)$value;
+                if ($value < 1 || $value > 730) {
+                    $value = 30;
+                }
+            }
+            if ($key === 'yookassa_auto_sync') {
+                $value = (int)$value ? 1 : 0;
+            }
             if (in_array($key, ['avg_exclude_categories', 'avg_exclude_income_keywords', 'avg_exclude_expense_keywords', 'quick_categories', 'quick_participants'], true)) {
                 if (is_string($value)) {
                     $value = $value !== '' ? json_decode($value, true) : [];
                 }
                 $value = is_array($value) ? json_encode(array_values($value), JSON_UNESCAPED_UNICODE) : '[]';
             }
-            if ($key === 'platega_secret' && $value === '') {
+            // Секреты: пустое значение НЕ перезаписывает сохранённый ключ,
+            // непустое — шифруем перед сохранением (Crypto::decrypt умеет
+            // читать и легаси-значения без префикса enc:v1:).
+            if (in_array($key, ['platega_secret', 'yookassa_secret_key'], true) && $value === '') {
                 continue;
+            }
+            if (in_array($key, ['platega_secret', 'yookassa_secret_key'], true) && $value !== '') {
+                $value = Crypto::encrypt((string)$value);
             }
             $this->settings->set($key, (string)$value);
         }
@@ -902,7 +1585,7 @@ class AdminFinanceController
     private function allMonths(): array
     {
         $rows = Database::getInstance()->fetchAll(
-            "SELECT DISTINCT DATE_FORMAT(`date`, '%Y-%m') AS m FROM fin_transactions ORDER BY m DESC"
+            "SELECT DISTINCT TO_CHAR(\"date\", 'YYYY-MM') AS m FROM fin_transactions ORDER BY m DESC"
         );
         $out = [];
         foreach ($rows as $r) {
@@ -1171,7 +1854,7 @@ class AdminFinanceController
     private function plategaExistingKeys(): array
     {
         $rows = $this->db->fetchAll(
-            'SELECT `date`, `type`, COALESCE(`participant`, \'\') AS participant, `amount` FROM fin_transactions WHERE participant = ?',
+            'SELECT "date", "type", COALESCE("participant", \'\') AS participant, "amount" FROM fin_transactions WHERE participant = ?',
             ['Platega пополнение']
         );
         $keys = [];
@@ -1191,7 +1874,7 @@ class AdminFinanceController
     private function plategaExistingRecordIds(): array
     {
         $rows = $this->db->fetchAll(
-            "SELECT `record_id` FROM fin_transactions WHERE participant = ? AND `record_id` IS NOT NULL AND `record_id` != ''",
+            'SELECT "record_id" FROM fin_transactions WHERE participant = ? AND "record_id" IS NOT NULL AND "record_id" != \'\'',
             ['Platega пополнение']
         );
         $out = [];

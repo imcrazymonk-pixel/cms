@@ -16,7 +16,7 @@ from decimal import Decimal
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 import pymysql
 
-DB_HOST = '127.127.126.26'
+DB_HOST = 'localhost'
 DB_NAME = 'cms'
 DB_USER = 'root'
 DB_PASS = ''

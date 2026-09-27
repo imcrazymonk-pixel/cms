@@ -231,6 +231,14 @@ $router->get('admin/finance/api/platega/cron-sync', [AdminFinanceController::cla
 $router->get('admin/finance/api/platega/settings', [AdminFinanceController::class, 'apiPlategaSettings']);
 $router->post('admin/finance/api/platega/settings', [AdminFinanceController::class, 'apiPlategaSaveSettings']);
 
+// YooKassa import
+$router->post('admin/finance/api/yookassa/preview', [AdminFinanceController::class, 'apiYooKassaPreview']);
+$router->post('admin/finance/api/yookassa/import', [AdminFinanceController::class, 'apiYooKassaImport']);
+$router->post('admin/finance/api/yookassa/sync', [AdminFinanceController::class, 'apiYooKassaSync']);
+$router->get('admin/finance/api/yookassa/cron-sync', [AdminFinanceController::class, 'apiYooKassaCronSync']);
+$router->get('admin/finance/api/yookassa/settings', [AdminFinanceController::class, 'apiYooKassaSettings']);
+$router->post('admin/finance/api/yookassa/settings', [AdminFinanceController::class, 'apiYooKassaSaveSettings']);
+
 // Bulk actions
 $router->post('admin/finance/api/bulk/type', [AdminFinanceController::class, 'apiBulkType']);
 $router->post('admin/finance/api/bulk/category', [AdminFinanceController::class, 'apiBulkCategory']);

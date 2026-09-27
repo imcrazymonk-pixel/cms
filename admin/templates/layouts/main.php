@@ -35,7 +35,7 @@ $panelFontSize = $panelPrefs['fontSize'] ?? 'default';
 $panelAnimationsOff = (isset($panelPrefs['animations']) && $panelPrefs['animations'] === false);
 // Передаём server-side state в JS, чтобы panel.js не перезаписал настройки
 // из БД пустым localStorage нового браузера.
-$panelStateJson = htmlspecialchars(json_encode($panelPrefs, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8');
+$panelStateJson = json_encode($panelPrefs, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
 ?>
 <!DOCTYPE html>
 <html lang="ru" data-theme="<?= $panelTheme ?>" data-mode="<?= $panelMode ?>" data-density="<?= $panelDensity ?>" data-radius="<?= $panelRadius ?>" data-font-size="<?= $panelFontSize ?>"<?= $panelAnimationsOff ? ' data-animations="false"' : '' ?>>

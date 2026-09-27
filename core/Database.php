@@ -107,12 +107,27 @@ class Database
      */
     public function insert(string $table, array $data): int
     {
-        $columns = implode(', ', array_keys($data));
+        // Экранируем имена колонок (для PostgreSQL — кавычки для резервированных слов)
+        $driver = DB_DRIVER;
+        $quote = $driver === 'pgsql' ? '"' : '`';
+        $columns = implode(', ', array_map(function ($col) use ($quote) {
+            return $quote . $col . $quote;
+        }, array_keys($data)));
         $placeholders = ':' . implode(', :', array_keys($data));
         
         $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders})";
         
         $this->query($sql, $data);
+        
+        // PostgreSQL: lastInsertId требует имя sequence
+        if ($driver === 'pgsql') {
+            try {
+                return (int) $this->pdo->lastInsertId($table . '_id_seq');
+            } catch (\Throwable $e) {
+                // fallback: если не удалось получить sequence
+                return (int) $this->pdo->lastInsertId();
+            }
+        }
         
         return (int) $this->pdo->lastInsertId();
     }

@@ -30,6 +30,8 @@ class Autoloader
             'Auth' => CORE_PATH . '/Auth.php',
             'Hooks' => CORE_PATH . '/Hooks.php',
             'DataGrid' => CORE_PATH . '/DataGrid.php',
+            'Crypto' => CORE_PATH . '/Crypto.php',
+            'YooKassaClient' => CORE_PATH . '/payments/YooKassaClient.php',
         ];
 
         if (isset($classMap[$class])) {

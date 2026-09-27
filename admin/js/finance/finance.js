@@ -608,6 +608,7 @@
           toast('Настройки сохранены');
           loadData();
           startPlategaAutoSync();
+          startYookassaAutoSync();
         } else {
           showError('#finSettingsError', res.error || 'Ошибка сохранения');
         }
@@ -837,6 +838,238 @@
   }
 
 
+  /* ─────── YooKassa ─────── */
+  var _yookassaData = [];
+  var _yookassaAutoTimer = null;
+  var _yookassaFirstTimer = null;
+
+  function openYookassa() {
+    qs('#finYookassaError').hidden = true;
+    qs('#finYookassaBody').innerHTML = '<tr><td colspan="7" class="fin-empty-cell">Нажмите «Превью» для загрузки платежей</td></tr>';
+    qs('#finYookassaSelectAll').checked = true;
+    _yookassaData = [];
+    qs('#finYookassaSyncStatus').textContent = '';
+    qs('#finYookassaSummary').textContent = '';
+    loadYookassaSettings();
+    showModal('finYookassaModal');
+  }
+
+  function loadYookassaSettings() {
+    fetch('/admin/finance/api/yookassa/settings', {
+      headers: { 'Accept': 'application/json', 'X-CSRF-Token': CSRF }
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (data.shop_id) qs('#finYookassaShopId').value = data.shop_id;
+        if (data.secret_raw) qs('#finYookassaSecret').value = data.secret_raw;
+        qs('#finYookassaDays').value = data.days_back || 30;
+        var statusEl = qs('#finYookassaSyncStatus');
+        if (statusEl) {
+          var parts = [];
+          if (data.last_sync) {
+            parts.push('Синк: ' + new Date(data.last_sync).toLocaleString('ru-RU'));
+          }
+          if (data.last_sync_ok) {
+            parts.push('✓ OK');
+          } else if (data.last_error) {
+            parts.push('✗ ' + data.last_error);
+          }
+          statusEl.textContent = parts.join(' · ') || '';
+        }
+      })
+      .catch(function (e) {
+        console.error('[YooKassa] load settings error:', e);
+      });
+  }
+
+  function saveYookassaSettings() {
+    var payload = {
+      csrf_token: CSRF,
+      shop_id: qs('#finYookassaShopId').value,
+      days_back: qs('#finYookassaDays').value,
+    };
+    var secret = qs('#finYookassaSecret').value;
+    if (secret !== '') {
+      payload.secret = secret;
+    }
+    fetch('/admin/finance/api/yookassa/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(function () {});
+  }
+
+  function runYookassaPreview() {
+    var shopId = qs('#finYookassaShopId').value.trim();
+    var secret = qs('#finYookassaSecret').value.trim();
+    var daysBack = parseInt(qs('#finYookassaDays').value, 10) || 30;
+
+    qs('#finYookassaError').hidden = true;
+    qs('#finYookassaBody').innerHTML = '<tr><td colspan="7" class="fin-empty-cell">Загрузка... <span class="bf-spinner"></span></td></tr>';
+    qs('#finYookassaSummary').textContent = '';
+
+    var payload = { csrf_token: CSRF, shop_id: shopId, secret: secret, days_back: daysBack };
+    fetch('/admin/finance/api/yookassa/preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, status: r.status, data: data }; }); })
+      .then(function (res) {
+        if (!res.ok || !res.data || !res.data.success) {
+          var msg = (res.data && res.data.error) ? res.data.error : 'HTTP ' + res.status;
+          qs('#finYookassaBody').innerHTML = '<tr><td colspan="7" class="fin-empty-cell" style="color:var(--red)">Ошибка: ' + esc(msg) + '</td></tr>';
+          qs('#finYookassaError').textContent = msg;
+          qs('#finYookassaError').hidden = false;
+          return;
+        }
+        _yookassaData = res.data.transactions || [];
+        renderYookassaTable(_yookassaData);
+        saveYookassaSettings();
+      })
+      .catch(function (e) {
+        console.error('[YooKassa] preview error:', e);
+        qs('#finYookassaBody').innerHTML = '<tr><td colspan="7" class="fin-empty-cell" style="color:var(--red)">Ошибка сети: ' + esc(e.message || e) + '</td></tr>';
+        qs('#finYookassaError').textContent = e.message || 'Ошибка сети';
+        qs('#finYookassaError').hidden = false;
+      });
+  }
+
+  function renderYookassaTable(transactions) {
+    var tbody = qs('#finYookassaBody');
+    var statusLabel = { new: '', duplicate: 'уже добавлен', skipped: 'не подтверждён / пропущен', excluded: 'исключён' };
+
+    tbody.innerHTML = transactions.map(function (t, i) {
+      var selectable = t.status === 'new';
+      var checked = selectable ? 'checked' : '';
+      var disabled = !selectable ? 'disabled' : '';
+      var label = statusLabel[t.status] || '';
+      var gross = Number(t.gross) || 0;
+      var net = Number(t.amount) || 0;
+      var pctText = (t.commission_pct == null) ? '—' : '-' + Number(t.commission_pct) + '%';
+      var feeText = (t.commission_pct == null) ? '' : '<br><span style="color:var(--red);font-size:11px">-' + (gross - net).toFixed(2) + ' ₽</span>';
+      return '<tr' + (selectable ? '' : ' style="opacity:0.5"') + '>' +
+        '<td style="text-align:center"><input type="checkbox" class="yookassa-row-cb" data-idx="' + i + '" ' + checked + ' ' + disabled + '></td>' +
+        '<td>' + esc(t.date) + '</td>' +
+        '<td>' + esc(t.description) + (label ? ' <span style="color:var(--text-muted)">(' + label + ')</span>' : '') + '</td>' +
+        '<td>' + esc(t.method_label || t.method || '') + '</td>' +
+        '<td>' + gross.toFixed(2) + ' ₽</td>' +
+        '<td>' + pctText + feeText + '</td>' +
+        '<td style="font-weight:600">' + net.toFixed(2) + ' ₽</td>' +
+        '</tr>';
+    }).join('');
+
+    var selectAll = qs('#finYookassaSelectAll');
+    selectAll.onchange = function () {
+      qsa('.yookassa-row-cb:not(:disabled)').forEach(function (cb) { cb.checked = selectAll.checked; });
+      updateYookassaSummary();
+    };
+
+    qsa('.yookassa-row-cb').forEach(function (cb) {
+      cb.onchange = updateYookassaSummary;
+    });
+
+    updateYookassaSummary();
+  }
+
+  function updateYookassaSummary() {
+    var total = _yookassaData.length;
+    var newCount = _yookassaData.filter(function (t) { return t.status === 'new'; }).length;
+    var checked = qsa('.yookassa-row-cb:checked').length;
+    qs('#finYookassaSummary').textContent = 'Всего: ' + total + ' · можно импортировать: ' + newCount + ' · выбрано: ' + checked;
+  }
+
+  function importYookassaSelected() {
+    var checks = qsa('.yookassa-row-cb:checked');
+    if (!checks.length) {
+      qs('#finYookassaError').textContent = 'Ничего не выбрано';
+      qs('#finYookassaError').hidden = false;
+      return;
+    }
+
+    // Отправляем ПОЛНЫЕ строки превью + include, чтобы сервер мог создать
+    // транзакции и выполнить дедупликацию по record_id.
+    var payload = {
+      csrf_token: CSRF,
+      transactions: _yookassaData.map(function (t) {
+        var row = Object.assign({}, t);
+        row.include = t.status === 'new' && Number(t.amount) > 0;
+        return row;
+      }),
+    };
+
+    fetch('/admin/finance/api/yookassa/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (res) {
+        if (res.success) {
+          toast('Импортировано: ' + res.added + ', пропущено: ' + res.skipped);
+          hideModal('finYookassaModal');
+          loadData();
+        } else {
+          qs('#finYookassaError').textContent = res.error || 'Ошибка импорта';
+          qs('#finYookassaError').hidden = false;
+        }
+      })
+      .catch(function (e) {
+        console.error('[YooKassa] import error:', e);
+        qs('#finYookassaError').textContent = 'Ошибка сети: ' + (e.message || '');
+        qs('#finYookassaError').hidden = false;
+      });
+  }
+
+  function syncYookassaAuto() {
+    // Автоимпорт на сервере: /api/yookassa/sync сам берёт сохранённые
+    // shop_id/secret, делает preview и импортирует новые платежи.
+    fetch('/admin/finance/api/yookassa/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-Token': CSRF },
+      body: JSON.stringify({ csrf_token: CSRF })
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function (res) {
+        if (!res.success) {
+          if (res.error) console.warn('[YooKassa] auto sync:', res.error);
+          return;
+        }
+        if (res.added > 0) {
+          toast('ЮKassa авто: +' + res.added);
+          loadData();
+        }
+      })
+      .catch(function (e) {
+        console.error('[YooKassa] auto sync error:', e);
+      });
+  }
+
+  function startYookassaAutoSync() {
+    if (_yookassaAutoTimer) { clearInterval(_yookassaAutoTimer); _yookassaAutoTimer = null; }
+    if (_yookassaFirstTimer) { clearTimeout(_yookassaFirstTimer); _yookassaFirstTimer = null; }
+    var autoSync = parseInt((settings.yookassa_auto_sync || '0'), 10);
+    if (autoSync > 0) {
+      _yookassaAutoTimer = setInterval(syncYookassaAuto, 5 * 60 * 1000);
+      // Первый синк сразу после загрузки страницы (не ждём 5 минут)
+      _yookassaFirstTimer = setTimeout(syncYookassaAuto, 2000);
+    }
+  }
+
+  function initYookassa() {
+    startYookassaAutoSync();
+  }
+
+
   /* ─────── События ─────── */
   function bindEvents() {
     qs('#fin-btn-add').addEventListener('click', function () { openAdd(); });
@@ -854,6 +1087,14 @@
       toast('Настройки Platega сохранены');
     });
     qs('#finPlategaImportBtn').addEventListener('click', importPlategaSelected);
+
+    qs('#fin-btn-yookassa').addEventListener('click', openYookassa);
+    qs('#finYookassaPreviewBtn').addEventListener('click', runYookassaPreview);
+    qs('#finYookassaSaveBtn').addEventListener('click', function () {
+      saveYookassaSettings();
+      toast('Настройки ЮKassa сохранены');
+    });
+    qs('#finYookassaImportBtn').addEventListener('click', importYookassaSelected);
 
     // Контролы графика
     qs('#fin-scale').addEventListener('change', function () { state.scale = this.value; renderChart(); });
@@ -1000,6 +1241,7 @@
     bindEvents();
     loadData();
     initPlatega();
+    initYookassa();
   }
 
   window.Finance = { init: init };

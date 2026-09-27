@@ -1,6 +1,6 @@
 # HexaVeil CMS
 
-Собственная PHP CMS (vanilla, без фреймворков) для VPN-сервиса. Поддерживает MySQL и PostgreSQL, запуск через Docker или Open Server Panel.
+Собственная PHP CMS (vanilla, без фреймворков) для VPN-сервиса. Запуск через Docker.
 
 ## 🚀 Быстрый старт (Docker)
 
@@ -55,12 +55,6 @@ docker compose exec db psql -U cms -d cms
 - Docker Compose v2
 - 1 CPU, 1 GB RAM
 
-### Локальная разработка (Open Server Panel)
-- Open Server Panel
-- PHP 7.4+
-- MySQL 5.7+ / MariaDB
-- Apache с mod_rewrite
-
 ## 🐘 База данных
 
 ### Docker (PostgreSQL)
@@ -69,8 +63,7 @@ docker compose exec db psql -U cms -d cms
 - Seed-данные: администратор, категории, настройки сайта, настройки финансов
 - `install.lock` создаётся автоматически entrypoint-ом
 
-### Локально (MySQL)
-`config/config.php` автоматически читает `DB_DRIVER` из переменных окружения, с fallback на MySQL для локальной разработки.
+Вся конфигурация читается из переменных окружения (`.env`).
 
 ## 🗂️ Структура проекта
 
@@ -154,12 +147,6 @@ NewWeb/
 ```bash
 # Режим отладки (включён по умолчанию в .env)
 APP_DEBUG=true
-
-# Локальный запуск без Docker (Open Server Panel)
-# 1. Импортировать database.sql в MySQL
-# 2. Настроить config/config.php
-# 3. Создать install.lock
-# 4. Открыть http://hexacms
 ```
 
 ## 🐛 Отладка
