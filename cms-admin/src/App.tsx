@@ -6,6 +6,11 @@ import LoginPage from './pages/Login'
 import DashboardPage from './pages/Dashboard'
 import PostsListPage from './pages/posts/PostsList'
 import PostFormPage from './pages/posts/PostForm'
+import CategoriesPage from './pages/categories/CategoriesPage'
+import PagesListPage from './pages/pages/PagesList'
+import PageFormPage from './pages/pages/PageForm'
+import UsersListPage from './pages/users/UsersList'
+import UserFormPage from './pages/users/UserForm'
 import PlaceholderPage from './pages/Placeholder'
 
 export default function App() {
@@ -26,9 +31,13 @@ export default function App() {
             <Route path="posts" element={<PostsListPage />} />
             <Route path="posts/create" element={<PostFormPage />} />
             <Route path="posts/:id" element={<PostFormPage />} />
-            <Route path="posts/categories" element={<PlaceholderPage />} />
-            <Route path="pages" element={<PlaceholderPage />} />
-            <Route path="users" element={<PlaceholderPage />} />
+            <Route path="posts/categories" element={<CategoriesPage />} />
+            <Route path="pages" element={<PagesListPage />} />
+            <Route path="pages/create" element={<PageFormPage />} />
+            <Route path="pages/:id" element={<PageFormPage />} />
+            <Route path="users" element={<UsersListPage />} />
+            <Route path="users/create" element={<UserFormPage />} />
+            <Route path="users/:id" element={<UserFormPage />} />
             <Route path="media" element={<PlaceholderPage />} />
             <Route path="settings" element={<PlaceholderPage />} />
             <Route path="theme" element={<PlaceholderPage />} />
