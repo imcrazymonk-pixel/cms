@@ -14,8 +14,8 @@
 
 | Параметр | Значение |
 |---|---|
-| **Домен** | `https://test.hexaveil.xyz` |
-| **Админка** | `https://test.hexaveil.xyz/admin/` |
+| **Домен** | `https://hexaveil.xyz` |
+| **Админка** | `https://hexaveil.xyz/admin/` |
 | **Логин** | `admn` |
 | **Пароль** | `Cke;bkb2Njdfhbof` |
 | **Сервер** | Ubuntu, Docker Compose |
@@ -23,7 +23,7 @@
 | **Web** | Nginx (alpine), 2 уровня: nginx-selfsteal (reverse proxy) → hexacms_web (FastCGI) |
 | **БД** | PostgreSQL 16 (alpine) |
 | **Сеть** | 2 IP: `159.194.221.84` (нода) + `85.198.99.102` (CMS) |
-| **SSL** | Let's Encrypt, `test.hexaveil.xyz` |
+| **SSL** | Let's Encrypt, `hexaveil.xyz` |
 | **Reverse proxy** | nginx-selfsteal (`network_mode: host`) на портах 80/443 |
 | **Node** | Remnawave node (VLESS/Reality + XTLS-Vision) на порту 2222 |
 
@@ -414,7 +414,7 @@ NewWeb/
 - [x] HTTPS (порт 443) → proxy_pass 127.0.0.1:3000 → hexacms_web
 
 #### HTTPS
-- [x] Выпущен сертификат Let's Encrypt для `test.hexaveil.xyz`
+- [x] Выпущен сертификат Let's Encrypt для `hexaveil.xyz`
 - [x] Авто-обновление через cron (docker + certbot)
 
 #### Использование
@@ -509,8 +509,8 @@ $template->display('template-name'); // templates/themes/{theme}/template-name.p
 ### Production (сервер, 26.09.2026)
 
 ```bash
-# Сайт: https://test.hexaveil.xyz
-# Админка: https://test.hexaveil.xyz/admin/  (admn / Cke;bkb2Njdfhbof)
+# Сайт: https://hexaveil.xyz
+# Админка: https://hexaveil.xyz/admin/  (admn / Cke;bkb2Njdfhbof)
 ```
 
 **Архитектура сервера:**
@@ -872,7 +872,7 @@ npm run dev  # dev-прокси → cabinet.fortf.ru
 
 | CMS NewWeb | Инфраструктура | Пояснение |
 |------------|----------------|-----------|
-| `test.hexaveil.xyz` | `panel.fortf.ru`, `cabinet.fortf.ru` | Единый бренд HexaVeil |
+| `hexaveil.xyz` | `panel.fortf.ru`, `cabinet.fortf.ru` | Единый бренд HexaVeil |
 | 3D-глобус (координаты серверов) | Ноды monoList (DE, FI, NL, RU, US) | Визуализация локаций нод |
 | `connectUrl` в 3D-глобусе → `cabinet.fortf.ru` | Bedolaga Cabinet | Пользователь с лендинга → в кабинет |
 | `t.me/HexaVeil_bot` в ссылках | Bedolaga Bot `@HexaVeil_bot` | Единый Telegram-бот |
