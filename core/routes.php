@@ -71,6 +71,139 @@ function createTemplate(): TemplateEngine
 }
 
 // ============================================
+// CORS middleware для API
+// ============================================
+
+/**
+ * Set CORS headers for React SPA
+ */
+function apiCorsHeaders(): void
+{
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization');
+    header('Access-Control-Max-Age: 86400');
+}
+
+/**
+ * Send JSON response
+ */
+function apiJson(mixed $data, int $code = 200): void
+{
+    http_response_code($code);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+/**
+ * Send JSON error response
+ */
+function apiError(string $message, int $code = 400): void
+{
+    apiJson(['success' => false, 'error' => $message], $code);
+}
+
+/**
+ * Authenticate API request via JWT Bearer token
+ * Returns decoded payload or sends 401
+ */
+function apiAuth(): array
+{
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] 
+        ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] 
+        ?? '';
+
+    if (!preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
+        apiError('Требуется авторизация. Укажите Bearer token в заголовке Authorization.', 401);
+    }
+
+    $payload = JWTAuth::validateToken($matches[1]);
+    if (!$payload) {
+        apiError('Токен недействителен или истёк', 401);
+    }
+
+    return $payload;
+}
+
+// ============================================
+// API маршруты (React SPA)
+// ============================================
+
+// CORS preflight — разрешить все API-запросы
+$router->addRoute('OPTIONS', 'api/auth/login', function() {
+    apiCorsHeaders();
+    http_response_code(204);
+    exit;
+});
+
+$router->addRoute('OPTIONS', 'api/auth/me', function() {
+    apiCorsHeaders();
+    http_response_code(204);
+    exit;
+});
+
+// POST /api/auth/login — JWT authentication
+$router->post('api/auth/login', function() {
+    apiCorsHeaders();
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $login = trim($body['login'] ?? '');
+    $password = $body['password'] ?? '';
+
+    if (empty($login) || empty($password)) {
+        apiError('Логин и пароль обязательны');
+    }
+
+    // Use existing Auth::attempt to verify credentials (returns user array or null)
+    $user = Auth::attempt($login, $password);
+
+    if (!$user) {
+        apiError('Неверный логин или пароль', 401);
+    }
+
+    $token = JWTAuth::generateToken($user);
+
+    apiJson([
+        'success' => true,
+        'token' => $token,
+        'user' => [
+            'id'    => (int)$user['id'],
+            'login' => $user['login'],
+            'email' => $user['email'] ?? '',
+            'role'  => $user['role'],
+        ],
+    ]);
+});
+
+// GET /api/auth/me — verify token and return current user
+$router->get('api/auth/me', function() {
+    apiCorsHeaders();
+
+    $payload = apiAuth();
+
+    $db = Database::getInstance();
+    $user = $db->fetch(
+        "SELECT id, login, email, role FROM users WHERE id = :id",
+        ['id' => $payload['sub']]
+    );
+
+    if (!$user) {
+        apiError('Пользователь не найден', 404);
+    }
+
+    apiJson([
+        'success' => true,
+        'user' => [
+            'id'    => (int)$user['id'],
+            'login' => $user['login'],
+            'email' => $user['email'] ?? '',
+            'role'  => $user['role'],
+        ],
+    ]);
+});
+
+// ============================================
 // Маршруты админки
 // ============================================
 
