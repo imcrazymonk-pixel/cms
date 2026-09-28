@@ -5,22 +5,31 @@ export interface NavItem {
   children?: NavItem[]
 }
 
-export const navigation: NavItem[] = [
+export type NavEntry = NavItem | { type: 'section'; label: string }
+
+export const navigation: NavEntry[] = [
   { label: 'Дашборд', path: '/admin', icon: 'layout-dashboard' },
-  {
-    label: 'Посты', path: '/admin/posts', icon: 'file-text',
+
+  { type: 'section', label: 'Контент' },
+  { label: 'Посты', path: '/admin/posts', icon: 'file-text',
     children: [
       { label: 'Все посты', path: '/admin/posts', icon: 'list' },
       { label: 'Категории', path: '/admin/posts/categories', icon: 'folder-tree' },
     ],
   },
   { label: 'Страницы', path: '/admin/pages', icon: 'files' },
-  { label: 'Пользователи', path: '/admin/users', icon: 'users' },
   { label: 'Медиа', path: '/admin/media', icon: 'image' },
-  { label: 'Настройки', path: '/admin/settings', icon: 'settings' },
+
+  { type: 'section', label: 'Внешний вид' },
   { label: 'Темы', path: '/admin/theme', icon: 'palette' },
   { label: 'Виджеты', path: '/admin/widgets', icon: 'layout-grid' },
   { label: 'Меню', path: '/admin/menus', icon: 'menu' },
+
+  { type: 'section', label: 'Пользователи' },
+  { label: 'Пользователи', path: '/admin/users', icon: 'users' },
+
+  { type: 'section', label: 'Система' },
+  { label: 'Настройки', path: '/admin/settings', icon: 'settings' },
   { label: 'Логи', path: '/admin/logs', icon: 'scroll-text' },
   { label: 'Финансы', path: '/admin/finance', icon: 'wallet' },
 ]

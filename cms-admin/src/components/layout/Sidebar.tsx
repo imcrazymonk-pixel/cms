@@ -60,17 +60,29 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
       <ScrollArea className="flex-1 py-4">
         <nav className={cn("px-3 space-y-0.5", collapsed && "px-2")}>
           {navigation.map((item) => {
-            const Icon = iconMap[item.icon] || LayoutDashboard
-            const isActive = location.pathname === item.path
+            // Section header
+            if ('type' in item && item.type === 'section') {
+              if (collapsed) return <div key={item.label} className="my-2 mx-1 border-t border-[var(--glass-border)]" />
+              return (
+                <div key={item.label} className="px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-dark-400 select-none">
+                  {item.label}
+                </div>
+              )
+            }
 
-            if (item.children) {
-              const groupActive = item.children.some((c) => location.pathname === c.path)
-              const isExpanded = expandedGroups.has(item.label) || groupActive
+            // Regular nav item
+            const navItem = item as { label: string; path: string; icon: string; children?: { label: string; path: string; icon: string }[] }
+            const Icon = iconMap[navItem.icon] || LayoutDashboard
+            const isActive = location.pathname === navItem.path
+
+            if (navItem.children) {
+              const groupActive = navItem.children.some((c) => location.pathname === c.path)
+              const isExpanded = expandedGroups.has(navItem.label) || groupActive
 
               if (collapsed) {
                 return (
-                  <div key={item.label} className="space-y-0.5">
-                    {item.children.map((sub) => {
+                  <div key={navItem.label} className="space-y-0.5">
+                    {navItem.children.map((sub) => {
                       const subActive = location.pathname === sub.path
                       return (
                         <Tooltip key={sub.label} delayDuration={0}>
@@ -91,17 +103,17 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               }
 
               return (
-                <div key={item.label} className="space-y-0.5">
-                  <button onClick={() => toggleGroup(item.label)}
+                <div key={navItem.label} className="space-y-0.5">
+                  <button onClick={() => toggleGroup(navItem.label)}
                     className={cn("flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200",
                       groupActive ? "text-white bg-[var(--glass-bg-hover)] border border-[var(--glass-border)]" : "text-dark-200 hover:text-white hover:bg-[var(--glass-bg)]")}>
                     <Icon className={cn("w-5 h-5 mr-3 flex-shrink-0", groupActive ? "text-primary" : "")} />
-                    <span className="flex-1 text-left">{item.label}</span>
+                    <span className="flex-1 text-left">{navItem.label}</span>
                     <ChevronDown className={cn("w-4 h-4 text-dark-300 transition-transform duration-200", isExpanded && "rotate-180")} />
                   </button>
                   <div className={cn("overflow-hidden transition-all duration-200", isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0")}>
                     <div className="ml-3 pl-3 border-l border-[var(--glass-border)] space-y-0.5">
-                      {item.children.map((sub) => {
+                      {navItem.children.map((sub) => {
                         const subActive = location.pathname === sub.path
                         return (
                           <Link key={sub.path} to={sub.path} onClick={onClose}
@@ -120,18 +132,18 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             }
 
             return (
-              <Tooltip key={item.path} delayDuration={0}>
+              <Tooltip key={navItem.path} delayDuration={0}>
                 <TooltipTrigger asChild>
-                  <Link to={item.path} onClick={onClose}
+                  <Link to={navItem.path} onClick={onClose}
                     className={cn("flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 relative overflow-hidden",
                       isActive ? "text-white bg-[var(--glass-bg-hover)] border border-[var(--glass-border-hover)]" : "text-dark-200 hover:text-white hover:bg-[var(--glass-bg)] hover:translate-x-0.5",
                       collapsed && "justify-center px-0")}>
                     {isActive && !collapsed && <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full" style={{ background: 'linear-gradient(180deg, var(--accent-from), var(--accent-to))' }} />}
                     <Icon className={cn("w-5 h-5 flex-shrink-0", !collapsed && "mr-3", isActive ? "text-primary" : "")} />
-                    {!collapsed && <span>{item.label}</span>}
+                    {!collapsed && <span>{navItem.label}</span>}
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent side="right" className={cn(!collapsed && "md:hidden")}>{item.label}</TooltipContent>
+                <TooltipContent side="right" className={cn(!collapsed && "md:hidden")}>{navItem.label}</TooltipContent>
               </Tooltip>
             )
           })}
