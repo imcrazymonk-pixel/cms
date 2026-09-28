@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Button, Input, Card } from '../../components/ui'
+import { Loader2 } from 'lucide-react'
+import { Button, Input, Card, Label } from '../../components/ui'
 import { getUser, createUser, updateUser } from '../../api/users'
 
 export default function UserFormPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const isEdit = !!id
-
   const [login, setLogin] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -38,38 +38,34 @@ export default function UserFormPage() {
     } finally { setSaving(false) }
   }
 
-  if (loading) return <div className="text-[var(--text-secondary)] py-12 text-center">Загрузка...</div>
+  if (loading) return <div className="text-center py-12 text-muted-foreground">Загрузка...</div>
 
   return (
     <div className="max-w-xl">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1">
-            {isEdit ? 'Редактировать пользователя' : 'Создать пользователя'}
-          </h2>
-        </div>
+        <h2 className="text-xl md:text-2xl font-bold" style={{ color: 'var(--text-body)' }}>
+          {isEdit ? 'Редактировать пользователя' : 'Создать пользователя'}
+        </h2>
         <Button variant="ghost" onClick={() => navigate('/admin/users')}>← Назад</Button>
       </div>
       <form onSubmit={handleSubmit}>
         <Card>
-          <div className="space-y-4">
-            <Input label="Логин" value={login} onChange={(e) => setLogin(e.target.value)} required />
-            <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <Input label={isEdit ? 'Новый пароль (оставьте пустым, чтобы не менять)' : 'Пароль'} type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={!isEdit} />
-            <Input label="Отображаемое имя" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[var(--text-secondary)]">Роль</label>
-              <select value={role} onChange={(e) => setRole(e.target.value)}
-                className="w-full h-11 px-4 rounded-lg bg-white/5 border border-white/10 text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent)]">
+          <div className="space-y-4 p-4 md:p-6">
+            <div className="space-y-2"><Label>Логин</Label><Input value={login} onChange={(e) => setLogin(e.target.value)} required /></div>
+            <div className="space-y-2"><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+            <div className="space-y-2"><Label>{isEdit ? 'Новый пароль' : 'Пароль'}</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required={!isEdit} /></div>
+            <div className="space-y-2"><Label>Отображаемое имя</Label><Input value={displayName} onChange={(e) => setDisplayName(e.target.value)} /></div>
+            <div className="space-y-2">
+              <Label>Роль</Label>
+              <select value={role} onChange={(e) => setRole(e.target.value)} className="flex h-10 w-full rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-sm px-3 py-2 text-sm text-dark-50">
                 <option value="admin">Администратор</option>
                 <option value="editor">Редактор</option>
                 <option value="author">Автор</option>
               </select>
             </div>
-            <div className="space-y-1.5">
-              <label className="block text-sm font-medium text-[var(--text-secondary)]">Статус</label>
-              <select value={status} onChange={(e) => setStatus(e.target.value)}
-                className="w-full h-11 px-4 rounded-lg bg-white/5 border border-white/10 text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--accent)]">
+            <div className="space-y-2">
+              <Label>Статус</Label>
+              <select value={status} onChange={(e) => setStatus(e.target.value)} className="flex h-10 w-full rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-sm px-3 py-2 text-sm text-dark-50">
                 <option value="active">Активен</option>
                 <option value="suspended">Заблокирован</option>
               </select>
@@ -77,7 +73,7 @@ export default function UserFormPage() {
           </div>
         </Card>
         <div className="flex gap-3 mt-5">
-          <Button type="submit" loading={saving}>{isEdit ? 'Сохранить' : 'Создать'}</Button>
+          <Button type="submit" disabled={saving}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{isEdit ? 'Сохранить' : 'Создать'}</Button>
           <Button variant="ghost" onClick={() => navigate('/admin/users')}>Отмена</Button>
         </div>
       </form>

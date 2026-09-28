@@ -1,19 +1,27 @@
-import type { ReactNode } from 'react'
+import * as React from "react"
+import { cn } from "../../lib/utils"
 
-interface CardProps {
-  children: ReactNode
-  className?: string
-  padding?: boolean
-}
-
-export default function Card({ children, className = '', padding = true }: CardProps) {
-  return (
-    <div
-      className={`rounded-xl bg-[var(--glass-bg)] border border-[var(--glass-border)] backdrop-blur-sm ${
-        padding ? 'p-5' : ''
-      } ${className}`}
-    >
-      {children}
-    </div>
+const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => (
+    <div ref={ref} className={cn("rounded-2xl border text-card-foreground animate-fade-in glass-card", className)} {...props} />
   )
-}
+)
+Card.displayName = "Card"
+
+const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => <div ref={ref} className={cn("flex flex-col space-y-1.5 p-4 md:p-6", className)} {...props} />
+)
+const CardTitle = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLHeadingElement>>(
+  ({ className, ...props }, ref) => <h3 ref={ref} className={cn("text-lg font-semibold leading-none tracking-tight text-white", className)} {...props} />
+)
+const CardDescription = React.forwardRef<HTMLParagraphElement, React.HTMLAttributes<HTMLParagraphElement>>(
+  ({ className, ...props }, ref) => <p ref={ref} className={cn("text-sm text-muted-foreground", className)} {...props} />
+)
+const CardContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => <div ref={ref} className={cn("p-4 md:p-6 pt-0", className)} {...props} />
+)
+const CardFooter = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  ({ className, ...props }, ref) => <div ref={ref} className={cn("flex items-center p-4 md:p-6 pt-0", className)} {...props} />
+)
+
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }

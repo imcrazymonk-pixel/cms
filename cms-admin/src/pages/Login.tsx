@@ -1,5 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { User, Lock, AlertCircle, Loader2 } from 'lucide-react'
+import { Button } from '../components/ui/button'
+import { Input } from '../components/ui/input'
 import { login } from '../api/auth'
 import { useAuth } from '../store/authStore'
 
@@ -15,7 +18,6 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-
     try {
       const res = await login(loginField, password)
       setAuth(res.token, res.user)
@@ -28,55 +30,69 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-base)]">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-[var(--accent)] flex items-center justify-center text-white font-bold text-2xl mx-auto mb-4">
+    <div className="login-bg min-h-screen flex items-center justify-center p-4">
+      {/* Animated orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full opacity-10" style={{ background: 'radial-gradient(circle, var(--mesh-color-2) 0%, transparent 70%)', animation: 'login-orb-float 20s ease-in-out infinite' }} />
+        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full opacity-10" style={{ background: 'radial-gradient(circle, var(--mesh-color-1) 0%, transparent 70%)', animation: 'login-orb-float 25s ease-in-out infinite reverse' }} />
+      </div>
+
+      <div className="login-card-enter w-full max-w-sm">
+        {/* Logo */}
+        <div className="flex flex-col items-center mb-8">
+          <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-white font-bold text-3xl login-logo-glow mb-4">
             H
           </div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">HexaVeil CMS</h1>
-          <p className="text-sm text-[var(--text-secondary)] mt-1">Войдите в панель управления</p>
+          <h1 className="text-2xl font-bold text-white">HexaVeil CMS</h1>
+          <p className="text-sm text-dark-200 mt-1">Войдите в панель управления</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
-              {error}
-            </div>
-          )}
+        {/* Card */}
+        <div className="rounded-2xl border border-[var(--glass-border)] glass-card overflow-hidden">
+          <div className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {error && (
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                  {error}
+                </div>
+              )}
 
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Логин или Email</label>
-            <input
-              type="text"
-              value={loginField}
-              onChange={(e) => setLoginField(e.target.value)}
-              className="w-full h-11 px-4 rounded-lg bg-white/5 border border-white/10 text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-colors"
-              placeholder="admn"
-              required
-            />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-dark-100">Логин или Email</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-300" />
+                  <Input
+                    value={loginField}
+                    onChange={(e) => setLoginField(e.target.value)}
+                    className="pl-10"
+                    placeholder="admn"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-dark-100">Пароль</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-300" />
+                  <Input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                    placeholder="••••••••"
+                    required
+                  />
+                </div>
+              </div>
+
+              <Button type="submit" disabled={loading} className="w-full h-11">
+                {loading ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Вход...</> : 'Войти'}
+              </Button>
+            </form>
           </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">Пароль</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full h-11 px-4 rounded-lg bg-white/5 border border-white/10 text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] focus:ring-1 focus:ring-[var(--accent)] transition-colors"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full h-11 rounded-lg bg-[var(--accent)] text-white font-medium text-sm hover:brightness-110 disabled:opacity-50 transition-all"
-          >
-            {loading ? 'Вход...' : 'Войти'}
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   )

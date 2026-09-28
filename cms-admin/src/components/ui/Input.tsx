@@ -1,27 +1,15 @@
-import type { InputHTMLAttributes } from 'react'
+import * as React from "react"
+import { cn } from "../../lib/utils"
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string
-  error?: string
-}
+const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
+  ({ className, type, ...props }, ref) => {
+    return (
+      <input type={type}
+        className={cn("flex h-10 w-full rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg)] backdrop-blur-sm px-3 py-2 text-sm text-dark-50 ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-dark-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:border-primary/40 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-[var(--glass-border-hover)]", className)}
+        ref={ref} {...props} />
+    )
+  }
+)
+Input.displayName = "Input"
 
-export default function Input({ label, error, className = '', ...props }: InputProps) {
-  return (
-    <div className="space-y-1.5">
-      {label && (
-        <label className="block text-sm font-medium text-[var(--text-secondary)]">
-          {label}
-        </label>
-      )}
-      <input
-        className={`w-full h-11 px-4 rounded-lg bg-white/5 border text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 transition-colors ${
-          error
-            ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/30'
-            : 'border-white/10 focus:border-[var(--accent)] focus:ring-[var(--accent)]/30'
-        } ${className}`}
-        {...props}
-      />
-      {error && <p className="text-xs text-red-400 mt-1">{error}</p>}
-    </div>
-  )
-}
+export { Input }

@@ -1,13 +1,11 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DataGrid, Button, Badge } from '../../components/ui'
+import { DataGrid, Button, Badge, Input } from '../../components/ui'
 import type { Column } from '../../components/ui'
 import { getPosts, deletePost, type Post } from '../../api/posts'
 
-const statusColors: Record<string, 'default' | 'success' | 'warning' | 'danger' | 'info'> = {
-  published: 'success',
-  draft: 'warning',
-  archived: 'danger',
+const statusColors: Record<string, 'default' | 'success' | 'warning' | 'destructive' | 'secondary'> = {
+  published: 'success', draft: 'warning', archived: 'destructive',
 }
 
 export default function PostsListPage() {
@@ -21,26 +19,17 @@ export default function PostsListPage() {
   const [selectedIds, setSelectedIds] = useState<(string | number)[]>([])
   const [search, setSearch] = useState('')
 
-  const fetchPosts = useCallback(async () => {
+  const fetchPosts = async () => {
     setLoading(true)
     try {
       const res = await getPosts({ page, per_page: 15, sort: sortKey, dir: sortDir, search })
       setPosts(res.data)
       setTotal(res.total)
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false)
-    }
-  }, [page, sortKey, sortDir, search])
-
-  useEffect(() => { fetchPosts() }, [fetchPosts])
-
-  const handleSort = (key: string, dir: 'asc' | 'desc') => {
-    setSortKey(key)
-    setSortDir(dir)
-    setPage(1)
+    } catch { /* ignore */ }
+    finally { setLoading(false) }
   }
+
+  useEffect(() => { fetchPosts() }, [page, sortKey, sortDir, search])
 
   const handleDelete = async (id: number) => {
     if (!confirm('Удалить пост?')) return
@@ -50,73 +39,40 @@ export default function PostsListPage() {
 
   const columns: Column<Post>[] = [
     { key: 'title', label: 'Заголовок', sortable: true, width: '35%' },
-    { key: 'category_name', label: 'Категория', render: (r) => r.category_name ?? '—' },
-    {
-      key: 'status', label: 'Статус', sortable: true,
-      render: (r) => <Badge variant={statusColors[r.status] ?? 'default'}>{r.status}</Badge>,
-    },
+    { key: 'category_name', label: 'Категория', render: (r: Post) => r.category_name ?? '—' },
+    { key: 'status', label: 'Статус', sortable: true, render: (r: Post) => <Badge variant={statusColors[r.status] ?? 'default'}>{r.status}</Badge> },
     { key: 'author_name', label: 'Автор' },
-    {
-      key: 'created_at', label: 'Создан', sortable: true,
-      render: (r) => new Date(r.created_at).toLocaleDateString('ru-RU'),
-    },
+    { key: 'created_at', label: 'Создан', sortable: true, render: (r: Post) => new Date(r.created_at).toLocaleDateString('ru-RU') },
   ]
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="page-header mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-1">Посты</h2>
-          <p className="text-sm text-[var(--text-secondary)]">Управление записями блога</p>
+          <h1 className="page-header-title">Посты</h1>
+          <p className="text-sm text-muted-foreground">Управление записями блога</p>
         </div>
-        <Button onClick={() => navigate('/admin/posts/create')}>+ Создать пост</Button>
+        <div className="page-header-actions">
+          <Button onClick={() => navigate('/admin/posts/create')}>+ Создать пост</Button>
+        </div>
       </div>
 
-      {/* Search + mass actions */}
       <div className="flex items-center gap-3 mb-4">
-        <input
-          type="text"
-          placeholder="Поиск по заголовку..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-          className="h-10 px-4 rounded-lg bg-white/5 border border-white/10 text-[var(--text-primary)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)] w-72"
-        />
-        {selectedIds.length > 0 && (
-          <span className="text-sm text-[var(--text-secondary)]">
-            Выбрано: {selectedIds.length}
-          </span>
-        )}
+        <Input value={search} onChange={(e: React.ChangeEvent<HTMLInputElement>) => { setSearch(e.target.value); setPage(1) }} placeholder="Поиск по заголовку..." className="w-72" />
+        {selectedIds.length > 0 && <span className="text-sm text-muted-foreground">Выбрано: {selectedIds.length}</span>}
       </div>
 
       <DataGrid<Post>
-        columns={columns}
-        data={posts}
-        keyField="id"
-        total={total}
-        page={page}
-        perPage={15}
+        columns={columns} data={posts} keyField="id" total={total} page={page} perPage={15}
         onPageChange={setPage}
-        onSort={handleSort}
-        sortKey={sortKey}
-        sortDir={sortDir}
+        onSort={(key: string, dir: 'asc' | 'desc') => { setSortKey(key); setSortDir(dir); setPage(1) }}
+        sortKey={sortKey} sortDir={sortDir}
         loading={loading}
-        selectable
-        selectedIds={selectedIds}
-        onSelectionChange={setSelectedIds}
-        actions={(row) => (
+        selectable selectedIds={selectedIds} onSelectionChange={setSelectedIds}
+        actions={(row: Post) => (
           <div className="flex flex-col">
-            <button
-              onClick={() => navigate(`/admin/posts/${row.id}`)}
-              className="px-3 py-1.5 text-left text-sm text-[var(--text-primary)] hover:bg-white/5 transition-colors"
-            >
-              Редактировать
-            </button>
-            <button
-              onClick={() => handleDelete(row.id)}
-              className="px-3 py-1.5 text-left text-sm text-red-400 hover:bg-white/5 transition-colors"
-            >
-              Удалить
-            </button>
+            <button onClick={() => navigate(`/admin/posts/${row.id}`)} className="px-3 py-1.5 text-left text-sm text-dark-50 hover:bg-[var(--glass-bg-hover)]">Редактировать</button>
+            <button onClick={() => handleDelete(row.id)} className="px-3 py-1.5 text-left text-sm text-red-400 hover:bg-[var(--glass-bg-hover)]">Удалить</button>
           </div>
         )}
         emptyMessage="Постов пока нет"
