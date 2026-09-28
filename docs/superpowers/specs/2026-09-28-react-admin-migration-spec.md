@@ -85,13 +85,13 @@ React SPA в `/cms-admin/`, потом переключение `/admin/` → SP
 - GET /api/stats — { posts, comments, users, categories }
 - GET /api/posts?limit=5 — последние посты для таблицы
 
+### Используем
+- ✅ **Recharts** — для графиков (Finance: доходы/расходы bar/line/area)
+- ✅ **TanStack Query** (@tanstack/react-query) — для всех API-запросов (кеш, рефетч, load/error)
+- ⬜ **@dnd-kit** — опционально (сортировка секций, меню)
 ### Не включаем
-- ❌ Recharts (графики)
-- ❌ TanStack Query (простой fetch + useEffect)
-- ❌ DnD (сортируемые секции)
-- ❌ @dnd-kit
-- ❌ Violations, Collector, Node Fleet, Billing, System Status, Updates
-- ❌ i18n
+- ❌ Violations, Collector, Node Fleet, Billing, System Status, Updates — Remnawave-specific, будут в Фазе 2+
+- ❌ i18n (пока используем русский текст напрямую)
 
 ---
 
@@ -235,14 +235,26 @@ React SPA в `/cms-admin/`, потом переключение `/admin/` → SP
 ## Finance
 
 ### Визуал
-- Статистика (итого за месяц, всего)
-- DataGrid транзакций (дата, сумма, статус, провайдер)
-- Настройки провайдеров
+- KPI карточки (Доходы, Расходы, Баланс, Операций)
+- **Recharts-график** (Доходы/Расходы: bar/line/area, scale: day/week/month/year, range: 7d/1m/3m/1y/all)
+- DataGrid транзакций (дата, тип, категория, участник, сумма, описание)
+- Модалки: добавление/редактирование, импорт CSV, Platega, YooKassa
+- Bulk-действия: экспорт, смена типа/категории/участника/описания, удаление
+- Чекбоксы для массового выбора + пагинация
 
 ### API
-- GET /api/finance/stats — статистика
-- GET /api/finance/transactions — список транзакций
-- GET /api/finance/providers — список провайдеров
+- GET /api/finance/stats — KPI статистика
+- GET /api/finance/chart?scale=day&range=1m — данные для графика
+- GET /api/finance/transactions?page=&per_page=&type=&q=&sort=&order=
+- POST /api/finance/transaction — создать
+- PUT /api/finance/transaction/{id} — обновить
+- DELETE /api/finance/transaction/{id} — удалить
+- POST /api/finance/bulk — массовые действия
+- POST /api/finance/import/csv — импорт CSV
+- GET /api/finance/platega/preview — превью Platega
+- POST /api/finance/platega/import — импорт из Platega
+- GET /api/finance/yookassa/preview — превью YooKassa
+- POST /api/finance/yookassa/import — импорт из YooKassa
 
 ---
 
@@ -278,6 +290,34 @@ React SPA в `/cms-admin/`, потом переключение `/admin/` → SP
 4. При 401 → очистка authStore, редирект на /login
 
 ---
+
+## Зависимости (npm)
+
+```json
+{
+  "react": "^19",
+  "react-dom": "^19",
+  "react-router-dom": "^7",
+  "lucide-react": "^0.400",
+  "clsx": "^2",
+  "tailwind-merge": "^2",
+  "class-variance-authority": "^0.7",
+  "@radix-ui/react-dialog": "^1",
+  "@radix-ui/react-dropdown-menu": "^2",
+  "@radix-ui/react-scroll-area": "^1",
+  "@radix-ui/react-select": "^2",
+  "@radix-ui/react-separator": "^1",
+  "@radix-ui/react-tooltip": "^1",
+  "@radix-ui/react-checkbox": "^1",
+  "@radix-ui/react-label": "^2",
+  "@radix-ui/react-popover": "^1",
+  "cmdk": "^1",
+  "zustand": "^5",
+  "axios": "^1",
+  "@tanstack/react-query": "^5",
+  "recharts": "^2"
+}
+```
 
 ## UI-компоненты (общие)
 
