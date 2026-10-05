@@ -1,0 +1,4597 @@
+{
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "commandPalette": "Command palette",
+    "quickSearch": "Quick search",
+    "showShortcuts": "Show shortcuts",
+    "closeModal": "Close dialog"
+  },
+  "common": {
+    "save": "Save",
+    "saving": "Saving...",
+    "cancel": "Cancel",
+    "undo": "Undo",
+    "retry": "Retry",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "creating": "Creating...",
+    "add": "Add",
+    "refresh": "Refresh",
+    "search": "Search",
+    "back": "Back",
+    "close": "Close",
+    "confirm": "Confirm",
+    "copy": "Copy",
+    "copied": "Copied!",
+    "enable": "Enable",
+    "disable": "Disable",
+    "restart": "Restart",
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "reset": "Reset",
+    "openMenu": "Open menu",
+    "openInNewTab": "Open in new tab",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "remove": "Remove",
+    "toggleSort": "Toggle sort order",
+    "dragToReorder": "Drag to reorder",
+    "loading": "Loading...",
+    "error": "Error",
+    "loadError": "Failed to load data. Please try again.",
+    "total": "Total",
+    "online": "Online",
+    "offline": "Offline",
+    "noConnection": "No internet connection",
+    "disabled": "Disabled",
+    "active": "Active",
+    "enabled": "Enabled",
+    "unknown": "Unknown",
+    "never": "Never",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}} h ago",
+    "daysAgo": "{{count}} d ago",
+    "today": "Today",
+    "noData": "No data",
+    "actions": "Actions",
+    "details": "Details",
+    "profile": "Profile",
+    "filters": "Filters",
+    "all": "All",
+    "shown": "Shown",
+    "of": "of",
+    "more": "more",
+    "yes": "Yes",
+    "no": "No",
+    "none": "None",
+    "bytes": {
+      "b": "B",
+      "kb": "KB",
+      "mb": "MB",
+      "gb": "GB",
+      "tb": "TB",
+      "kb_short": "K",
+      "mb_short": "M",
+      "gb_short": "G",
+      "tb_short": "T"
+    },
+    "speed": {
+      "bps": "bps",
+      "kbps": "Kbps",
+      "mbps": "Mbps",
+      "gbps": "Gbps"
+    },
+    "time": {
+      "days": "d",
+      "hours": "h",
+      "minutes": "m"
+    },
+    "export": {
+      "export": "Export",
+      "csv": "Export CSV",
+      "json": "Export JSON",
+      "csvDone": "CSV export completed",
+      "jsonDone": "JSON export completed"
+    },
+    "savedFilters": {
+      "title": "Saved Filters",
+      "save": "Save current",
+      "noSaved": "No saved filters",
+      "enterName": "Enter name...",
+      "filtersActive": "Filters active",
+      "saved": "Filter saved",
+      "deleted": "Filter deleted",
+      "filterSaved": "Filter saved",
+      "filterApplied": "Filter applied",
+      "filterDeleted": "Filter deleted"
+    },
+    "confirmDialog": {
+      "defaultTitle": "Confirm action",
+      "defaultDescription": "Are you sure? This action cannot be undone."
+    }
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "nodes": "Nodes",
+    "fleet": "Fleet",
+    "hosts": "Hosts",
+    "violations": "Violations",
+    "blocking": "Blocking",
+    "automations": "Automations",
+    "notifications": "Notifications",
+    "admins": "Admins & Roles",
+    "audit": "Audit Log",
+    "adminPlugins": "Plugins",
+    "logs": "System Logs",
+    "analytics": "Analytics",
+    "settings": "Settings",
+    "administration": "Administration",
+    "mailServer": "Mail Server",
+    "resources": "Resources",
+    "billing": "Billing",
+    "reports": "Reports",
+    "backups": "Backups",
+    "apiKeys": "API & Webhooks",
+    "xrayEditor": "Xray editor",
+    "squads": "Squads",
+    "bedolagaGroup": "Bedolaga Bot",
+    "bedolaga": {
+      "dashboard": "Dashboard",
+      "customers": "Customers",
+      "promo": "Promo",
+      "marketing": "Marketing",
+      "referrals": "Referrals",
+      "tickets": "Support",
+      "partners": "Partners",
+      "activities": "Activities",
+      "settings": "Bot Settings"
+    },
+    "sections": {
+      "core": "Core",
+      "security": "Security",
+      "data": "Data",
+      "bedolaga": "Bedolaga",
+      "admin": "Management",
+      "plugins": "Extensions"
+    }
+  },
+  "header": {
+    "searchPlaceholder": "Search...",
+    "commandHint": "Cmd+K to search",
+    "online": "Online"
+  },
+  "sidebar": {
+    "expand": "Expand",
+    "collapse": "Collapse",
+    "telegramChat": "Telegram Chat",
+    "support": "Support the author",
+    "administrator": "Administrator",
+    "logout": "Logout",
+    "logoutConfirmTitle": "Log out of the panel?",
+    "logoutConfirmDescription": "You'll need to sign in again. Any unsaved changes will be lost."
+  },
+  "commandPalette": {
+    "placeholder": "Search pages, users, actions...",
+    "navigation": "Navigation",
+    "quickActions": "Quick Actions",
+    "administration": "Administration",
+    "users": "Go to Users",
+    "nodes": "Go to Nodes",
+    "hosts": "Go to Hosts",
+    "settings": "Go to Settings",
+    "createUser": "Create user",
+    "searchUsers": "Search users",
+    "noResults": "No results found"
+  },
+  "appearance": {
+    "title": "Appearance",
+    "theme": "Theme",
+    "dark": "Dark",
+    "light": "Light",
+    "system": "System",
+    "primaryColor": "Primary Color",
+    "accentColor": "Accent Color",
+    "fontSize": "Font Size",
+    "compact": "Compact",
+    "comfortable": "Comfortable",
+    "spacious": "Spacious",
+    "resetToDefaults": "Reset to defaults",
+    "density": "Density",
+    "borderRadius": "Border radius",
+    "animations": "Animations"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "description": "An error occurred while rendering this component.",
+    "defaultError": "An unexpected error occurred.",
+    "retry": "Try again",
+    "reload": "Reload page"
+  },
+  "login": {
+    "title": "Panel Login",
+    "subtitle": "Administration control panel",
+    "loginButton": "Log in",
+    "forgotPassword": "Forgot password?",
+    "loggingIn": "Logging in...",
+    "telegram": "Log in with Telegram",
+    "password": "Log in with password",
+    "username": "Username",
+    "passwordLabel": "Password",
+    "enterUsername": "Enter username",
+    "enterPassword": "Enter password",
+    "or": "or",
+    "error": "Login error",
+    "passwordStrength": {
+      "weak": "Weak",
+      "fair": "Fair",
+      "good": "Good",
+      "strong": "Strong"
+    },
+    "passwordChecks": {
+      "length": "8+ characters",
+      "lower": "Lowercase (a-z)",
+      "upper": "Uppercase (A-Z)",
+      "digit": "Digit (0-9)",
+      "special": "Special character",
+      "noCyrillic": "Cyrillic characters detected — switch keyboard to EN layout"
+    },
+    "authorizedOnly": "For authorized administrators only",
+    "passwordRequirements": "Create an admin account to get started",
+    "donationNote": "This is an open-source project. The author would be grateful for any support, as a lot of time, effort and resources were invested in its development.",
+    "donationTitle": "Support the project",
+    "passwordLogin": "Password login",
+    "authorization": "Authorization",
+    "backendUnavailable": "Backend is starting up...",
+    "backendUnavailableHint": "The server may still be initializing. This can take a minute on first launch.",
+    "retry": "Retry",
+    "initialSetup": "Initial setup",
+    "createAdmin": "Create administrator",
+    "setupWelcome": "Welcome! Create the first administrator account to start using the panel.",
+    "creatingAccount": "Creating account...",
+    "createAccount": "Create account",
+    "confirmPassword": "Confirm password",
+    "repeatPassword": "Repeat password",
+    "passwordsDoNotMatch": "Passwords do not match",
+    "passwordsMatch": "Passwords match",
+    "generatePassword": "Generate password",
+    "generator": "Generate",
+    "copyPassword": "Copy password",
+    "minChars": "At least {{count}} characters",
+    "totp": {
+      "setup": "2FA Setup",
+      "verify": "Two-Factor Authentication",
+      "setupHint": "Scan the QR code with Google Authenticator or any TOTP-compatible app.",
+      "verifyHint": "Enter the 6-digit code from your authenticator app or a backup code.",
+      "secretKey": "Secret key (for manual entry)",
+      "backupCodes": "Backup codes",
+      "backupSaved": "I have saved the backup codes",
+      "enterCode": "Verification code",
+      "confirmSetup": "Confirm & enable 2FA",
+      "verifyButton": "Verify",
+      "orBackupCode": "Or enter a backup code",
+      "cancel": "Cancel"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "System overview",
+    "details": "Details",
+    "loading": "Loading...",
+    "refresh": "Refresh",
+    "loadError": "Failed to load data",
+    "retry": "Retry",
+    "resetLayout": "Reset widget order",
+    "period24h": "24h",
+    "period7d": "7d",
+    "period30d": "30d",
+    "totalUsers": "Total users",
+    "totalUsersTooltip": "Total number of registered users",
+    "usersSubtitle": "Active: {{active}}, expired: {{expired}}",
+    "activeUsers": "Active",
+    "onlineUsers": "Online",
+    "activeNodes": "Active nodes",
+    "activeNodesTooltip": "Nodes currently online and serving connections",
+    "nodesSubtitle": "Offline: {{offline}}, disabled: {{disabled}}, users: {{online}}",
+    "totalNodes": "Total nodes",
+    "onlineNodes": "Nodes online",
+    "totalTraffic": "Traffic today",
+    "violations": "Violations",
+    "violationsSubtitle": "Today: {{today}}, this week: {{week}}",
+    "violationsTooltip": "Recorded anti-abuse system violations",
+    "collectorQueue": "Violation Queue",
+    "collectorPending": "Pending",
+    "collectorProcessed": "Processed",
+    "collectorViolations": "Violations found",
+    "collectorSkipped": "Skipped (cooldown)",
+    "collectorDrainMs": "Drain time",
+    "collectorBatches": "Batches received",
+    "collectorRejected": "Batches rejected",
+    "collectorBusy": "Busy",
+    "collectorOverloaded": "Overloaded",
+    "systemStatus": "System status",
+    "systemStatusTooltip": "Current status of system components",
+    "statusOnline": "Online",
+    "statusOffline": "Offline",
+    "statusDegraded": "Degraded",
+    "statusUnknown": "Unknown",
+    "ms": "ms",
+    "sessions": "sessions",
+    "countries": "Countries",
+    "cores": "cores",
+    "panelSince": "Running since",
+    "uptime": "Uptime",
+    "uptimeDH": "{{days}}d {{hours}}h",
+    "uptimeHM": "{{hours}}h {{minutes}}m",
+    "uptimeM": "{{minutes}}m",
+    "versionsAndUpdates": "Versions & Updates",
+    "versionsTooltip": "Current component versions and available updates",
+    "currentVersion": "Current version",
+    "versionAvailable": "v{{version}} available",
+    "upToDate": "Up to date",
+    "missedUpdates": "Missed updates ({{count}})",
+    "traffic": "Traffic",
+    "trafficTooltip": "Total traffic volume for all time",
+    "trafficChartTooltip": "Traffic chart by node for the selected period",
+    "today": "Today",
+    "thisWeek": "This week",
+    "thisMonth": "This month",
+    "connectionsByNode": "Connections by node",
+    "connectionsByNodeTooltip": "Current distribution of user connections across nodes",
+    "total": "Total",
+    "violationsBySeverity": "Violations by severity",
+    "violationsBySeverityTooltip": "Distribution of violations by severity level",
+    "unique": "Unique",
+    "byRecommendation": "By recommendation",
+    "byRecommendationTooltip": "Distribution of violations by recommended action",
+    "avgScore": "Avg score",
+    "maxScore": "Max score",
+    "quickActions": "Quick actions",
+    "users": "Users",
+    "nodes": "Nodes",
+    "violationsLabel": "Violations",
+    "settings": "Settings",
+    "noData": "No data",
+    "noDataForPeriod": "No data for the selected period",
+    "noConnectionData": "No connection data",
+    "quantity": "Quantity",
+    "usersOnline": "{{count}} users online",
+    "severityLow": "Low",
+    "severityMedium": "Medium",
+    "severityHigh": "High",
+    "severityCritical": "Critical",
+    "actionNoAction": "No action",
+    "actionMonitor": "Monitor",
+    "actionWarn": "Warning",
+    "actionSoftBlock": "Soft block",
+    "actionTempBlock": "Temp block",
+    "actionHardBlock": "Hard block",
+    "recentActivity": "Recent activity",
+    "topUsers": "Top users",
+    "trafficChart": "Traffic",
+    "noActivity": "No activity",
+    "billing": "Billing",
+    "billingTooltip": "Infrastructure billing summary",
+    "billingMonthly": "This month",
+    "billingProviders": "Providers",
+    "billingNodes": "Billing nodes",
+    "billingTotalSpent": "Total spent",
+    "billingNextPayment": "Next payment",
+    "growthTrends": "Growth Trends",
+    "growthTrendsTooltip": "30-day dynamics: new users, violations and day-over-day traffic change",
+    "trendUsers": "Users",
+    "trendTraffic": "Traffic",
+    "trendViolations": "Violations",
+    "totalGrowth": "Total for period",
+    "topUsersByTraffic": "Top by Traffic",
+    "topUsersByTrafficTooltip": "Users with the highest traffic consumption",
+    "top5": "Top 5",
+    "topViolators": "Top Violators",
+    "topViolatorsTooltip": "Users with the most violations in the last 7 days",
+    "last7days": "7 days",
+    "noViolators": "No violators",
+    "currentOnline": "Current Online",
+    "onlineSubtitle": "On {{nodes}} nodes",
+    "trafficSubtitle": "Today: {{today}}",
+    "trafficDay": "Day",
+    "trafficWeek": "Week",
+    "trafficMonth": "Month",
+    "activityFeed": "Activity Feed",
+    "activityFeedTooltip": "Recent admin actions",
+    "live": "Live",
+    "nodeLoad": "Node Load",
+    "nodeLoadTooltip": "Top 5 loaded nodes by average CPU and memory",
+    "expiryTimeline": "Subscription Expiry",
+    "expiryTimelineTooltip": "Users with subscriptions expiring soon",
+    "expiringIn7d": "In 7 days",
+    "expiringIn30d": "In 30 days",
+    "trafficAnomalies": "Traffic Anomalies",
+    "trafficAnomaliesTooltip": "Nodes with traffic deviating >50% from 7-day average",
+    "noAnomalies": "All normal"
+  },
+  "users": {
+    "title": "Users",
+    "subtitle": "User management",
+    "username": "Username",
+    "email": "Email",
+    "status": "Status",
+    "traffic": "Traffic",
+    "expireAt": "Expires",
+    "createdAt": "Created",
+    "lastActive": "Last active",
+    "searchPlaceholder": "Search by name, email or UUID...",
+    "resolveButton": "Find exact",
+    "resolveNotFound": "User not found",
+    "noUsers": "No users",
+    "usersNotFound": "Users not found",
+    "createUser": "Create user",
+    "create": "Create",
+    "creating": "Creating...",
+    "cancel": "Cancel",
+    "refresh": "Refresh",
+    "found": "Found",
+    "usersCount": "users",
+    "resetAllFilters": "Reset all filters",
+    "resetAll": "Reset all",
+    "loadError": "Load error",
+    "unknownError": "Unknown error",
+    "retry": "Retry",
+    "noData": "No data",
+    "showing": "{{from}}–{{to}} of {{total}}",
+    "hwidDevices": "HWID devices",
+    "expires": "Expires",
+    "unlimited": "Unlimited",
+    "statuses": {
+      "active": "Active",
+      "disabled": "Disabled",
+      "expired": "Expired",
+      "limited": "Limited"
+    },
+    "filters": {
+      "title": "Filters",
+      "allStatuses": "All statuses",
+      "status": "Status",
+      "statusActive": "Active",
+      "statusDisabled": "Disabled",
+      "statusLimited": "Limited",
+      "statusExpired": "Expired",
+      "trafficType": "Traffic type",
+      "any": "Any",
+      "unlimited": "Unlimited",
+      "withLimit": "With limit",
+      "trafficUsage": "Traffic usage",
+      "anyUsage": "Any",
+      "above90": "> 90%",
+      "above70": "> 70%",
+      "above50": "> 50%",
+      "zeroTraffic": "Zero",
+      "expiry": "Expiry",
+      "anyExpiry": "Any",
+      "expiring7d": "Expiring in 7d",
+      "expiring30d": "Expiring in 30d",
+      "alreadyExpired": "Already expired",
+      "noExpiry": "No expiry",
+      "activity": "Activity",
+      "anyActivity": "Any",
+      "online24h": "Online in 24h",
+      "online7d": "Online in 7d",
+      "online30d": "Online in 30d",
+      "neverConnected": "Never connected",
+      "perPage": "Per page",
+      "sortBy": "Sort by",
+      "sortName": "By name",
+      "sortTraffic": "By traffic",
+      "sortDate": "By date",
+      "sortStatus": "By status"
+    },
+    "sort": {
+      "createdAt": "Created date",
+      "trafficCurrent": "Traffic (current)",
+      "trafficRaw": "Traffic (actual)",
+      "trafficLifetime": "Traffic (lifetime)",
+      "hwidDevices": "HWID devices",
+      "lastActivity": "Last activity",
+      "expireDate": "Expire date",
+      "trafficLimit": "Traffic limit",
+      "name": "Name",
+      "status": "Status",
+      "descending": "Descending",
+      "ascending": "Ascending"
+    },
+    "table": {
+      "user": "User",
+      "status": "Status",
+      "traffic": "Traffic",
+      "rawTrafficPrefix": "actual: ",
+      "rawTrafficHint": "Actual traffic without node multipliers",
+      "hwid": "HWID",
+      "activity": "Activity",
+      "expires": "Expires",
+      "created": "Created"
+    },
+    "createModal": {
+      "title": "Create user",
+      "description": "Fill in new user details",
+      "basicInfo": "Basic info",
+      "username": "Username",
+      "telegramId": "Telegram ID",
+      "email": "Email",
+      "tag": "Tag",
+      "tagHint": "A-Z, 0-9, _ (max 16 chars)",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Notes about user...",
+      "trafficAndLimits": "Traffic & Limits",
+      "unlimitedTraffic": "Unlimited traffic",
+      "trafficLimit": "Traffic limit",
+      "gb": "GB",
+      "resetStrategy": "Reset strategy",
+      "expireDate": "Expiration date",
+      "expireHint": "Leave empty for indefinite access",
+      "hwidLimit": "Device limit",
+      "hwidHint": "0 = unlimited",
+      "squads": "Squads",
+      "externalSquad": "External squad",
+      "notSelected": "Not selected",
+      "internalSquads": "Internal squads"
+    },
+    "strategies": {
+      "monthly": "Monthly",
+      "monthlyRolling": "Monthly (rolling)",
+      "weekly": "Weekly",
+      "daily": "Daily",
+      "noReset": "No reset"
+    },
+    "actions": {
+      "view": "View",
+      "edit": "Edit",
+      "enable": "Enable",
+      "disable": "Disable",
+      "delete": "Delete"
+    },
+    "toasts": {
+      "userEnabled": "User enabled",
+      "userDisabled": "User disabled",
+      "userDeleted": "User deleted",
+      "userCreated": "User created",
+      "createError": "Create error",
+      "enableError": "Enable error",
+      "disableError": "Disable error",
+      "deleteError": "Delete error",
+      "error": "Error",
+      "csvExported": "CSV export completed",
+      "jsonExported": "JSON export completed",
+      "bulkEnabled": "Enabled: {{success}}, errors: {{failed}}",
+      "bulkDisabled": "Disabled: {{success}}, errors: {{failed}}",
+      "bulkDeleted": "Deleted: {{success}}, errors: {{failed}}"
+    },
+    "bulkSelected": "Selected: {{count}}",
+    "bulkOnPage": "{{count}} on page",
+    "bulkEnable": "Enable",
+    "bulkDisable": "Disable",
+    "bulkDelete": "Delete",
+    "deleteConfirm": {
+      "title": "Delete user?",
+      "description": "User and all data will be deleted. This action cannot be undone.",
+      "confirm": "Delete"
+    },
+    "bulkDeleteConfirm": {
+      "title": "Delete {{count}} users?",
+      "description": "All selected users and their data will be permanently deleted. This action cannot be undone.",
+      "confirm": "Delete {{count}}"
+    },
+    "disableConfirm": {
+      "title": "Disable user?",
+      "description": "The user will lose access to VPN connections. You can re-enable them later.",
+      "confirm": "Disable"
+    },
+    "perPage": "per page",
+    "selected": "Selected",
+    "bulkActions": "Bulk actions"
+  },
+  "userDetail": {
+    "strategies": {
+      "monthly": "Monthly",
+      "monthlyRolling": "Monthly (rolling)",
+      "weekly": "Weekly",
+      "daily": "Daily",
+      "noReset": "No reset"
+    },
+    "notFound": "User not found",
+    "backToList": "Back to list",
+    "userNotFound": "User not found",
+    "returnToList": "Return to list",
+    "editing": "Editing",
+    "generalInfo": "General Info",
+    "changesSaved": "Changes saved",
+    "unknown": "Unknown",
+    "indefinite": "Indefinite",
+    "trafficUnlimited": "Unlimited",
+    "protocols": "Protocols",
+    "internalSquads": "Internal squads",
+    "squads": {
+      "title": "Squads",
+      "externalSquad": "External squad",
+      "internalSquads": "Internal squads",
+      "notSelected": "Not selected",
+      "noSquadsAvailable": "No squads available"
+    },
+    "violations": {
+      "title": "Violations"
+    },
+    "statuses": {
+      "active": "Active",
+      "disabled": "Disabled",
+      "expired": "Expired",
+      "limited": "Limited"
+    },
+    "fields": {
+      "status": "Status",
+      "selectStatus": "Select status",
+      "description": "Description",
+      "descriptionPlaceholder": "Notes about user...",
+      "tag": "Tag",
+      "tagHint": "A-Z, 0-9, _ (max 16 chars)",
+      "email": "Email",
+      "telegramId": "Telegram ID",
+      "trafficLimit": "Traffic limit",
+      "gb": "GB",
+      "enterLimit": "Enter limit",
+      "trafficReset": "Traffic reset",
+      "expireDate": "Expiration date",
+      "removeDate": "Remove date (indefinite)",
+      "hwidLimit": "Device limit (HWID)",
+      "readOnly": "Info (read-only)",
+      "created": "Created",
+      "expires": "Expires",
+      "lastActivity": "Last activity",
+      "lastTrafficReset": "Last traffic reset",
+      "firstConnection": "First connection"
+    },
+    "statusLabel": "Status",
+    "selectStatus": "Select status",
+    "description": "Description",
+    "descriptionPlaceholder": "Notes about user...",
+    "tag": "Tag",
+    "tagHint": "A-Z, 0-9, _ (max 16 chars)",
+    "trafficLimit": "Traffic limit",
+    "trafficUnlimited_v2": "Unlimited",
+    "trafficEnterLimit": "Enter limit",
+    "trafficGB": "GB",
+    "trafficReset": "Traffic reset",
+    "trafficResetStrategies": {
+      "NO_RESET": "No reset",
+      "DAY": "Daily",
+      "WEEK": "Weekly",
+      "MONTH": "Monthly"
+    },
+    "expireDate": "Expiration date",
+    "clearDate": "Remove date (indefinite)",
+    "hwidLimit": "Device limit (HWID)",
+    "readonlyInfo": "Info (read-only)",
+    "created": "Created",
+    "expires": "Expires",
+    "lastTrafficReset": "Last traffic reset",
+    "firstConnection": "First connection",
+    "traffic": {
+      "title": "Traffic",
+      "currentPeriod": "Current period",
+      "allTime": "All time",
+      "used": "Used",
+      "limit": "Limit",
+      "unlimited": "Unlimited",
+      "loading": "Loading...",
+      "total": "Total",
+      "percentUsed": "{{percent}}% used",
+      "perNode": "Breakdown by nodes",
+      "nodeBreakdown": "Breakdown by nodes",
+      "nodeTotal": "Total",
+      "noNodeData": "No traffic data by nodes for this period",
+      "periods": {
+        "current": "Current",
+        "lifetime": "Lifetime",
+        "today": "Today",
+        "week": "Week",
+        "month": "Month",
+        "3month": "3 months",
+        "6month": "6 months",
+        "year": "Year",
+        "nodes": "By nodes",
+        "byNodes": "By nodes",
+        "3monthShort": "3 mo.",
+        "6monthShort": "6 mo."
+      }
+    },
+    "devices": {
+      "title": "Devices",
+      "syncButton": "Sync devices",
+      "sync": "Sync",
+      "limitLabel": "Limit",
+      "noDevices": "No registered devices",
+      "osVersion": "OS Version",
+      "model": "Model",
+      "app": "App",
+      "userAgent": "User Agent",
+      "added": "Added",
+      "uaBadge": {
+        "linkInUa": "Double tunnel",
+        "botLibrary": "Bot/script",
+        "stub": "Truncated UA",
+        "empty": "Empty UA",
+        "unknown": "Unknown client",
+        "tooltip": "User-Agent does not match a known VPN client. Inspect this device"
+      }
+    },
+    "subscription": {
+      "title": "Subscription",
+      "link": "Subscription link",
+      "copy": "Copy",
+      "uuid": "Subscription UUID",
+      "noSubscription": "No active subscription",
+      "noActive": "No active subscription",
+      "lastOpened": "Last opened",
+      "revoked": "Revoked",
+      "userAgent": "User Agent",
+      "qrTitle": "Subscription QR Code",
+      "qrDescription": "Scan this QR code with a VPN client to import the subscription",
+      "qrDownload": "Download PNG",
+      "revokeFull": "Full reissue",
+      "revokePasswords": "Passwords only",
+      "revokeFullConfirm": "Reissue subscription?",
+      "revokeFullConfirmDesc": "The subscription URL and all connection passwords will be regenerated. The user will need to re-import their subscription.",
+      "revokePasswordsConfirm": "Regenerate passwords?",
+      "revokePasswordsConfirmDesc": "Connection passwords (Trojan, VLESS, Shadowsocks) will be regenerated. The subscription URL will remain the same.",
+      "revokeFullSuccess": "Subscription fully reissued",
+      "revokePasswordsSuccess": "Connection passwords regenerated"
+    },
+    "antiAbuse": {
+      "title": "Anti-Abuse",
+      "trustScore": "Trust Score",
+      "violations30d": "Violations (30d)",
+      "connections": "Connections",
+      "uniqueIps24h": "Unique IPs (24h)"
+    },
+    "ips": {
+      "title": "IP Addresses",
+      "ip": "IP",
+      "city": "City",
+      "provider": "Provider",
+      "connections": "Conn.",
+      "lastSeen": "Last Seen",
+      "noData": "No IP address data",
+      "showAll": "Show all ({{count}})",
+      "periods": {
+        "24h": "24 hours",
+        "7d": "Week",
+        "30d": "Month"
+      }
+    },
+    "history": {
+      "title": "Change history"
+    },
+    "actions": {
+      "save": "Save",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "editUser": "Edit",
+      "enable": "Enable",
+      "enableUser": "Enable",
+      "disable": "Disable",
+      "disableUser": "Disable",
+      "resetTraffic": "Reset traffic",
+      "delete": "Delete",
+      "deleteUser": "Delete",
+      "deleteConfirmTitle": "Delete user?",
+      "deleteConfirmDesc": "User and all data will be deleted. This action cannot be undone."
+    },
+    "deleteConfirm": {
+      "title": "Delete user?",
+      "description": "User and all data will be deleted. This action cannot be undone.",
+      "confirm": "Delete"
+    },
+    "toasts": {
+      "hwidSynced": "HWID devices synced",
+      "syncError": "Sync error",
+      "userEnabled": "User enabled",
+      "userDisabled": "User disabled",
+      "trafficReset": "Traffic reset",
+      "error": "Error",
+      "userUpdated": "User updated",
+      "saveError": "Save error",
+      "userDeleted": "User deleted",
+      "deleteError": "Delete error"
+    },
+    "toast": {
+      "enabled": "User enabled",
+      "disabled": "User disabled",
+      "trafficReset": "Traffic reset",
+      "deleted": "User deleted",
+      "updated": "User updated",
+      "hwidSynced": "HWID devices synced"
+    }
+  },
+  "nodes": {
+    "title": "Nodes",
+    "subtitle": "Server management",
+    "tabs": {
+      "nodes": "Nodes",
+      "billing": "Billing"
+    },
+    "totalNodes": "Total",
+    "onlineNodes": "Online",
+    "offlineNodes": "Offline",
+    "disabledNodes": "Disabled",
+    "usersOnline": "Users",
+    "noNodes": "No nodes added",
+    "todayTraffic": "Today",
+    "totalTraffic": "Total",
+    "editNode": {
+      "title": "Edit node",
+      "description": "Node parameters edit form",
+      "name": "Name",
+      "namePlaceholder": "Node name",
+      "address": "Address",
+      "addressPlaceholder": "IP or domain",
+      "port": "Port",
+      "portPlaceholder": "Port"
+    },
+    "createNode": {
+      "title": "Add node",
+      "description": "New node creation form",
+      "configProfile": "Config profile",
+      "selectProfile": "Select profile",
+      "inbounds": "Inbounds",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "noInbounds": "No inbounds available"
+    },
+    "agentToken": {
+      "title": "Node Agent Token",
+      "nodeLabel": "Node",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Not set",
+      "saveWarning": "Save the token! It won't be shown again.",
+      "copyToken": "Copy token",
+      "copyConfig": "Copy config",
+      "envHint": "For agent .env file:",
+      "generate": "Generate",
+      "regenerate": "Regenerate",
+      "generating": "Generating...",
+      "revoke": "Revoke",
+      "revoking": "Revoking...",
+      "confirmGenerate": "Generate new token?",
+      "confirmGenerateDesc": "The old token will stop working.",
+      "confirmRevoke": "Revoke token?",
+      "confirmRevokeDesc": "Node Agent will lose access.",
+      "installAgent": "Install Agent",
+      "installHint": "Run on the node server:",
+      "copyCommand": "Copy command",
+      "installed": "Installed",
+      "notInstalled": "Not installed",
+      "copied": "Copied!",
+      "node": "Node"
+    },
+    "stats": {
+      "total": "Total",
+      "online": "Online",
+      "offline": "Offline",
+      "disabled": "Disabled",
+      "users": "Users",
+      "today": "Today",
+      "agents": "Agents online",
+      "agentsMissing": "{{count}} without agent"
+    },
+    "agent": {
+      "connected": "Agent",
+      "connectedSince": "Agent online · last ping {{ago}}",
+      "offline": "Agent offline",
+      "offlineSince": "Agent offline · last ping {{ago}}",
+      "offlineNever": "Token is issued, but the agent has never connected",
+      "missing": "No agent",
+      "missingHint": "Generate a token and install Node Agent on the server"
+    },
+    "actions": {
+      "restart": "Restart",
+      "edit": "Edit",
+      "agentToken": "Agent token",
+      "enable": "Enable",
+      "disable": "Disable",
+      "delete": "Delete",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "create": "Create",
+      "creating": "Creating...",
+      "add": "Add",
+      "refresh": "Refresh",
+      "confirm": "Confirm",
+      "fetchUsersIps": "Users IPs"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "disabled": "Disabled",
+      "never": "Never",
+      "noNodes": "No nodes added"
+    },
+    "deleteConfirm": {
+      "title": "Delete node?",
+      "description": "Node will be deleted. This action cannot be undone.",
+      "confirm": "Delete"
+    },
+    "disableConfirm": {
+      "title": "Disable node?",
+      "description": "The node will stop accepting connections. You can re-enable it later."
+    },
+    "toast": {
+      "restarted": "Node restarted",
+      "enabled": "Node enabled",
+      "disabled": "Node disabled",
+      "deleted": "Node deleted",
+      "updated": "Node updated",
+      "created": "Node created",
+      "saveError": "Save error",
+      "createError": "Create error",
+      "tokenGenerated": "Token generated",
+      "tokenRevoked": "Token revoked",
+      "error": "Error"
+    },
+    "fetchUsersIps": {
+      "title": "Users IP Addresses",
+      "starting": "Starting scan...",
+      "scanning": "Scanning nodes...",
+      "failed": "Failed to fetch data",
+      "noResults": "No active connections found",
+      "found": "Found",
+      "users": "users",
+      "error": "Failed to start scan"
+    },
+    "sort": {
+      "label": "Sort",
+      "resetCustom": "Reset order",
+      "dragHandle": "Drag to reorder",
+      "preset": {
+        "auto": "Auto (issues first)",
+        "name": "Name (A→Z)",
+        "users": "Online users (↓)",
+        "today": "Today's traffic (↓)",
+        "lastSeen": "Last ping (↓)",
+        "created": "Created date (↓)",
+        "custom": "Custom order"
+      }
+    }
+  },
+  "fleet": {
+    "title": "Fleet",
+    "subtitle": "Server fleet monitoring",
+    "avgCpu": "Avg CPU",
+    "avgRam": "Avg RAM",
+    "throughput": "Throughput",
+    "searchPlaceholder": "Search by name or address...",
+    "statusAll": "All",
+    "statusOnline": "Online",
+    "statusOffline": "Offline",
+    "statusDisabled": "Disabled",
+    "statusNever": "No data",
+    "noNodes": "No nodes",
+    "nothingFound": "Nothing found",
+    "table": {
+      "status": "Status",
+      "node": "Node",
+      "cpu": "CPU",
+      "ram": "RAM",
+      "disk": "Disk",
+      "speed": "Speed",
+      "users": "Users",
+      "traffic": "Traffic",
+      "uptime": "Uptime"
+    },
+    "detail": {
+      "info": "Info",
+      "address": "Address",
+      "xray": "Xray",
+      "xrayRunning": "Xray running",
+      "lastSeen": "Last seen",
+      "metrics": "Metrics",
+      "disk": "Disk",
+      "download": "Download",
+      "upload": "Upload",
+      "trafficAndActions": "Traffic & Actions",
+      "trafficToday": "Today",
+      "trafficTotal": "Total",
+      "users": "Users",
+      "restartNode": "Restart node",
+      "enableNode": "Enable node",
+      "disableNode": "Disable node",
+      "uptimeDaysHours": "{{days}}d {{hours}}h",
+      "uptimeHoursMinutes": "{{hours}}h {{minutes}}m",
+      "uptimeMinutes": "{{minutes}}m"
+    },
+    "stats": {
+      "total": "Total",
+      "online": "Online",
+      "offline": "Offline",
+      "avgCpu": "Avg CPU",
+      "avgRam": "Avg RAM",
+      "throughput": "Throughput"
+    },
+    "actions": {
+      "refresh": "Refresh",
+      "restart": "Restart",
+      "restartTooltip": "Restart node",
+      "enable": "Enable",
+      "enableTooltip": "Enable node",
+      "disable": "Disable",
+      "disableTooltip": "Disable node"
+    },
+    "filter": {
+      "all": "All",
+      "online": "Online",
+      "offline": "Offline",
+      "disabled": "Disabled"
+    },
+    "card": {
+      "core": "Core",
+      "cores": "Cores",
+      "network": "Network",
+      "disk": "Disk"
+    },
+    "sort": {
+      "label": "Sort",
+      "custom": "Custom order",
+      "resetCustom": "Reset order"
+    },
+    "scripts": {
+      "catalog": "Script Catalog",
+      "builtin": "Built-in",
+      "custom": "Custom",
+      "run": "Run Script",
+      "running": "Running",
+      "executing": "Script executing...",
+      "output": "Output",
+      "exitCode": "Exit code",
+      "selectNode": "Select node",
+      "scriptContent": "Script content",
+      "searchPlaceholder": "Search scripts...",
+      "allCategories": "All",
+      "noScripts": "No scripts found",
+      "noHistory": "No command history",
+      "waitingOutput": "Waiting for output...",
+      "historyType": "Type",
+      "historyAdmin": "Admin",
+      "historyStatus": "Status",
+      "historyDuration": "Duration",
+      "historyDate": "Date",
+      "createScript": "Create Script",
+      "editScript": "Edit Script",
+      "createScriptDescription": "Create a new custom script for the catalog",
+      "editScriptDescription": "Edit the custom script",
+      "deleteScript": "Delete Script",
+      "deleteConfirm": "Are you sure you want to delete \"{{name}}\"?",
+      "deleted": "Script deleted",
+      "created": "Script created",
+      "updated": "Script updated",
+      "formName": "Internal name",
+      "formNameHint": "Unique identifier (auto-generated from display name)",
+      "formDisplayName": "Display name",
+      "formDescription": "Description",
+      "formDescriptionPlaceholder": "What does this script do?",
+      "formCategory": "Category",
+      "formContent": "Script content",
+      "formTimeout": "Timeout (seconds)",
+      "formRequiresRoot": "Requires root",
+      "importFromGithub": "Import from GitHub",
+      "importDescription": "Import scripts from a GitHub URL or browse a repository",
+      "importFromUrl": "From URL",
+      "importFromRepo": "From Repository",
+      "importUrl": "Script URL",
+      "importUrlHint": "Direct link to a .sh file (supports github.com and raw.githubusercontent.com)",
+      "repoUrl": "Repository URL",
+      "repoUrlHint": "e.g. https://github.com/user/repo",
+      "preview": "Preview",
+      "browseRepo": "Browse",
+      "import": "Import",
+      "importSelected": "Import Selected",
+      "importing": "Importing...",
+      "imported": "Script imported",
+      "bulkImported": "{{count}} scripts imported",
+      "noShFiles": "No .sh files found in this repository",
+      "truncatedWarning": "Repository has too many files, some may not be shown",
+      "downloadError": "Failed to download script",
+      "categoryForAll": "Category for all",
+      "timeoutForAll": "Timeout for all",
+      "source": "Source",
+      "categories": {
+        "security": "Security",
+        "network": "Network",
+        "system": "System",
+        "monitoring": "Monitoring",
+        "custom": "Custom"
+      }
+    },
+    "terminal": {
+      "title": "Terminal",
+      "label": "Terminal",
+      "connect": "Connect",
+      "disconnect": "Disconnect",
+      "connecting": "Connecting",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "sessionTimeout": "Session timed out",
+      "fullscreen": "Fullscreen",
+      "agentNotConnected": "Agent not connected",
+      "permissionDenied": "Permission denied",
+      "closeConfirm": "Close terminal session?"
+    },
+    "tabs": {
+      "monitoring": "Monitoring",
+      "terminal": "Terminal",
+      "terminalDesc": "Select a node to open a terminal session",
+      "scripts": "Scripts",
+      "history": "History",
+      "scheduled": "Scheduled",
+      "bulk": "Bulk Ops"
+    },
+    "scheduled": {
+      "description": "Cron-based script execution on nodes. Scripts run automatically on schedule.",
+      "noTasks": "No scheduled tasks",
+      "create": "Create task",
+      "createFirst": "Create first task",
+      "edit": "Edit task",
+      "formHint": "Pick a script, node and schedule. Environment variables are optional.",
+      "script": "Script",
+      "scriptPlaceholder": "Select a script",
+      "noScripts": "No scripts available. Add some on the Scripts tab.",
+      "builtin": "Built-in",
+      "node": "Node",
+      "nodePlaceholder": "Select a node",
+      "preset": "Quick presets",
+      "cron": "Cron expression",
+      "cronInvalid": "Invalid cron expression (5 fields required)",
+      "cronCustom": "Custom schedule: {{expr}}",
+      "envVars": "Environment variables",
+      "addEnv": "Add",
+      "noEnvVars": "No variables set",
+      "enable": "Enable immediately",
+      "enableHint": "Task will start running on schedule right after creation",
+      "pause": "Pause",
+      "resume": "Resume",
+      "runs": "runs: {{count}}",
+      "deleteConfirmTitle": "Delete task?",
+      "deleteConfirmDescription": "Task \"{{name}}\" will be removed. The script itself and run history are preserved.",
+      "toast": {
+        "created": "Task created",
+        "updated": "Task updated",
+        "toggled": "Status toggled",
+        "deleted": "Task deleted"
+      },
+      "presets": {
+        "every5m": "Every 5 minutes",
+        "every15m": "Every 15 minutes",
+        "everyHour": "Every hour",
+        "every6h": "Every 6 hours",
+        "dailyMidnight": "Daily at 00:00",
+        "daily3am": "Daily at 03:00",
+        "weeklyMonday": "Mondays at 00:00",
+        "monthlyFirst": "1st of each month"
+      }
+    },
+    "bulk": {
+      "description": "Mass operations on node agent tokens. Empty body = all applicable nodes.",
+      "generateTokens": "Generate Tokens (all without)",
+      "installCommands": "Install Commands (all)",
+      "revokeTokens": "Revoke All Tokens"
+    },
+    "toast": {
+      "restarted": "Node restarted",
+      "enabled": "Node enabled",
+      "disabled": "Node disabled",
+      "error": "Operation failed"
+    }
+  },
+  "hosts": {
+    "title": "Hosts",
+    "subtitle": "Connection hosts management",
+    "totalHosts": "Total",
+    "activeHosts": "Active",
+    "disabledHosts": "Disabled",
+    "hiddenHosts": "Hidden",
+    "stats": {
+      "total": "Total",
+      "active": "Active",
+      "disabled": "Disabled",
+      "hidden": "Hidden"
+    },
+    "actions": {
+      "add": "Add",
+      "refresh": "Refresh",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saving": "Saving...",
+      "create": "Create",
+      "creating": "Creating...",
+      "edit": "Edit",
+      "enable": "Enable",
+      "disable": "Disable",
+      "delete": "Delete"
+    },
+    "noHosts": "No hosts",
+    "noName": "No name",
+    "hidden": "Hidden",
+    "statusActive": "Active",
+    "statusDisabled": "Disabled",
+    "security": {
+      "label": "Security",
+      "none": "No encryption",
+      "tls": "TLS",
+      "reality": "Reality",
+      "xtls": "XTLS",
+      "default": "Default"
+    },
+    "editHost": {
+      "title": "Edit host",
+      "description": "Change host parameters and save",
+      "name": "Name",
+      "namePlaceholder": "Host name",
+      "address": "Address",
+      "addressPlaceholder": "IP or domain",
+      "port": "Port",
+      "portPlaceholder": "Port",
+      "tag": "Tag",
+      "tagPlaceholder": "Host tag",
+      "serverDescription": "Server description",
+      "serverDescPlaceholder": "Server description",
+      "hiddenHost": "Hidden host"
+    },
+    "createHost": {
+      "title": "Add host",
+      "description": "Fill in new host parameters"
+    },
+    "nodesCount": "Nodes ({{count}})",
+    "deleteConfirm": {
+      "title": "Delete host?",
+      "description": "Host will be deleted. This action cannot be undone."
+    },
+    "toast": {
+      "enabled": "Host enabled",
+      "disabled": "Host disabled",
+      "deleted": "Host deleted",
+      "updated": "Host updated",
+      "created": "Host created",
+      "saveError": "Save error",
+      "createError": "Create error"
+    }
+  },
+  "blocking": {
+    "title": "Blocking",
+    "description": "Manage IP blocks, HWID blacklist and whitelist",
+    "tabs": {
+      "ip": "IP Blocking",
+      "hwid": "HWID Blacklist",
+      "whitelist": "Whitelist"
+    }
+  },
+  "blockedIPs": {
+    "title": "Blocked IPs",
+    "addIP": "Add IP",
+    "bulkBlock": "Bulk Block",
+    "sync": "Sync",
+    "empty": "No blocked IPs",
+    "forever": "Permanent",
+    "pagination": "Page {{current}} / {{total}}",
+    "addSuccess": "IP blocked",
+    "addError": "Failed to add IP",
+    "bulkSuccess": "IPs blocked",
+    "bulkError": "Bulk block failed",
+    "deleteSuccess": "Block removed",
+    "deleteError": "Failed to remove block",
+    "syncSuccess": "Blocklist synced",
+    "syncError": "Sync failed",
+    "columns": {
+      "ipCidr": "IP / CIDR",
+      "country": "Country",
+      "asnProvider": "Provider",
+      "reason": "Reason",
+      "addedBy": "Added By",
+      "created": "Date",
+      "expires": "Expires",
+      "actions": "Actions"
+    },
+    "durations": {
+      "forever": "Forever",
+      "1h": "1 hour",
+      "24h": "24 hours",
+      "7d": "7 days",
+      "30d": "30 days"
+    },
+    "addDialog": {
+      "title": "Add IP to blocklist",
+      "description": "Enter an IP address or CIDR subnet to block",
+      "ipCidr": "IP / CIDR",
+      "reason": "Reason",
+      "reasonPlaceholder": "Reason for blocking (optional)",
+      "duration": "Duration",
+      "submit": "Block"
+    },
+    "bulkDialog": {
+      "title": "Bulk Block",
+      "description": "Enter IP addresses, one per line",
+      "ips": "IP List",
+      "ipsPlaceholder": "1.2.3.4\n10.0.0.0/24\n192.168.1.0/24",
+      "reason": "Reason",
+      "duration": "Duration",
+      "submit": "Block All"
+    },
+    "deleteDialog": {
+      "title": "Remove block",
+      "description": "Remove block for {{ip}}?"
+    }
+  },
+  "violations": {
+    "title": "Violations",
+    "subtitle": "Anti-abuse system and violation management",
+    "tooltip": "The anti-abuse system analyzes user connections and detects anomalies: suspicious geo-movements, multiple ASNs, unusual devices and other deviations. Score from 0 to 100 shows the degree of suspicion.",
+    "periodSummary": "— {{count}} in {{period}}",
+    "periodToday": "today",
+    "periodWeek": "the week",
+    "periodMonth": "the month",
+    "periodDays": "{{count}} d",
+    "tabs": {
+      "all": "All",
+      "pending": "Pending",
+      "topViolators": "Top violators",
+      "reports": "Reports & ASN"
+    },
+    "severity": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "severityTooltips": {
+      "critical": "Score 80–100. Serious anomalies requiring immediate intervention.",
+      "high": "Score 60–79. Suspicious activity, review recommended.",
+      "medium": "Score 40–59. Minor deviations, monitoring recommended.",
+      "low": "Score 0–39. Informational notices, no action needed."
+    },
+    "actions": {
+      "block": "Block",
+      "blockShort": "Block",
+      "blockTooltip": "Block user in the panel. VPN access will be disabled.",
+      "dismiss": "Dismiss",
+      "dismissTooltip": "Dismiss violation. Score is preserved in statistics.",
+      "annul": "Annul",
+      "annulTooltip": "Annul as false positive. Score will be reset to zero.",
+      "annulAll": "Annul all",
+      "annulAllGlobal": "Annul all violations",
+      "whitelistTooltip": "Add to whitelist — violations for this user will not be recorded.",
+      "resolve": "Take action",
+      "commentPlaceholder": "Comment (optional)",
+      "commentTitle": "Action comment",
+      "confirmAction": "Confirm"
+    },
+    "hwidMatches": {
+      "title": "HWID Matches",
+      "matchedWith": "Matched with profile",
+      "device": "Device",
+      "hwid": "HWID"
+    },
+    "adminComment": {
+      "label": "Admin comment"
+    },
+    "actionStatuses": {
+      "pending": "Pending",
+      "blocked": "Blocked",
+      "warned": "Warned",
+      "dismissed": "Dismissed",
+      "annulled": "Annulled",
+      "resolved": "Resolved"
+    },
+    "recommendedActions": {
+      "no_action": "No action",
+      "monitor": "Monitor",
+      "warn": "Warning",
+      "soft_block": "Soft block",
+      "temp_block": "Temp block",
+      "hard_block": "Hard block"
+    },
+    "filters": {
+      "level": "Level",
+      "period": "Period",
+      "minScore": "Min. score",
+      "reset": "Reset",
+      "today": "Today",
+      "week": "Week",
+      "month": "Month",
+      "threeMonths": "3 months",
+      "sortBy": "Sort by",
+      "sortByDate": "By date",
+      "sortByScore": "By score",
+      "order": "Order",
+      "orderAsc": "Ascending",
+      "orderDesc": "Descending",
+      "recommendedAction": "Recommendation",
+      "clearUserFilter": "Clear user filter",
+      "country": "Country",
+      "dateFrom": "From",
+      "dateTo": "To"
+    },
+    "stats": {
+      "total": "Total",
+      "totalTooltip": "Total number of recorded violations for the selected period.",
+      "uniqueUsers": "Unique users",
+      "uniqueUsersTooltip": "Number of unique users with violations for the selected period. One user may have multiple violations.",
+      "avgScore": "Avg score",
+      "avgScoreTooltip": "Average violation score (0–100). Calculated based on temporal, geolocation, ASN, profile and device anomalies.",
+      "maxScore": "Max score",
+      "maxScoreTooltip": "Highest recorded violation score for the selected period. Higher score means more anomalies detected.",
+      "byCountries": "By countries"
+    },
+    "confidence": "Confidence",
+    "notified": "Notified",
+    "actionLabel": "Action",
+    "detail": {
+      "title": "Violation #{{id}}",
+      "user": "User",
+      "recommendation": "Recommendation",
+      "countries": "Countries",
+      "ipAddresses": "IP addresses",
+      "scoreBreakdown": "Score Breakdown",
+      "temporal": "Temporal",
+      "geo": "Geo",
+      "provider": "Provider",
+      "profileScore": "Profile",
+      "device": "Device",
+      "hwid": "HWID",
+      "finalScore": "Final score",
+      "reasons": "Reasons",
+      "countriesTitle": "Countries",
+      "providerTypes": "Provider types",
+      "ipTitle": "IP addresses",
+      "devicesTitle": "Devices",
+      "adminDecision": "Admin decision",
+      "notFound": "Violation not found",
+      "model": "Model",
+      "os": "OS",
+      "addedAt": "Added"
+    },
+    "connectionTypes": {
+      "residential": "Residential",
+      "mobile": "Mobile",
+      "mobile_isp": "Mobile ISP",
+      "datacenter": "Datacenter",
+      "hosting": "Hosting",
+      "vpn": "VPN",
+      "unknown": "Unknown",
+      "mobileShort": "Mobile"
+    },
+    "topViolators": {
+      "noViolators": "No violators for the period",
+      "violationsCount_one": "{{count}} violation",
+      "violationsCount_few": "{{count}} violations",
+      "violationsCount_many": "{{count}} violations",
+      "max": "Max",
+      "avg": "Avg"
+    },
+    "noPending": "No pending violations",
+    "noViolations": "No violations found",
+    "allProcessed": "All violations processed",
+    "noRecords": "No violation records for the selected period",
+    "toast": {
+      "resolved": "Violation processed",
+      "annulled": "Violation annulled",
+      "annulledAll": "All user violations annulled",
+      "annulledAllGlobal": "All violations annulled ({{count}})",
+      "whitelistAdded": "User added to whitelist",
+      "whitelistRemoved": "User removed from whitelist"
+    },
+    "whitelist": {
+      "tab": "Whitelist",
+      "title": "Violation Whitelist",
+      "addButton": "Add to whitelist",
+      "removeButton": "Remove",
+      "reason": "Reason",
+      "reasonPlaceholder": "Why exclude from checks?",
+      "duration": "Duration",
+      "forever": "Forever",
+      "days7": "7 days",
+      "days30": "30 days",
+      "days90": "90 days",
+      "expiresAt": "Expires",
+      "addedBy": "Added by",
+      "addedAt": "Added",
+      "noExpiration": "No expiration",
+      "empty": "No whitelisted users",
+      "emptyDesc": "Users added to whitelist will not be checked by the violation detection system",
+      "confirmRemove": "Remove user from whitelist?",
+      "confirmRemoveDesc": "Violation detection will resume for this user.",
+      "userUuid": "User UUID",
+      "userUuidPlaceholder": "Enter user UUID",
+      "addTitle": "Add to whitelist",
+      "expired": "Expired"
+    },
+    "hwidBlacklist": {
+      "tab": "HWID Blacklist",
+      "title": "HWID Blacklist",
+      "description": "When a blacklisted HWID is detected on a user — auto-ban or alert",
+      "add": "Add HWID",
+      "addTitle": "Add HWID to blacklist",
+      "addDescription": "Enter the device HWID and the action to take when detected",
+      "addButton": "Add to blacklist",
+      "action": "Action",
+      "actionAlert": "Alert",
+      "actionBlock": "Block",
+      "actionAlertHint": "Send notification to admin without blocking the user",
+      "actionBlockHint": "Automatically block the user via Panel API and send notification",
+      "reason": "Reason",
+      "reasonPlaceholder": "Fraud, account theft, etc.",
+      "empty": "HWID blacklist is empty",
+      "added": "HWID added to blacklist. Affected users: {{count}}",
+      "removed": "HWID removed from blacklist",
+      "affectedUsers": "Users with this HWID ({{count}})",
+      "noUsers": "No users found with this HWID"
+    },
+    "analyzers": {
+      "temporal": "Temporal (simultaneous connections)",
+      "geo": "Geographic (impossible travel)",
+      "asn": "ASN (provider type)",
+      "profile": "Profile (behavior deviation)",
+      "device": "Device (fingerprint)",
+      "hwid": "HWID (cross-account)",
+      "traffic_rate": "Traffic rate (excessive consumption)",
+      "torrent": "Torrent (P2P traffic)"
+    },
+    "exclusions": {
+      "mode": "Exclusion mode",
+      "fullWhitelist": "Full whitelist",
+      "partialExclusion": "Partial exclusion",
+      "configureButton": "Configure exclusions",
+      "configureTitle": "Analyzer Exclusions",
+      "removeWhitelist": "Remove from whitelist",
+      "mode_none": "No exclusion",
+      "mode_partial": "Partial",
+      "mode_full": "Full whitelist"
+    }
+  },
+  "admins": {
+    "title": "Admins",
+    "subtitle": "Admin account management",
+    "adminsTab": "Admins",
+    "rolesTab": "Roles",
+    "accessPoliciesTab": "Access Scopes",
+    "name": "Name",
+    "admin": "Admin",
+    "role": "Role",
+    "method": "Method",
+    "lastLogin": "Last login",
+    "createdAt": "Created",
+    "created": "Created",
+    "you": "You",
+    "noAdmins": "No admins",
+    "active": "Active",
+    "disabled": "Disabled",
+    "users": "Users",
+    "nodes": "Nodes",
+    "hosts": "Hosts",
+    "status": "Status",
+    "resource": "Resource",
+    "createAdmin": "Create admin",
+    "editAdmin": "Edit admin",
+    "editAdminDescription": "Edit admin parameters",
+    "createAdminDescription": "Fill in new admin details",
+    "deleteAdmin": "Delete admin",
+    "deleteConfirmTitle": "Delete admin?",
+    "deleteConfirmDesc": "Admin will be deleted. This action cannot be undone.",
+    "username": "Username",
+    "telegramIdHint": "Telegram ID (optional, for Telegram login)",
+    "selectRole": "Select role",
+    "password": "Password",
+    "newPassword": "New password",
+    "passwordLeaveEmpty": "Leave empty to keep current",
+    "passwordMinLength": "Minimum 8 characters",
+    "limitsHint": "Limits (0 = unlimited)",
+    "maxUsers": "Max users",
+    "maxTraffic": "Max traffic (GB)",
+    "maxNodes": "Max nodes",
+    "maxHosts": "Max hosts",
+    "editRole": "Edit role",
+    "createRole": "Create role",
+    "editRoleDescription": "Edit role parameters",
+    "createRoleDescription": "Fill in new role details",
+    "system": "System",
+    "systemName": "System name",
+    "systemNameHint": "Latin letters, digits, underscore",
+    "displayName": "Display name",
+    "description": "Description",
+    "roleDescriptionPlaceholder": "Role description...",
+    "permissionMatrix": "Permission matrix",
+    "selectedPermissions": "{{count}} permissions selected",
+    "enable": "Enable",
+    "disable": "Disable",
+    "adminCreated": "Admin created",
+    "adminUpdated": "Admin updated",
+    "adminDeleted": "Admin deleted",
+    "statusUpdated": "Status updated",
+    "roles": {
+      "superadmin": "Superadmin",
+      "admin": "Admin",
+      "moderator": "Moderator",
+      "viewer": "Viewer"
+    },
+    "toast": {
+      "created": "Admin created",
+      "updated": "Admin updated",
+      "deleted": "Admin deleted"
+    },
+    "actions": {
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete",
+      "enable": "Enable",
+      "disable": "Disable",
+      "login": "Login",
+      "logout": "Logout",
+      "reset_traffic": "Reset traffic",
+      "sync": "Sync",
+      "change_password": "Change password",
+      "generate_token": "Generate token",
+      "revoke_token": "Revoke token",
+      "restart": "Restart",
+      "resolve": "Resolve",
+      "terminal": "Terminal",
+      "scripts": "Scripts",
+      "view": "View",
+      "edit": "Edit",
+      "bulk_operations": "Bulk operations",
+      "run": "Run"
+    },
+    "resources": {
+      "user": "User",
+      "node": "Node",
+      "host": "Host",
+      "admin": "Admin",
+      "role": "Role",
+      "settings": "Settings",
+      "violation": "Violation",
+      "automation": "Automation",
+      "system": "System"
+    }
+  },
+  "audit": {
+    "title": "Audit Log",
+    "subtitle": "All admin actions in the system",
+    "admin": "Admin",
+    "action": "Action",
+    "resource": "Resource",
+    "details": "Details",
+    "date": "Date",
+    "ip": "IP",
+    "allAdmins": "All admins",
+    "allActions": "All actions",
+    "allResources": "All resources",
+    "noEntries": "No entries found",
+    "searchPlaceholder": "Search by admin, action, resource...",
+    "totalRecords": "Total records",
+    "activeAdmins": "Active admins",
+    "resourceTypes": "Resource types",
+    "find": "Find",
+    "noRecords": "No records for the selected period",
+    "totalEntries": "Total: {{count}}",
+    "moreDetails": "More details",
+    "resourceId": "Resource ID",
+    "stats": {
+      "totalRecords": "Total records",
+      "today": "Today",
+      "activeAdmins": "Active admins",
+      "resourceTypes": "Resource types"
+    },
+    "period": {
+      "all": "All",
+      "24h": "24 hours",
+      "7d": "7 days",
+      "30d": "30 days"
+    },
+    "table": {
+      "date": "Date",
+      "admin": "Admin",
+      "action": "Action",
+      "details": "Details"
+    },
+    "resources": {
+      "user": "User",
+      "node": "Node",
+      "host": "Host",
+      "admin": "Admin",
+      "role": "Role",
+      "settings": "Settings",
+      "violation": "Violation",
+      "automation": "Automation",
+      "system": "System"
+    },
+    "actions": {
+      "create": "Create",
+      "update": "Update",
+      "delete": "Delete",
+      "enable": "Enable",
+      "disable": "Disable",
+      "login": "Login",
+      "logout": "Logout",
+      "reset_traffic": "Reset traffic",
+      "sync": "Sync",
+      "change_password": "Change password",
+      "generate_token": "Generate token",
+      "revoke_token": "Revoke token",
+      "restart": "Restart",
+      "resolve": "Resolve"
+    },
+    "details_map": {
+      "username": "Username",
+      "status": "Status",
+      "role": "Role",
+      "ip": "IP",
+      "traffic": "Traffic",
+      "name": "Name",
+      "address": "Address",
+      "key": "Key",
+      "value": "Value"
+    },
+    "descriptions": {
+      "create": {
+        "user": "User created",
+        "node": "Node created",
+        "host": "Host created",
+        "admin": "Admin created",
+        "role": "Role created",
+        "automation": "Automation created"
+      },
+      "update": {
+        "user": "User updated",
+        "node": "Node updated",
+        "host": "Host updated",
+        "admin": "Admin updated",
+        "role": "Role updated",
+        "settings": "Settings changed",
+        "automation": "Automation updated"
+      },
+      "delete": {
+        "user": "User deleted",
+        "node": "Node deleted",
+        "host": "Host deleted",
+        "admin": "Admin deleted",
+        "role": "Role deleted",
+        "automation": "Automation deleted"
+      },
+      "enable": {
+        "user": "User enabled",
+        "node": "Node enabled",
+        "host": "Host enabled",
+        "admin": "Admin enabled"
+      },
+      "disable": {
+        "user": "User disabled",
+        "node": "Node disabled",
+        "host": "Host disabled",
+        "admin": "Admin disabled"
+      },
+      "login": {
+        "admin": "System login"
+      },
+      "logout": {
+        "admin": "System logout"
+      },
+      "reset_traffic": {
+        "user": "User traffic reset"
+      },
+      "sync": {
+        "system": "System sync"
+      },
+      "change_password": {
+        "admin": "Password changed"
+      },
+      "generate_token": {
+        "node": "Node token generated"
+      },
+      "revoke_token": {
+        "node": "Node token revoked"
+      },
+      "restart": {
+        "node": "Node restarted"
+      },
+      "resolve": {
+        "violation": "Violation resolved"
+      }
+    },
+    "feed": {
+      "users": {
+        "sync_hwid": "HWID sync",
+        "revoke": "Subscription revoked",
+        "bulk_enable": "Bulk enable",
+        "bulk_disable": "Bulk disable",
+        "bulk_delete": "Bulk delete",
+        "bulk_reset_traffic": "Bulk traffic reset"
+      },
+      "user": {
+        "sync_hwid": "HWID sync",
+        "revoke": "Subscription revoked",
+        "bulk_enable": "Bulk enable",
+        "bulk_disable": "Bulk disable",
+        "bulk_delete": "Bulk delete",
+        "bulk_reset_traffic": "Bulk traffic reset"
+      },
+      "automation": {
+        "toggle": "Automation toggled",
+        "template_activate": "Template activated"
+      },
+      "setting": {
+        "ip_whitelist_update": "IP whitelist updated",
+        "sync_trigger": "Sync triggered",
+        "maxmind_update": "GeoIP database updated"
+      },
+      "settings": {
+        "update_ip_whitelist": "IP whitelist updated",
+        "trigger_sync": "Sync triggered"
+      },
+      "violation": {
+        "annul": "Violation annulled",
+        "annul_bulk": "Bulk annulment",
+        "whitelist": {
+          "add": "Added to whitelist",
+          "update": "Whitelist updated",
+          "remove": "Removed from whitelist"
+        }
+      },
+      "violations": {
+        "resolve": "Violation resolved"
+      },
+      "node": {
+        "generate_agent_token": "Agent token generated",
+        "revoke_agent_token": "Agent token revoked"
+      },
+      "nodes": {
+        "generate_token": "Agent token generated",
+        "revoke_token": "Agent token revoked"
+      },
+      "auth": {
+        "login": "System login",
+        "login_telegram": "Telegram login",
+        "logout": "System logout",
+        "change_password": "Password changed"
+      },
+      "mailserver": {
+        "create_domain": "Mail domain created",
+        "update_domain": "Mail domain updated",
+        "delete_domain": "Mail domain deleted",
+        "create_smtp_credential": "SMTP credential created",
+        "update_smtp_credential": "SMTP credential updated",
+        "delete_smtp_credential": "SMTP credential deleted"
+      }
+    }
+  },
+  "logs": {
+    "title": "System Logs",
+    "subtitle": "System log viewer",
+    "level": "Level",
+    "message": "Message",
+    "source": "Source",
+    "time": "Time",
+    "allLevels": "All levels",
+    "autoRefresh": "Auto-refresh",
+    "searchPlaceholder": "Search by message...",
+    "noLogs": "No logs",
+    "clearFilters": "Clear filters",
+    "pauseStreaming": "Pause streaming",
+    "resumeStreaming": "Resume streaming",
+    "autoScrollOn": "Auto-scroll on",
+    "autoScrollOff": "Auto-scroll off",
+    "clear": "Clear",
+    "notFound": "File not found",
+    "linesCount": "{{count}} lines",
+    "waitingForEntries": "Waiting for entries...",
+    "noEntries": "No entries",
+    "logLevel": "Log level",
+    "tabs": {
+      "backend": "Backend",
+      "bot": "Bot",
+      "frontend": "Frontend",
+      "violations": "Violations",
+      "postgres": "PostgreSQL"
+    }
+  },
+  "analytics": {
+    "title": "Analytics",
+    "subtitle": "Statistics and charts",
+    "period": "Period",
+    "trafficOverview": "Traffic overview",
+    "usersOverview": "Users overview",
+    "nodesOverview": "Nodes overview",
+    "topUsersByTraffic": "Top users by traffic",
+    "trafficByNode": "Traffic by node",
+    "userGrowth": "User growth",
+    "tabs": {
+      "geography": "Geography",
+      "topUsers": "Top Users",
+      "trends": "Trends",
+      "sharedHwids": "Shared HWIDs",
+      "providers": "Providers / IP",
+      "nodesTraffic": "Node Traffic",
+      "nodes": "Nodes",
+      "retention": "Retention",
+      "geoBalance": "Geo-Balance",
+      "torrent": "P2P / Torrent",
+      "churn": "Churn",
+      "ltv": "LTV"
+    },
+    "nodesTraffic": {
+      "title": "Traffic by Nodes",
+      "noData": "No traffic data for this period"
+    },
+    "periods": {
+      "day": "Day",
+      "week": "Week",
+      "month": "Month",
+      "year": "Year",
+      "24h": "24h",
+      "7d": "7d",
+      "30d": "30d",
+      "90d": "90d",
+      "all": "All"
+    },
+    "geo": {
+      "title": "Connection Geography",
+      "tooltip": "Geographic distribution of user connections by city",
+      "noData": "No geolocation data",
+      "noDataHint": "Data will appear after first connections",
+      "connections": "{{count}} connections",
+      "users": "Users",
+      "more": "more",
+      "uniqueUsers": "{{count}} users",
+      "andMore": "+{{count}} more",
+      "showAll": "Show all ({{count}})",
+      "usersByCity": "Users by city",
+      "cityColumn": "City",
+      "userColumn": "User",
+      "connectionsColumn": "Connections",
+      "uniqueUsersColumn": "Users",
+      "searchPlaceholder": "Search by city or user...",
+      "citiesCount": "{{count}} cities",
+      "totalConnections": "{{formattedCount}} conn.",
+      "allCountries": "All countries",
+      "sort": {
+        "countDesc": "Connections (desc)",
+        "countAsc": "Connections (asc)",
+        "usersDesc": "Users (desc)",
+        "usersAsc": "Users (asc)",
+        "cityAsc": "City (A-Z)",
+        "cityDesc": "City (Z-A)"
+      }
+    },
+    "topUsers": {
+      "title": "Top users by traffic",
+      "tooltip": "Users with the highest traffic consumption",
+      "top10": "Top 10",
+      "top20": "Top 20",
+      "top50": "Top 50",
+      "noData": "No data",
+      "user": "User",
+      "status": "Status",
+      "traffic": "Traffic",
+      "limit": "Limit",
+      "usage": "Usage"
+    },
+    "status": {
+      "ACTIVE": "Active",
+      "DISABLED": "Disabled",
+      "EXPIRED": "Expired",
+      "LIMITED": "Limited"
+    },
+    "trends": {
+      "title": "Trends",
+      "tooltip": "Metric trends over the selected period",
+      "users": "Users",
+      "violations": "Violations",
+      "traffic": "Traffic",
+      "last7d": "last 7 days",
+      "last30d": "last 30 days",
+      "last90d": "last 90 days",
+      "noData": "No data for the selected period",
+      "metric": {
+        "users": "Users",
+        "violations": "Violations",
+        "traffic": "Traffic"
+      }
+    },
+    "onlineTrend": {
+      "title": "Online trend",
+      "tooltip": "Sum of users_online across active nodes. Samples every 5 min, bucketed at read time.",
+      "avg": "Average",
+      "max": "Peak",
+      "peak": "Peak",
+      "average": "Avg",
+      "points": "Points",
+      "empty": "No data yet — samples accumulate every 5 minutes."
+    },
+    "sharedHwids": {
+      "title": "Shared HWID Devices",
+      "tooltip": "Devices (HWID) used by multiple accounts — indicates trial abuse",
+      "noData": "No shared HWIDs found",
+      "noDataHint": "Data will appear when different users share the same HWID",
+      "accounts": "accounts",
+      "createdAt": "Created",
+      "firstSeen": "First HWID",
+      "searchPlaceholder": "Search by HWID or username...",
+      "subscription": "Subscription",
+      "active": "Active",
+      "expired": "Expired",
+      "filter": {
+        "all": "All",
+        "has_trial": "With trial",
+        "has_active": "With active",
+        "has_expired": "With expired"
+      }
+    },
+    "providers": {
+      "title": "Providers & ASN",
+      "tooltip": "Connection types, ASN distribution, and security flags",
+      "connectionTypes": "Connection Types",
+      "topAsn": "Top ASN",
+      "connectionType": {
+        "residential": "Residential",
+        "fixed": "Fixed",
+        "mobile": "Mobile",
+        "mobile_isp": "Mobile ISP",
+        "isp": "ISP",
+        "hosting": "Hosting",
+        "business": "Business",
+        "edu": "Education",
+        "unknown": "Unknown"
+      },
+      "exportIp": "Export IP",
+      "exportIpTitle": "Export IP Addresses",
+      "nodes": "Nodes",
+      "selected": "selected",
+      "username": "Username",
+      "usernamePlaceholder": "Filter by username",
+      "activeOnly": "Active connections only",
+      "found": "Found",
+      "showing": "showing first",
+      "preview": "Preview",
+      "downloadCsv": "Download CSV"
+    },
+    "nodes": {
+      "title": "Nodes",
+      "tooltip": "Node fleet health and performance",
+      "total": "Total",
+      "online": "Online",
+      "offline": "Offline",
+      "disabled": "Disabled",
+      "avgCpu": "Avg CPU",
+      "avgRam": "Avg RAM",
+      "noData": "No nodes found",
+      "name": "Node",
+      "disk": "Disk",
+      "users": "Users",
+      "traffic": "Traffic",
+      "speed": "Speed",
+      "history": {
+        "title": "Metrics History",
+        "tooltip": "Average node metrics over the selected period",
+        "avgCpu": "Avg CPU",
+        "avgRam": "Avg RAM",
+        "avgDisk": "Avg Disk",
+        "maxCpu": "Max CPU",
+        "maxRam": "Max RAM",
+        "maxDisk": "Max Disk",
+        "samples": "Samples",
+        "noData": "No historical data yet"
+      }
+    },
+    "retention": {
+      "title": "Retention Analysis",
+      "tooltip": "Cohort retention analysis: shows what % of users registered each week are still active. Retention — current ACTIVE status. With Traffic — used traffic at least once. Active Sub — subscription not yet expired.",
+      "weeks": "weeks",
+      "overallRetention": "Overall Retention",
+      "totalRegistered": "Registered",
+      "totalRetained": "Retained",
+      "noData": "No cohort data available",
+      "week": "Week",
+      "total": "Total",
+      "active": "Active",
+      "retentionPct": "Retention",
+      "trafficPct": "With Traffic",
+      "subPct": "Active Sub",
+      "weekSub": "Registration week",
+      "totalSub": "Registered count",
+      "activeSub": "Currently active",
+      "retentionPctSub": "% with ACTIVE status",
+      "trafficPctSub": "% who used traffic",
+      "subPctSub": "% with active subscription"
+    },
+    "churn": {
+      "title": "User Churn Rate",
+      "tooltip": "User churn: shows how many active users stopped connecting each period. Churn = (prev active + new - current active) / prev active. Lower is better.",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "months": "mo",
+      "avgChurn": "Avg Churn",
+      "periods": "Periods",
+      "noData": "No churn data available",
+      "period": "Period",
+      "activeSub": "Connected during period",
+      "newSub": "Registered",
+      "churnedSub": "Stopped connecting",
+      "churnPctSub": "% churned"
+    },
+    "ltv": {
+      "title": "User Lifetime Value",
+      "tooltip": "User lifetime estimate: average days between registration and last activity. LTV = avg lifetime × cost per user per month. Based on last 6 months data.",
+      "avgLifetime": "Avg Lifetime (days)",
+      "avgLifetimeSub": "Average time from registration to last connection",
+      "estimatedLtv": "Estimated LTV",
+      "estimatedLtvSub": "Cost per user over entire lifetime",
+      "sampleSize": "Sample Size",
+      "sampleSizeSub": "Users with activity in last 6 months"
+    }
+  },
+  "automations": {
+    "title": "Automations",
+    "subtitle": "All automations in one place: rules, alerts, scripts, schedules",
+    "hub": {
+      "open": "Open",
+      "sections": {
+        "rules": "Rules",
+        "alerts": "Alerts",
+        "scripts": "Node scripts",
+        "schedules": "Schedules"
+      },
+      "nodeScriptsHint": "Shell-script catalog, run history and scheduled jobs live on the Fleet page. Jump straight to the section you need.",
+      "schedulesHint": "Scheduled jobs run scripts on nodes by cron expression. Create and edit them on Fleet → Scheduled.",
+      "scripts": {
+        "catalog": "Script catalog",
+        "catalogDesc": "Built-in and custom shell scripts. Run manually or on a schedule.",
+        "history": "Run history",
+        "historyDesc": "Logs of executed scripts, exit codes, output and per-node search.",
+        "terminal": "Node terminal",
+        "terminalDesc": "Direct SSH terminal into a node through the panel."
+      },
+      "schedules": {
+        "fleet": "Scheduled jobs (Fleet)",
+        "fleetDesc": "CRON schedule for scripts on nodes. History, enable/disable.",
+        "rules": "Schedule-triggered rules",
+        "rulesDesc": "Rules with schedule trigger (cron/interval) — managed under the «Rules» tab."
+      }
+    },
+    "createRule": "Create rule",
+    "newRule": "New rule",
+    "editRule": "Edit rule",
+    "noRules": "No automation rules",
+    "enableRule": "Enable rule",
+    "disableRule": "Disable rule",
+    "deleteRule": "Delete rule",
+    "deleteConfirmTitle": "Delete rule?",
+    "deleteConfirmDesc": "Rule will be deleted. This action cannot be undone.",
+    "ruleName": "Name",
+    "trigger": "Trigger",
+    "action": "Action",
+    "schedule": "Schedule",
+    "lastRun": "Last run",
+    "nextRun": "Next run",
+    "status": "Status",
+    "logs": "Logs",
+    "test": "Test",
+    "templates": {
+      "auto_block_sharing": {
+        "description": "Automatically block users with violation score > 80"
+      },
+      "node_monitoring": {
+        "description": "Telegram notification when a node is offline for > 5 minutes"
+      },
+      "cleanup_expired": {
+        "description": "Daily cleanup of users with subscriptions expired > 30 days"
+      },
+      "traffic_notification": {
+        "description": "Notify admin when user traffic exceeds 90%"
+      },
+      "auto_restart_node": {
+        "description": "Automatically restart a node offline for > 15 minutes"
+      },
+      "node_traffic_alert": {
+        "description": "Telegram notification when user uses > N GB on a node"
+      },
+      "daily_report": {
+        "description": "Daily Telegram summary at 00:00 UTC for the previous day"
+      },
+      "auto_block_torrent": {
+        "description": "Automatically block users when torrent traffic is detected"
+      }
+    },
+    "enabled": "enabled",
+    "disabled": "disabled",
+    "toggleError": "Toggle error",
+    "ruleDeleted": "Rule deleted",
+    "deleteError": "Delete error",
+    "testError": "Test error",
+    "tabs": {
+      "rules": "Rules",
+      "templates": "Templates",
+      "logs": "Logs"
+    },
+    "stats": {
+      "totalRules": "Total rules",
+      "active": "Active",
+      "totalTriggers": "Total triggers",
+      "lastTrigger": "Last trigger"
+    },
+    "filters": {
+      "category": "Category",
+      "allCategories": "All categories",
+      "trigger": "Trigger",
+      "allTriggers": "All triggers",
+      "event": "Event",
+      "schedule": "Schedule",
+      "threshold": "Threshold",
+      "status": "Status",
+      "all": "All",
+      "active": "Active",
+      "disabled": "Disabled"
+    },
+    "toast": {
+      "created": "Rule created",
+      "updated": "Rule updated",
+      "deleted": "Rule deleted",
+      "enabled": "Rule enabled",
+      "disabled": "Rule disabled"
+    },
+    "pagination": "Page {{page}} of {{pages}} ({{total}} total)",
+    "createFirstRule": "Create first rule",
+    "categories": {
+      "users": "Users",
+      "nodes": "Nodes",
+      "violations": "Violations",
+      "system": "System"
+    },
+    "triggerTypes": {
+      "event": "Event",
+      "eventDesc": "Responds to real-time system actions",
+      "schedule": "Schedule",
+      "scheduleDesc": "Runs periodically by CRON or interval",
+      "threshold": "Threshold",
+      "thresholdDesc": "Monitors a metric and triggers when threshold is reached"
+    },
+    "events": {
+      "violation_detected": "Violation detected",
+      "violation_detectedDesc": "Triggers when a violation is detected (sharing, suspicious activity)",
+      "node_went_offline": "Node went offline",
+      "node_went_offlineDesc": "Triggers when a node loses connection and becomes unavailable",
+      "user_traffic_exceeded": "Traffic exceeded",
+      "user_traffic_exceededDesc": "Triggers when a user exhausts their traffic limit",
+      "torrent_detected": "Torrent detected",
+      "torrent_detectedDesc": "Triggers when BitTorrent traffic is detected for a user"
+    },
+    "metrics": {
+      "users_online": "Users online",
+      "users_onlineDesc": "Current number of active connections across all nodes",
+      "traffic_today": "Traffic today (GB)",
+      "traffic_todayDesc": "Total traffic volume for today (in gigabytes)",
+      "node_uptime_percent": "Node uptime (%)",
+      "node_uptime_percentDesc": "Node availability percentage over the last 24 hours",
+      "user_traffic_percent": "Traffic usage (%)",
+      "user_traffic_percentDesc": "Percentage of traffic used from the limit",
+      "user_node_traffic_gb": "Node traffic — total (GB)",
+      "user_node_traffic_gbDesc": "Cumulative user traffic on a specific node",
+      "user_node_traffic_today_gb": "Node traffic — today (GB)",
+      "user_node_traffic_today_gbDesc": "User traffic on a specific node for the current day"
+    },
+    "operators": {
+      "eq": "equal (=)",
+      "neq": "not equal (≠)",
+      "gt": "greater (>)",
+      "gte": "greater or equal (≥)",
+      "lt": "less (<)",
+      "lte": "less or equal (≤)",
+      "contains": "contains",
+      "not_contains": "does not contain"
+    },
+    "conditionFields": {
+      "score": "Score",
+      "percent": "Percent (%)",
+      "traffic_gb": "Traffic (GB)",
+      "uptime": "Uptime (%)",
+      "online_count": "Online count",
+      "days_expired": "Days expired"
+    },
+    "actionTypes": {
+      "disable_user": "Disable user",
+      "disable_userDesc": "Deactivates the account, connections will be dropped",
+      "block_user": "Block user",
+      "block_userDesc": "Blocks the user with a specified reason",
+      "notify": "Send notification",
+      "notifyDesc": "Sends a message to Telegram or Webhook URL",
+      "restart_node": "Restart node",
+      "restart_nodeDesc": "Sends a restart command to the node",
+      "enable_node": "Enable node",
+      "enable_nodeDesc": "Enables a disabled node",
+      "disable_node": "Disable node",
+      "disable_nodeDesc": "Disables a node, new connections will not be accepted",
+      "cleanup_expired": "Cleanup expired",
+      "cleanup_expiredDesc": "Disables users with expired subscriptions",
+      "reset_traffic": "Reset traffic",
+      "reset_trafficDesc": "Resets user traffic counters to zero",
+      "force_sync": "Sync nodes",
+      "force_syncDesc": "Force-updates configuration on all nodes"
+    },
+    "actionDescs": {
+      "disable_user": "Automatically deactivates user account",
+      "block_user": "Blocks user with specified reason",
+      "notify": "Sends notification to Telegram or Webhook",
+      "restart_node": "Sends restart command to node",
+      "enable_node": "Enables the specified node via panel API",
+      "disable_node": "Disables the specified node via panel API",
+      "cleanup_expired": "Disables users with expired subscriptions",
+      "reset_traffic": "Resets user traffic counters",
+      "force_sync": "Force-syncs node configuration"
+    },
+    "results": {
+      "success": "Success",
+      "error": "Error",
+      "skipped": "Skipped"
+    },
+    "cron": {
+      "everyMinute": "Every minute",
+      "everyNMin": "Every {{n}} min.",
+      "every5Min": "Every 5 minutes",
+      "every10Min": "Every 10 minutes",
+      "every15Min": "Every 15 minutes",
+      "every30Min": "Every 30 minutes",
+      "everyHourAtMin": "Every hour at :{{m}}",
+      "everyHourAt": "Every hour at {{m}} min.",
+      "everyNHoursAt": "Every {{n}} h. at {{m}} min.",
+      "everyDayAt": "Every day at {{time}}",
+      "everyWeekday": "Every {{day}} at {{time}}",
+      "daysRange": "{{from}}–{{to}} at {{time}}",
+      "daysComma": "{{days}} at {{time}}",
+      "monthlyAt": "{{day}}th of every month at {{time}}",
+      "yearlyAt": "{{day}} {{month}} at {{time}}",
+      "schedulePrefix": "Schedule: {{cron}}",
+      "everyHour": "Every hour",
+      "every24Hours": "Every 24 hours",
+      "everyNHours": "Every {{n}} h.",
+      "bySchedule": "By schedule",
+      "scheduleNotSet": "Schedule not set",
+      "min": "min",
+      "via": "via"
+    },
+    "dayNames": [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ],
+    "dayNamesShort": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ],
+    "monthNames": [
+      "",
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
+    "cronPresets": {
+      "every_5min": "Every 5 minutes",
+      "every_15min": "Every 15 minutes",
+      "every_30min": "Every 30 minutes",
+      "every_hour": "Every hour",
+      "every_3hours": "Every 3 hours",
+      "every_6hours": "Every 6 hours",
+      "every_12hours": "Every 12 hours",
+      "daily_midnight": "Every day at 00:00",
+      "daily_3am": "Every day at 03:00",
+      "daily_9am": "Every day at 09:00",
+      "daily_23pm": "Every day at 23:00",
+      "weekly_monday": "Every Monday at 09:00",
+      "monthly_1st": "1st of every month"
+    },
+    "intervalPresets": {
+      "5": "5 min",
+      "15": "15 min",
+      "30": "30 min",
+      "60": "1 hour",
+      "120": "2 hours",
+      "360": "6 hours",
+      "720": "12 hours",
+      "1440": "24 hours"
+    },
+    "ruleCard": {
+      "off": "off",
+      "edit": "Edit",
+      "test": "Test",
+      "delete": "Delete",
+      "times": "times"
+    },
+    "logsTab": {
+      "filters": "Filters:",
+      "ruleId": "Rule ID",
+      "resultPlaceholder": "Result",
+      "all": "All",
+      "success": "Success",
+      "error": "Error",
+      "skipped": "Skipped",
+      "from": "From",
+      "to": "To",
+      "noLogs": "No log entries",
+      "page": "Page {{page}} of {{pages}} ({{total}} entries)"
+    },
+    "cronBuilder": {
+      "presets": "Presets",
+      "configure": "Configure",
+      "cronTab": "CRON",
+      "frequency": "Frequency",
+      "everyNMinutes": "Every N minutes",
+      "everyNMinutesDesc": "Repeats at equal intervals",
+      "hourly": "Hourly",
+      "hourlyDesc": "At a specific minute of each hour",
+      "daily": "Daily",
+      "dailyDesc": "At a specific time every day",
+      "weekly": "Weekly",
+      "weeklyDesc": "On a specific day and time",
+      "monthly": "Monthly",
+      "monthlyDesc": "On a specific date and time",
+      "intervalMin": "Interval (minutes)",
+      "atMinute": "At minute",
+      "hour": "Hour",
+      "minute": "Minute",
+      "dayOfWeek": "Day of week",
+      "dayOfMonth": "Day of month",
+      "cronExpression": "CRON expression (5 fields)",
+      "cronFieldMin": "min",
+      "cronFieldHour": "hour",
+      "cronFieldDay": "day",
+      "cronFieldMonth": "month",
+      "cronFieldDow": "dow",
+      "cronHelp": "= any, = every N, = range, = list",
+      "dayOrdinal": "{{day}}",
+      "daysOfWeek": {
+        "1": {
+          "long": "Monday",
+          "short": "Mon"
+        },
+        "2": {
+          "long": "Tuesday",
+          "short": "Tue"
+        },
+        "3": {
+          "long": "Wednesday",
+          "short": "Wed"
+        },
+        "4": {
+          "long": "Thursday",
+          "short": "Thu"
+        },
+        "5": {
+          "long": "Friday",
+          "short": "Fri"
+        },
+        "6": {
+          "long": "Saturday",
+          "short": "Sat"
+        },
+        "0": {
+          "long": "Sunday",
+          "short": "Sun"
+        }
+      }
+    },
+    "intervalPicker": {
+      "runWithInterval": "Run with interval",
+      "intervalHint": "Rule will run repeatedly at the selected time interval",
+      "other": "Other",
+      "intervalMinutes": "Interval in minutes",
+      "everyNMin": "Every {{n}} min.",
+      "everyHour": "Every hour",
+      "every24Hours": "Every 24 hours (once a day)",
+      "everyNHours": "Every {{n}} h.",
+      "everyNHoursNMin": "Every {{h}} h. {{m}} min."
+    },
+    "templatesGallery": {
+      "noTemplates": "No available templates",
+      "when": "When:",
+      "then": "Then:",
+      "activating": "Activating...",
+      "activate": "Activate",
+      "templateActivated": "Template \"{{name}}\" activated",
+      "activateError": "Failed to activate template"
+    },
+    "constructor": {
+      "editTitle": "Edit rule",
+      "newTitle": "New automation rule",
+      "editSubtitle": "Edit automation rule parameters",
+      "newSubtitle": "Create a rule that will automatically perform actions when certain events occur",
+      "steps": {
+        "trigger": "Trigger",
+        "conditions": "Conditions",
+        "action": "Action",
+        "review": "Review"
+      },
+      "stepDescs": {
+        "trigger": "Choose what triggers the rule",
+        "conditions": "Add filters (optional)",
+        "action": "Configure the action on trigger",
+        "review": "Review and save the rule"
+      },
+      "triggerQuestion": "When should the rule run?",
+      "triggerHint": "Define the trigger condition. The rule will fire automatically when the selected event occurs.",
+      "eventHint": "Event trigger responds to specific real-time system actions. The rule fires immediately after the event occurs.",
+      "eventQuestion": "Which event to monitor?",
+      "minScore": "Minimum violation score",
+      "minScoreHint": "Severity filter. Rule will only fire if the violation score is at least this value. Leave empty to react to any violations.",
+      "minScorePlaceholder": "e.g. 80",
+      "optionalField": "Optional field",
+      "minOffline": "Minimum offline time (minutes)",
+      "minOfflineHint": "Delay before triggering. Rule fires only if the node is down longer than the specified time. Helps avoid false positives from brief outages.",
+      "minOfflinePlaceholder": "e.g. 5",
+      "firesAfterOffline": "Fires after {{minutes}} min. offline",
+      "scheduleHint": "Rule will run periodically on schedule. Use CRON for precise scheduling or a simple interval for repeating tasks.",
+      "cronMode": "By schedule (CRON)",
+      "intervalMode": "By interval",
+      "thresholdHint": "Threshold trigger monitors a numeric metric and fires when the value reaches the set threshold. Checked periodically.",
+      "metricQuestion": "Which metric to monitor?",
+      "triggerCondition": "Trigger condition",
+      "metricConditionHint": "Rule will fire when metric \"{{metric}}\" matches the condition",
+      "comparison": "Comparison",
+      "thresholdValue": "Threshold value",
+      "firesWhen": "Fires when {{metric}} {{operator}} {{value}}",
+      "categoryLabel": "Rule category",
+      "categoryHint": "Category helps group rules for easy search and filtering.",
+      "categoryAutoHint": " Suggested automatically, but you can change it.",
+      "conditionsTitle": "Additional conditions",
+      "conditionsHint": "Optional step. Add conditions for more precise filtering. Rule fires only if ALL specified conditions are met simultaneously (AND logic). Without conditions, the rule fires on every trigger event.",
+      "conditionN": "Condition {{n}}",
+      "field": "Field",
+      "selectField": "Select field",
+      "otherField": "Other...",
+      "fieldName": "Field name",
+      "comparisonLabel": "Comparison",
+      "valueLabel": "Value",
+      "addCondition": "Add condition",
+      "noConditions": "No additional conditions",
+      "noConditionsHint": "Click \"Add condition\" to fine-tune or \"Next\" to continue without filters",
+      "actionQuestion": "What to do on trigger?",
+      "actionHint": "Choose the action the system will perform automatically when the trigger and conditions are met.",
+      "notifyConfig": "Notification settings",
+      "notifyHint": "Specify where and what message to send when the rule fires",
+      "deliveryChannel": "Delivery channel",
+      "messageText": "Message text",
+      "messagePlaceholder": "e.g.: Automation triggered for {user}",
+      "availableVars": "Available variables:",
+      "clickToInsert": "Click to insert",
+      "webhookUrl": "Webhook URL",
+      "webhookHint": "Data will be sent as a POST request in JSON format",
+      "blockReason": "Block reason",
+      "blockReasonHint": "This reason will be recorded in the user's profile and visible to admins. If not specified, the default reason will be used.",
+      "blockReasonPlaceholder": "e.g.: Account sharing detected",
+      "targetAutomatic": "Target user is determined automatically from the trigger",
+      "blockScheduleWarn": "Blocking by schedule requires an event or threshold trigger to determine the user",
+      "blockWarning": "Warning: blocked user will lose access to the service",
+      "disableUserTitle": "Disable user",
+      "disableUserHint": "User account will be deactivated. User won't be able to connect, but their data will be preserved. Account can be re-enabled manually.",
+      "disableScheduleWarn": "For schedules, use \"Cleanup expired\" — disabling a specific user requires an event or threshold trigger",
+      "cleanupTitle": "Cleanup threshold",
+      "cleanupHint": "Users whose subscription expired more than the specified number of days ago will be disabled. This helps automatically free up resources.",
+      "expiredOlderThan": "Expired more than",
+      "days": "days",
+      "daysShort": "d.",
+      "restartNodeTitle": "Restart node",
+      "restartNodeHint": "A restart command will be sent. Active connections will be temporarily interrupted.",
+      "whichNode": "Which node to restart?",
+      "eventNodeHint": "(for event triggers, usually determined automatically)",
+      "fromTriggerOrAll": "From trigger / all",
+      "allNodes": "All nodes",
+      "specificNode": "Specific node",
+      "loadingNodes": "Loading nodes...",
+      "selectNode": "Select node",
+      "noNodesFound": "No nodes found",
+      "restartSelectedWarn": "Brief connection interruption on the selected node",
+      "restartAllWarn": "Brief connection interruption for all users",
+      "enable_nodeSelectedWarn": "The selected node will be enabled",
+      "enable_nodeAllWarn": "All disabled nodes will be enabled",
+      "disable_nodeSelectedWarn": "The selected node will be disabled, connections dropped",
+      "disable_nodeAllWarn": "All connected nodes will be disabled",
+      "resetTrafficTitle": "Reset traffic",
+      "resetTrafficHint": "Traffic counters will be reset to zero. This will restore users' full traffic allowance per their plan.",
+      "resetTrafficScheduleWarn": "Resetting traffic by schedule requires an event or threshold trigger to determine the user",
+      "forceSyncTitle": "Force sync",
+      "forceSyncHint": "Configuration on all nodes will be force-updated. Useful after bulk settings changes to ensure configuration is up to date on all servers.",
+      "ruleNameLabel": "Rule name",
+      "ruleNameHint": "Short name to identify the rule in the list",
+      "ruleNamePlaceholder": "e.g.: Block on sharing",
+      "descriptionLabel": "Description",
+      "descriptionHint": "Detailed description so other admins understand the rule's purpose",
+      "descriptionPlaceholder": "Briefly describe the purpose of this rule",
+      "summary": "Rule summary",
+      "whenLabel": "WHEN",
+      "conditionsAllLabel": "WITH CONDITIONS (all must be met)",
+      "thenLabel": "THEN",
+      "nodeTarget": "Node: {{name}}",
+      "targetFromTrigger": "Target: from trigger or all nodes",
+      "targetAllNodes": "Target: all connected nodes",
+      "targetAutoFromTrigger": "Target: from trigger (automatic)",
+      "targetUndefined": "Target: undefined (requires event trigger)",
+      "back": "Back",
+      "cancel": "Cancel",
+      "next": "Next",
+      "saving": "Saving...",
+      "save": "Save",
+      "createRuleBtn": "Create rule",
+      "ruleCreated": "Rule created",
+      "createFailed": "Failed to create rule",
+      "ruleUpdated": "Rule updated",
+      "updateFailed": "Failed to update rule",
+      "validationCron": "Select a schedule or enter a CRON expression",
+      "validationInterval": "Select a run interval",
+      "validationThreshold": "Specify a threshold value",
+      "validationConditions": "Fill in all condition fields or remove incomplete ones",
+      "validationMessage": "Enter message text",
+      "validationWebhook": "Specify Webhook URL",
+      "validationName": "Enter rule name"
+    },
+    "testResult": {
+      "title": "Test result",
+      "wouldTrigger": "Rule would trigger",
+      "wouldNotTrigger": "Rule would not trigger",
+      "wouldTriggerDesc": "Under current conditions, the rule would be activated",
+      "wouldNotTriggerDesc": "Current conditions do not match the trigger settings",
+      "details": "Details",
+      "matchingTargets": "Matching targets",
+      "expectedActions": "Expected actions",
+      "matchingTargetsMax": "Matching targets (max 50)"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Bot and panel configuration. Priority: DB > .env > default",
+    "tabs": {
+      "general": "General",
+      "resources": "Remnawave Resources",
+      "faq": "FAQ"
+    },
+    "searchPlaceholder": "Search settings...",
+    "filterInCategory": "Filter in this category...",
+    "noLocalMatches": "No matches in this category",
+    "foundSettings": "Found: {{count}} settings",
+    "noSettings": "Settings not found",
+    "noSettingsHint": "Make sure the database is connected and the bot has been started at least once",
+    "retry": "Retry",
+    "categories": {
+      "general": "⚙️ General",
+      "notifications": "🔔 Notifications",
+      "sync": "🔄 Sync",
+      "violations": "🛡️ Violation Detection",
+      "reports": "📊 Reports",
+      "mailserver": "📧 Mail Server",
+      "security": "🔒 Security",
+      "performance": "⚡ Performance"
+    },
+    "subcategories": {
+      "topics": "💬 Notification topics",
+      "thresholds": "📐 Detection thresholds",
+      "patterns": "🔤 User-Agent patterns",
+      "torrent": "🧲 Torrent blocker",
+      "traffic_rate": "📈 Traffic rate",
+      "hard_block": "🚫 Hard block",
+      "trial": "🆓 Trial user detection",
+      "auth_methods": "🔑 Auth methods",
+      "user_blacklist": "🚫 User blacklist",
+      "brute_force": "🛡️ Brute-force protection",
+      "database": "🗄️ Database",
+      "intervals": "⏱️ Intervals",
+      "rate_limits": "🚦 Rate limits",
+      "cache": "💾 Cache",
+      "violation_pipeline": "🔍 Violation detection pipeline"
+    },
+    "faq": {
+      "description": "Frequently asked questions and solutions to common problems",
+      "items": {
+        "panelPort": {
+          "q": "Panel only opens with port :3000",
+          "a": "Reverse proxy issue (Nginx/Caddy). After server reboot, the proxy starts before containers are ready and can't resolve DNS names.\n\nFor Caddy — add lb_try_duration 30s to each reverse_proxy block:\nreverse_proxy web-frontend:80 {\n    lb_try_duration 30s\n}\n\nFor Nginx — add resolver 127.0.0.11 valid=10s to the upstream block.\n\nQuick fix: docker restart caddy (or nginx) after reboot."
+        },
+        "passwordLogin": {
+          "q": "Can't log in with password after registration",
+          "a": "Possible causes:\n1. Password contains Cyrillic look-alike characters (С instead of C, А instead of A). Switch keyboard to EN and re-enter.\n2. Browser autofilled incorrectly. Try entering manually.\n3. If nothing helps — reset via CLI:\ndocker exec -it <container> python3 scripts/admin_cli.py reset-password --username admin"
+        },
+        "highCpu": {
+          "q": "PostgreSQL using 99% CPU",
+          "a": "Check that indexes exist on frequently queried tables. Key indexes:\n- users: idx_users_username_lower, idx_users_email_lower\n- user_connections: idx_user_connections_user_active\n\nAlso configure in Performance settings:\n- DB Pool max size (default 50)\n- Statement timeout (default 60s)\n\nMonitor via: SELECT * FROM pg_stat_user_tables ORDER BY seq_scan DESC;"
+        },
+        "nodeOffline": {
+          "q": "Node shows as offline but is actually running",
+          "a": "Check:\n1. Agent is running and AGENT_COLLECTOR_URL points to web-backend (port 8081)\n2. Agent token matches the token in the panel\n3. No firewall between node and backend\n4. Server time is synchronized (NTP)"
+        },
+        "alertSpam": {
+          "q": "Alerts keep spamming about long-disconnected nodes",
+          "a": "In the alert rule settings, use the 'Ignore nodes offline longer than (min)' field. For example, set 1440 (24 hours) — nodes disconnected for more than a day won't trigger repeat alerts."
+        },
+        "dockerRestart": {
+          "q": "After docker compose up, services can't see each other",
+          "a": "Make sure the network exists:\ndocker network create remnawave-network\n\nThen:\ndocker compose down && docker compose up -d\n\nIf using multiple docker-compose files — all must use the same external network."
+        },
+        "dbPool": {
+          "q": "'Too many connections' errors in logs",
+          "a": "PostgreSQL has a connection limit (default 100). Each service (bot, backend) uses a pool.\n\nSolutions:\n1. Reduce DB Pool max size in Settings → Performance\n2. Increase max_connections in PostgreSQL:\n   ALTER SYSTEM SET max_connections = 200;\n3. Restart PostgreSQL"
+        },
+        "passwordReset": {
+          "q": "How to reset admin password?",
+          "a": "Method 1 — via email (if SMTP configured):\nOn the login page, click 'Forgot password?' and enter your email.\n\nMethod 2 — via CLI:\ndocker exec -it <container> python3 scripts/admin_cli.py reset-password --username admin\n\nMethod 3 — create new superadmin:\ndocker exec -it <container> python3 scripts/admin_cli.py create-superadmin --username newadmin"
+        },
+        "smtp": {
+          "q": "How to set up email sending?",
+          "a": "Two options:\n\n1. Built-in mail server — go to Mail Server section, add a domain, configure DNS records (MX, SPF, DKIM, DMARC).\n\n2. External SMTP relay — go to Notifications → SMTP Config and enter your SMTP server details (Gmail, Mailgun, etc.)."
+        },
+        "violationQueue": {
+          "q": "How to tell if the violation detection pipeline is keeping up?",
+          "a": "Open /api/v2/collector/stats — it shows:\n- pending_users: users waiting for check\n- health: idle/ok/busy/overloaded\n- backlog: difference between enqueued and processed\n- last_drain_duration_ms: last processing time\n\nIf health = 'overloaded' (>2000 in queue):\n1. Increase 'Chunk size' in Settings → Performance → Pipeline\n2. Decrease 'Drain interval' (e.g. from 3 to 1 sec)\n3. Increase check cooldown (Violation Detection → Cooldown)\n\nIf resources are underutilized but queue grows — increase chunk_size. If CPU is maxed — increase interval and cooldown."
+        },
+        "resourceLimits": {
+          "q": "How to limit resource consumption (CPU/RAM)?",
+          "a": "Resource limits are configured at the Docker level, not the application level.\n\nIn docker-compose.yml add:\nservices:\n  web-backend:\n    deploy:\n      resources:\n        limits:\n          cpus: '2.0'\n          memory: 1G\n        reservations:\n          cpus: '0.5'\n          memory: 256M\n\nAt the application level, configure: DB pool, sync intervals, cache size — see Performance settings."
+        }
+      }
+    },
+    "sync": {
+      "title": "Sync",
+      "errors": "{{count}} errors",
+      "ok": "{{count}} OK",
+      "syncAll": "Sync all",
+      "syncDone": "Sync completed",
+      "syncAllDone": "Full sync completed",
+      "syncComplete": "Sync completed",
+      "fullSyncComplete": "Full sync completed",
+      "syncError": "Sync error",
+      "syncEntity": "Sync",
+      "never": "Never",
+      "records": "{{count}} records",
+      "recordsSynced": "{{count}} records synced",
+      "entities": {
+        "users": "Users",
+        "nodes": "Nodes",
+        "hosts": "Hosts",
+        "config_profiles": "Profiles",
+        "templates": "Templates",
+        "snippets": "Snippets",
+        "squads": "Squads",
+        "hwid_devices": "HWID Devices",
+        "node_traffic": "Node Traffic",
+        "asn": "ASN Database"
+      }
+    },
+    "password": {
+      "title": "Change Password",
+      "changeRequired": "Change required",
+      "generatedHint": "You are using an auto-generated password. It is recommended to change it to your own.",
+      "currentPassword": "Current password",
+      "currentPlaceholder": "Enter current password",
+      "newPassword": "New password",
+      "newPlaceholder": "Enter new password",
+      "confirmPassword": "Confirm new password",
+      "confirmPlaceholder": "Repeat new password",
+      "generate": "Generator",
+      "passwordChanged": "Password changed successfully",
+      "success": "Password changed successfully",
+      "changeError": "Error changing password",
+      "error": "Error changing password",
+      "mismatch": "Passwords do not match",
+      "match": "Passwords match",
+      "submit": "Change password",
+      "enterCurrentPassword": "Enter current password",
+      "enterNewPassword": "Enter new password",
+      "confirmNewPassword": "Confirm new password",
+      "repeatNewPassword": "Repeat new password",
+      "passwordsDoNotMatch": "Passwords do not match",
+      "passwordsMatch": "Passwords match",
+      "changePassword": "Change password",
+      "generator": "Generator",
+      "generatedWarning": "Save the password! It won't be shown again.",
+      "strength": {
+        "weak": "Weak",
+        "fair": "Fair",
+        "good": "Good",
+        "strong": "Strong"
+      },
+      "checks": {
+        "length": "8+ characters",
+        "lower": "Lowercase (a-z)",
+        "upper": "Uppercase (A-Z)",
+        "digit": "Digit (0-9)",
+        "special": "Special character"
+      }
+    },
+    "ipWhitelist": {
+      "description": "If the list is empty, access is allowed from any IP. When IPs are added, access will be limited to the specified addresses only. CIDR notation is supported (e.g., 10.0.0.0/8).",
+      "disableWhitelist": "Disable whitelist (allow all IPs)"
+    },
+    "source": {
+      "db": "DB",
+      "dbTitle": "Value from DB (highest priority)",
+      "env": ".env",
+      "envTitle": "Value from .env file (fallback)",
+      "default": "Default",
+      "defaultTitle": "Default value"
+    },
+    "resetTooltip": "Reset (use .env or default value)",
+    "resetToFallback": "Reset to fallback",
+    "reset": "Reset",
+    "configItems": {
+      "bot_language": {
+        "label": "🌐 Bot language",
+        "description": "Bot interface language"
+      },
+      "log_level": {
+        "label": "📝 Log level",
+        "description": "Log detail level (requires restart)"
+      },
+      "notifications_chat_id": {
+        "label": "💬 Notifications chat ID",
+        "description": "Telegram chat/group ID for notifications"
+      },
+      "notifications_topic_users": {
+        "label": "👤 Topic: Users",
+        "description": "Topic ID for user notifications"
+      },
+      "notifications_topic_nodes": {
+        "label": "🖥️ Topic: Nodes",
+        "description": "Topic ID for node notifications"
+      },
+      "notifications_topic_service": {
+        "label": "🔧 Topic: Service",
+        "description": "Topic ID for service notifications"
+      },
+      "notifications_topic_hwid": {
+        "label": "🔑 Topic: HWID",
+        "description": "Topic ID for HWID notifications"
+      },
+      "notifications_topic_violations": {
+        "label": "🛡️ Topic: Violations",
+        "description": "Topic ID for violation notifications"
+      },
+      "notifications_topic_errors": {
+        "label": "❗ Topic: Errors",
+        "description": "Topic ID for error notifications"
+      },
+      "sync_interval_seconds": {
+        "label": "🔄 Sync interval",
+        "description": "Data sync interval with API (seconds, requires restart)"
+      },
+      "reports_enabled": {
+        "label": "📊 Reports enabled",
+        "description": "Global toggle for automatic reports"
+      },
+      "reports_daily_enabled": {
+        "label": "📅 Daily reports",
+        "description": "Enable daily violation reports"
+      },
+      "reports_daily_time": {
+        "label": "🕐 Daily report time",
+        "description": "Daily report send time (HH:MM UTC)"
+      },
+      "reports_weekly_enabled": {
+        "label": "📆 Weekly reports",
+        "description": "Enable weekly violation reports"
+      },
+      "reports_weekly_day": {
+        "label": "📅 Weekly report day",
+        "description": "Day of week for weekly report (0=Mon, 6=Sun)"
+      },
+      "reports_weekly_time": {
+        "label": "🕐 Weekly report time",
+        "description": "Weekly report send time (HH:MM UTC)"
+      },
+      "reports_monthly_enabled": {
+        "label": "🗓️ Monthly reports",
+        "description": "Enable monthly violation reports"
+      },
+      "reports_monthly_day": {
+        "label": "📅 Monthly report day",
+        "description": "Day of month for monthly report (1-28)"
+      },
+      "reports_monthly_time": {
+        "label": "🕐 Monthly report time",
+        "description": "Monthly report send time (HH:MM UTC)"
+      },
+      "reports_min_score": {
+        "label": "📐 Minimum score",
+        "description": "Minimum violation score to include in report"
+      },
+      "reports_top_violators_count": {
+        "label": "🏆 Top violators",
+        "description": "Number of users in top violators list"
+      },
+      "reports_send_empty": {
+        "label": "📭 Send empty reports",
+        "description": "Send report when there are no violations for the period"
+      },
+      "reports_topic_id": {
+        "label": "💬 Reports topic",
+        "description": "Topic ID for sending reports (0 = main chat)"
+      },
+      "panel_name": {
+        "label": "🏷️ Panel name",
+        "description": "Project name displayed in the sidebar (next to the logo)"
+      },
+      "auth_telegram_enabled": {
+        "label": "✈️ Telegram Authentication",
+        "description": "Allow login via Telegram Login Widget"
+      },
+      "auth_password_enabled": {
+        "label": "🔒 Password Authentication",
+        "description": "Allow login with username and password"
+      },
+      "auth_totp_required": {
+        "label": "🔐 Mandatory 2FA (TOTP)",
+        "description": "Require TOTP setup for all accounts"
+      },
+      "auth_max_attempts": {
+        "label": "🚫 Max attempts before lockout",
+        "description": "Number of failed login attempts before IP is blocked"
+      },
+      "auth_lockout_minutes": {
+        "label": "⏳ Lockout duration (min)",
+        "description": "How long an IP is blocked after exceeding the attempt limit"
+      },
+      "auth_fail2ban_logging": {
+        "label": "📋 Fail2ban logging",
+        "description": "Log failed login attempts to auth_failures.log"
+      },
+      "auth_notify_on_block": {
+        "label": "🔔 Notify on IP block",
+        "description": "Send Telegram notification when an IP is blocked"
+      },
+      "auth_notify_on_failure": {
+        "label": "⚠️ Notify on failed login",
+        "description": "Send Telegram notification on every failed login attempt"
+      },
+      "log_max_size_mb": {
+        "label": "📦 Max log file size (MB)",
+        "description": "Maximum size of a single log file before rotation"
+      },
+      "log_backup_count": {
+        "label": "🗂️ Log backup count",
+        "description": "Number of compressed backup files kept after rotation"
+      },
+      "maxmind_source": {
+        "label": "🌍 MaxMind GeoIP source",
+        "description": "auto — GitHub (ltsdev/maxmind) then MaxMind; github — GitHub only (no key); maxmind — official only (key required)"
+      },
+      "notifications_topic_id": {
+        "label": "💬 Topic: Default (fallback)",
+        "description": "Default topic ID, used when a specific topic is not set"
+      },
+      "violations_enabled": {
+        "label": "🛡️ Violation detection",
+        "description": "Global on/off switch for the violation detector"
+      },
+      "violations_min_score": {
+        "label": "📐 Min notification score",
+        "description": "Minimum violation score to trigger a notification (default 50)"
+      },
+      "violations_analyzer_temporal": {
+        "label": "⏱️ Temporal analyzer",
+        "description": "Analyses simultaneous connections and rapid-switch patterns"
+      },
+      "violations_analyzer_geo": {
+        "label": "🌍 Geo analyzer",
+        "description": "Detects impossible travel and suspicious geolocation"
+      },
+      "violations_analyzer_asn": {
+        "label": "🏢 ASN analyzer",
+        "description": "Provider classification (VPN, datacenter, mobile carrier)"
+      },
+      "violations_analyzer_profile": {
+        "label": "👤 Profile analyzer",
+        "description": "Detects deviations from the user's usual behaviour"
+      },
+      "violations_analyzer_device": {
+        "label": "📱 Device analyzer",
+        "description": "Detects unique device fingerprints (OS, client)"
+      },
+      "violations_analyzer_hwid": {
+        "label": "🔑 HWID cross-account analyzer",
+        "description": "Detects the same HWID used across multiple accounts (trial abuse)"
+      },
+      "violations_analyzer_user_agent": {
+        "label": "🔤 User-Agent analyzer",
+        "description": "Detects double tunnels (vless:// in UA), bots (curl, Go-http-client), and unknown clients"
+      },
+      "violation_ua_max_age_days": {
+        "label": "📅 Max SRH record age (days)",
+        "description": "Ignore subscription requests older than N days. 0 = analyse all records"
+      },
+      "violation_ua_link_floor": {
+        "label": "🔗 Min score for link in UA",
+        "description": "Minimum violation score when a subscription link (vless://) is detected in User-Agent. 70 = warn, 80 = soft_block"
+      },
+      "violation_ua_bot_floor": {
+        "label": "🤖 Min score for bot UA",
+        "description": "Minimum violation score for curl/Go-http-client/python-requests User-Agents"
+      },
+      "violation_ua_whitelist_extra": {
+        "label": "✅ Extra whitelist UA (regex)",
+        "description": "JSON array of regex patterns for new VPN clients. Example: [\"^NewClash/\", \"^MyClient/\"]"
+      },
+      "violation_ua_blacklist_extra": {
+        "label": "🚫 Extra blacklist UA (regex)",
+        "description": "JSON array of regex patterns for suspicious UAs. Example: [\"^SuspiciousBot/\"]"
+      },
+      "srh_retention_days": {
+        "label": "🗑️ SRH retention (days)",
+        "description": "Delete synced Subscription Request History records older than N days. 0 = keep forever"
+      },
+      "violations_max_simultaneous_ips": {
+        "label": "🌐 Max simultaneous IPs",
+        "description": "Max simultaneous IPs above the device limit to trigger a violation (0 = auto from device count)"
+      },
+      "violations_geo_max_city_distance_km": {
+        "label": "📏 Max inter-city distance (km)",
+        "description": "Distance between cities below which movement is not considered suspicious"
+      },
+      "violations_hwid_max_accounts": {
+        "label": "👥 Max accounts per HWID",
+        "description": "Number of accounts sharing one HWID that triggers a violation (default 2)"
+      },
+      "violations_max_unique_ips_per_day": {
+        "label": "📊 Max unique IPs per day",
+        "description": "Exceeding this many unique IPs in a day raises a warning (0 = auto from profile)"
+      },
+      "violations_notification_cooldown_minutes": {
+        "label": "🔕 Notification cooldown (min)",
+        "description": "Minimum interval between notifications for the same user"
+      },
+      "violations_hard_block_ips": {
+        "label": "🚫 Hard block: max IPs",
+        "description": "Number of unique IPs to trigger an automatic hard block"
+      },
+      "violations_hard_block_simultaneous": {
+        "label": "🚫 Hard block: max simultaneous",
+        "description": "Number of simultaneous connections to trigger a hard block"
+      },
+      "violations_hard_block_devices": {
+        "label": "🚫 Hard block: max devices",
+        "description": "Number of unique device fingerprints to trigger a hard block"
+      },
+      "violations_hard_block_hwid_matches": {
+        "label": "🚫 Hard block: max HWID matches",
+        "description": "Number of matching HWIDs (same model) to trigger a hard block"
+      },
+      "violations_trial_tags": {
+        "label": "🏷️ Trial user tags",
+        "description": "Comma-separated tags that mark a user as trial (e.g. trial,test,free)"
+      },
+      "violations_trial_squad_uuids": {
+        "label": "👥 Trial internal squads",
+        "description": "Select internal squads whose users are considered trial"
+      },
+      "torrent_detection_enabled": {
+        "label": "🧲 Torrent detection",
+        "description": "Enable/disable torrent traffic detection via Xray routing"
+      },
+      "torrent_auto_action": {
+        "label": "⚡ Auto-action on torrent",
+        "description": "Action on torrent traffic: notify (alert only), block_user (block)"
+      },
+      "torrent_notification_cooldown_minutes": {
+        "label": "🔕 Torrent notification cooldown (min)",
+        "description": "Minimum interval between torrent notifications for the same user"
+      },
+      "traffic_rate_enabled": {
+        "label": "📈 Traffic rate monitor",
+        "description": "Tracks abnormally high traffic consumption over a period"
+      },
+      "traffic_rate_threshold_gb": {
+        "label": "📊 Threshold (GB per window)",
+        "description": "Notify when a user consumes more than this amount in the window"
+      },
+      "traffic_rate_window_minutes": {
+        "label": "⏱️ Check window (min)",
+        "description": "Time window for traffic accounting (default 60 = 1 hour)"
+      },
+      "traffic_rate_check_interval_minutes": {
+        "label": "🔁 Check interval (min)",
+        "description": "How often to check traffic consumption"
+      },
+      "traffic_rate_cooldown_minutes": {
+        "label": "🔕 Notification cooldown (min)",
+        "description": "Minimum interval between repeated notifications for the same user"
+      },
+      "traffic_rate_auto_action": {
+        "label": "⚡ Auto-action on breach",
+        "description": "Action on excessive traffic: notify only or auto-block"
+      },
+      "traffic_rate_auto_block_gb": {
+        "label": "🚫 Auto-block threshold (GB)",
+        "description": "Auto-block when traffic in the window exceeds this value. Only takes effect when auto-action = block_user"
+      },
+      "mailserver_enabled": {
+        "label": "📧 Mail server enabled",
+        "description": "Enable the built-in mail server (inbound/outbound)"
+      },
+      "mailserver_hostname": {
+        "label": "🖥️ SMTP hostname",
+        "description": "IP address for the inbound SMTP server (0.0.0.0 = all interfaces)"
+      },
+      "mailserver_inbound_port": {
+        "label": "📥 Inbound SMTP port",
+        "description": "Port for inbound mail (default 2525, 25 in production)"
+      },
+      "mailserver_max_send_per_hour": {
+        "label": "🚦 Send limit per hour",
+        "description": "Max messages sent per domain per hour"
+      },
+      "mailserver_queue_poll_interval": {
+        "label": "⏱️ Queue poll interval",
+        "description": "How often to poll the outbound queue (seconds)"
+      },
+      "mailserver_max_retries": {
+        "label": "🔁 Max delivery retries",
+        "description": "Maximum number of delivery attempts per message"
+      },
+      "mailserver_submission_enabled": {
+        "label": "📤 SMTP Submission enabled",
+        "description": "Enable SMTP Submission (port 587) for sending mail via login/password"
+      },
+      "mailserver_submission_port": {
+        "label": "🔌 SMTP Submission port",
+        "description": "Port for the SMTP Submission server (standard — 587)"
+      },
+      "db_pool_min_size": {
+        "label": "🗄️ DB Pool: min connections",
+        "description": "Minimum number of connections in the PostgreSQL pool. Requires restart."
+      },
+      "db_pool_max_size": {
+        "label": "🗄️ DB Pool: max connections",
+        "description": "Maximum number of connections in the PostgreSQL pool. Increase under heavy load. Requires restart."
+      },
+      "db_statement_timeout": {
+        "label": "⏱️ DB: statement timeout (sec)",
+        "description": "Maximum SQL statement execution time in seconds. 0 = unlimited. Requires restart."
+      },
+      "db_idle_connection_lifetime": {
+        "label": "💤 DB: idle connection lifetime (sec)",
+        "description": "How long idle connections stay in the pool before being closed. Requires restart."
+      },
+      "alert_check_interval": {
+        "label": "🔔 Alert check interval (sec)",
+        "description": "How often to evaluate alert rules. Lower = faster reaction, higher DB load."
+      },
+      "config_auto_reload_interval": {
+        "label": "🔄 Config auto-reload (sec)",
+        "description": "How often to reload configuration from the DB. Affects how quickly setting changes take effect."
+      },
+      "api_rate_limit_per_minute": {
+        "label": "🚦 API: requests/min (global)",
+        "description": "Maximum API requests per minute per IP. 0 = unlimited."
+      },
+      "collector_rate_limit": {
+        "label": "📡 Collector: rate limit",
+        "description": "Rate limit for the node-agent metrics endpoint (format: '1/second')."
+      },
+      "cache_max_entries": {
+        "label": "💾 Cache: max entries",
+        "description": "Maximum entries in the in-memory cache. LRU eviction kicks in when exceeded."
+      },
+      "cache_default_ttl": {
+        "label": "⏱️ Cache: default TTL (sec)",
+        "description": "Default entry TTL. Lower = fresher data, more DB queries."
+      },
+      "violation_drain_interval": {
+        "label": "⏱️ Violation queue: drain interval (sec)",
+        "description": "How often the worker pulls a chunk of users from the queue. Lower = faster reaction, higher load."
+      },
+      "violation_chunk_size": {
+        "label": "📦 Violation queue: chunk size",
+        "description": "Users processed per cycle. Higher = queue drains faster, but peak load rises."
+      },
+      "violation_max_background_tasks": {
+        "label": "🔀 Max background tasks",
+        "description": "Maximum concurrent background tasks (torrents, etc.). New tasks are dropped when exceeded."
+      },
+      "violation_notification_cooldown_minutes": {
+        "label": "🔕 Notification cooldown (min)",
+        "description": "Minimum interval between repeated notifications for the same user. Spam protection."
+      },
+      "user_blacklist_enabled": {
+        "label": "🚫 User blacklist",
+        "description": "Enable Telegram ID blacklist lookup. Matching users are auto-blocked."
+      },
+      "user_blacklist_urls": {
+        "label": "🔗 Blacklist URLs (one per line)",
+        "description": "External blacklist file URLs. Format: Telegram ID at the start of each line."
+      },
+      "user_blacklist_sync_hours": {
+        "label": "🔄 Sync interval (hours)",
+        "description": "How often to refresh blacklists from external URLs."
+      },
+      "user_blacklist_auto_block": {
+        "label": "⚡ Auto-block",
+        "description": "Automatically block blacklisted users via Panel API. When disabled — notification only."
+      }
+    },
+    "inDb": "In DB",
+    "readOnly": "Read only",
+    "legend": {
+      "title": "Value priority",
+      "db": "DB",
+      "env": ".env",
+      "default": "Default",
+      "readOnly": "Read only",
+      "dbDesc": "— set in DB (primary)",
+      "envDesc": "— from .env file (fallback)",
+      "defaultDesc": "— default value",
+      "readonlyDesc": "— read only",
+      "resetDesc": "— reset to fallback",
+      "resetToFallback": "Reset to fallback",
+      "hint": "Settings are applied instantly after changes.",
+      "applyNote": "Settings are applied instantly after changes. To reset, hover over a setting and click X.",
+      "inDb": "{{count}} in DB"
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Notification center, alert rules and delivery channels",
+    "noNotifications": "No notifications",
+    "markAllRead": "Mark all read",
+    "allMarkedRead": "All notifications marked as read",
+    "viewAll": "View all notifications",
+    "deleteOld": "Delete old",
+    "oldDeleted": "Old notifications deleted",
+    "tabs": {
+      "notifications": "Notifications",
+      "alertRules": "Alert Rules",
+      "alertLogs": "Alert Logs",
+      "channels": "Channels"
+    },
+    "filters": {
+      "readStatus": "Read status",
+      "unread": "Unread",
+      "read": "Read",
+      "severity": "Severity"
+    },
+    "alerts": {
+      "rules": "rules",
+      "active": "active",
+      "disabled": "disabled",
+      "enabled": "Enabled",
+      "off": "off",
+      "createRule": "Create rule",
+      "editRule": "Edit rule",
+      "noRules": "No alert rules configured",
+      "ruleEnabled": "Alert rule enabled",
+      "ruleDisabled": "Alert rule disabled",
+      "ruleDeleted": "Alert rule deleted",
+      "ruleCreated": "Alert rule created",
+      "ruleUpdated": "Alert rule updated",
+      "deleteConfirmTitle": "Delete alert rule?",
+      "deleteConfirmDesc": "This alert rule will be permanently deleted.",
+      "name": "Name",
+      "namePlaceholder": "e.g. High CPU alert",
+      "description": "Description",
+      "descriptionPlaceholder": "Describe the rule purpose...",
+      "metric": "Metric",
+      "metricDisk": "Disk (%)",
+      "metricNodeOffline": "Node offline (min)",
+      "metricNodesOnline": "Nodes online (count)",
+      "metricNodesOffline": "Nodes offline (count)",
+      "metricNodesTotal": "Total nodes (count)",
+      "metricDescCpu": "Maximum CPU usage across all nodes",
+      "metricDescRam": "Maximum RAM usage across all nodes",
+      "metricDescDisk": "Maximum disk usage across all nodes",
+      "metricDescNodeOffline": "Minutes since the longest-offline node stopped responding",
+      "metricDescTraffic": "Total traffic across all nodes today in GB",
+      "metricDescUsersOnline": "Total number of connected users across all nodes",
+      "metricDescNodesOnline": "Number of nodes currently online",
+      "metricDescNodesOffline": "Number of nodes currently offline",
+      "metricDescNodesTotal": "Total number of active (non-disabled) nodes",
+      "maxOfflineMinutes": "Ignore nodes offline longer than (min)",
+      "maxOfflineMinutesHint": "Skip alerts for nodes offline longer than this. Useful to stop spam about long-disconnected nodes.",
+      "metricTraffic": "Traffic today (GB)",
+      "metricUsersOnline": "Users online",
+      "operator": "Operator",
+      "condition": "Condition",
+      "threshold": "Threshold",
+      "value": "Value",
+      "severityLabel": "Severity",
+      "cooldown": "Cooldown",
+      "min": "min",
+      "triggered": "Triggered",
+      "lastTriggered": "Last triggered",
+      "escalation": "Escalation delay",
+      "channelsLabel": "Channels",
+      "channelInApp": "In-app",
+      "channelsHint": "Select which channels to notify when this rule triggers. Channels must be configured in the Channels tab.",
+      "templateSection": "Message template",
+      "titleTemplate": "Title template",
+      "bodyTemplate": "Body template",
+      "templatePreview": "Preview:",
+      "templateVars": "Available variables:",
+      "varRuleName": "Alert rule name",
+      "varMetric": "Metric identifier",
+      "varValue": "Current metric value",
+      "varThreshold": "Threshold value",
+      "varOperator": "Comparison operator (>, >=, <, etc.)",
+      "varSeverity": "Severity level (info, warning, critical)",
+      "varNodeNames": "Names of affected/offline nodes",
+      "varNodeIps": "IP addresses of offline nodes (comma-separated)",
+      "varIp": "IP addresses of offline nodes (alias for node_ips)",
+      "varNodesTotal": "Total number of nodes",
+      "varNodesOnline": "Number of nodes online",
+      "varNodesOffline": "Number of nodes offline",
+      "varTimestamp": "Current UTC timestamp",
+      "clickToCopy": "click to copy",
+      "copiedVar": "Copied: {{var}}"
+    },
+    "alertLogs": {
+      "status": "Status",
+      "unacknowledged": "Unacknowledged",
+      "acknowledged": "Acknowledged",
+      "acked": "Acknowledged",
+      "noLogs": "No alert logs",
+      "ackAll": "Acknowledge all",
+      "allAcknowledged": "All alerts acknowledged"
+    },
+    "channels": {
+      "title": "Delivery Channels",
+      "add": "Add channel",
+      "noChannels": "No delivery channels configured",
+      "noChannelsHint": "Add Telegram, Webhook or Email channel to receive notifications outside the panel",
+      "type": "Channel type",
+      "created": "Channel created",
+      "deleted": "Channel deleted",
+      "optional": "optional",
+      "webhookHint": "Supports Discord, Slack and generic JSON webhooks",
+      "emailHint": "Requires SMTP to be configured by admin"
+    },
+    "smtp": {
+      "title": "SMTP Configuration",
+      "host": "SMTP Host",
+      "port": "Port",
+      "username": "Username",
+      "password": "Password",
+      "fromEmail": "From email",
+      "fromName": "From name",
+      "enabled": "Enabled",
+      "saved": "SMTP settings saved",
+      "test": "Test",
+      "testEmailPlaceholder": "test@example.com",
+      "testSuccess": "Test email sent successfully",
+      "testFailed": "Test email failed"
+    }
+  },
+  "mailServer": {
+    "title": "Mail Server",
+    "subtitle": "Embedded mail server — send and receive emails from your domain",
+    "tabs": {
+      "domains": "Domains",
+      "queue": "Queue",
+      "inbox": "Inbox",
+      "compose": "Compose",
+      "credentials": "Credentials"
+    },
+    "addDomain": "Add Domain",
+    "noDomains": "No domains configured. Add a domain to start sending emails.",
+    "domainName": "Domain name",
+    "enableInbound": "Enable inbound email receiving",
+    "domainCreated": "Domain created with DKIM keys",
+    "domainDeleted": "Domain deleted",
+    "deleteDomain": "Delete Domain",
+    "deleteDomainConfirm": "This will permanently delete this domain and its DKIM keys. Continue?",
+    "checkDns": "Check DNS",
+    "dnsChecked": "DNS records checked",
+    "viewRecords": "DNS Records",
+    "dnsRecords": "Required DNS Records",
+    "host": "Host",
+    "value": "Value",
+    "current": "Current",
+    "ptrHint": "PTR record must be configured at your VPS/hosting provider, not in the domain DNS panel",
+    "outbound": "Outbound",
+    "inbound": "Inbound",
+    "pending": "Pending",
+    "sent": "Sent",
+    "failed": "Failed",
+    "total": "Total",
+    "allStatuses": "All statuses",
+    "cancelledStatus": "Cancelled",
+    "noQueueItems": "No emails in the queue",
+    "retryQueued": "Email queued for retry",
+    "cancelled": "Email cancelled",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "markAllRead": "Mark all read",
+    "noMessages": "No messages in inbox",
+    "selectMessage": "Select a message to read",
+    "deleteMessage": "Delete Message",
+    "deleteMessageConfirm": "This will permanently delete this message. Continue?",
+    "messageDeleted": "Message deleted",
+    "unknown": "Unknown",
+    "noSubject": "(no subject)",
+    "noContent": "(no content)",
+    "from": "From",
+    "to": "To",
+    "date": "Date",
+    "compose": "Compose Email",
+    "fromDomain": "From domain",
+    "selectDomain": "Select domain",
+    "subject": "Subject",
+    "subjectPlaceholder": "Email subject",
+    "body": "Body",
+    "bodyPlaceholder": "Email body text...",
+    "send": "Send",
+    "sending": "Sending...",
+    "sendTest": "Send Test",
+    "emailQueued": "Email added to queue",
+    "testSent": "Test email queued",
+    "senderName": "Sender name",
+    "senderNamePlaceholder": "e.g. My Service",
+    "senderNameHint": "Displayed in the 'From' field instead of email address",
+    "senderNameUpdated": "Sender name updated",
+    "notSet": "not set",
+    "credentials": {
+      "title": "SMTP Credentials",
+      "subtitle": "Manage logins for sending emails via SMTP Submission (port 587)",
+      "add": "Add Credential",
+      "noCredentials": "No SMTP credentials configured. Create one to allow external services to send emails.",
+      "username": "Username",
+      "usernamePlaceholder": "myservice",
+      "password": "Password",
+      "passwordPlaceholder": "Strong password",
+      "newPassword": "New password",
+      "newPasswordHint": "Leave empty to keep current",
+      "description": "Description",
+      "descriptionPlaceholder": "What this is used for",
+      "allowedDomains": "Allowed sender domains",
+      "allowedDomainsPlaceholder": "example.com, other.com",
+      "allowedDomainsHint": "Comma-separated. If empty, any configured domain is allowed.",
+      "maxPerHour": "Max per hour",
+      "lastLogin": "Last login",
+      "loginIp": "Login IP",
+      "active": "Active",
+      "inactive": "Disabled",
+      "created": "Credential created",
+      "updated": "Credential updated",
+      "deleted": "Credential deleted",
+      "deleteTitle": "Delete Credential",
+      "deleteConfirm": "This credential will be permanently deleted. External services will lose access. Continue?",
+      "edit": "Edit",
+      "connectionInfo": "Connection settings",
+      "port": "Port",
+      "auth": "Auth",
+      "never": "never"
+    }
+  },
+  "language": {
+    "title": "Language",
+    "ru": "Русский",
+    "en": "English"
+  },
+  "resources": {
+    "title": "Resources",
+    "subtitle": "Manage API tokens, templates, snippets and config profiles",
+    "tabs": {
+      "tokens": "API Tokens",
+      "templates": "Templates",
+      "snippets": "Snippets",
+      "profiles": "Config Profiles"
+    },
+    "tokens": {
+      "description": "API tokens for accessing the Remnawave Panel API",
+      "create": "Create Token",
+      "empty": "No API tokens yet",
+      "created": "Token created successfully",
+      "createError": "Failed to create token",
+      "deleted": "Token deleted",
+      "deleteError": "Failed to delete token",
+      "createTitle": "Create API Token",
+      "createDescription": "Enter a name for the new API token",
+      "nameLabel": "Token Name",
+      "namePlaceholder": "e.g. my-bot-token",
+      "tokenLabel": "Token",
+      "tokenCreated": "Token Created",
+      "tokenCreatedDescription": "Copy the token now — it won't be shown again",
+      "deleteTitle": "Delete Token",
+      "deleteDescription": "Are you sure you want to delete this token? This action cannot be undone."
+    },
+    "templates": {
+      "description": "VPN subscription config templates",
+      "create": "Create Template",
+      "empty": "No templates yet",
+      "created": "Template created",
+      "createError": "Failed to create template",
+      "updated": "Template updated",
+      "updateError": "Failed to update template",
+      "deleted": "Template deleted",
+      "deleteError": "Failed to delete template",
+      "invalidJson": "Invalid JSON format",
+      "createTitle": "Create Template",
+      "createDescription": "Enter the name and type for the new template",
+      "editTitle": "Edit Template",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. Default Xray Config",
+      "typeLabel": "Template Type",
+      "jsonLabel": "Template JSON",
+      "deleteTitle": "Delete Template",
+      "deleteDescription": "Are you sure you want to delete this template? This action cannot be undone."
+    },
+    "snippets": {
+      "description": "Reusable JSON config snippets",
+      "create": "Create Snippet",
+      "empty": "No snippets yet",
+      "created": "Snippet created",
+      "createError": "Failed to create snippet",
+      "updated": "Snippet updated",
+      "updateError": "Failed to update snippet",
+      "deleted": "Snippet deleted",
+      "deleteError": "Failed to delete snippet",
+      "invalidJson": "Invalid JSON format",
+      "createTitle": "Create Snippet",
+      "createDescription": "Enter the name and JSON content for the new snippet",
+      "editTitle": "Edit Snippet",
+      "nameLabel": "Name",
+      "namePlaceholder": "e.g. tls-settings",
+      "jsonLabel": "Snippet JSON",
+      "deleteTitle": "Delete Snippet",
+      "deleteDescription": "Are you sure you want to delete this snippet? This action cannot be undone."
+    },
+    "profiles": {
+      "description": "VPN config profiles with inbound configurations",
+      "empty": "No config profiles yet",
+      "loadError": "Failed to load computed config",
+      "viewTitle": "Computed Config",
+      "viewDescription": "Full expanded configuration for this profile"
+    }
+  },
+  "billing": {
+    "title": "Billing",
+    "subtitle": "Manage infrastructure providers, billing history and node payments",
+    "tabs": {
+      "providers": "Providers",
+      "history": "Billing History",
+      "nodes": "Billing Nodes",
+      "analytics": "Analytics"
+    },
+    "analytics": {
+      "monthlySpend": "Monthly Spend",
+      "costPerUser": "Cost / Active User",
+      "costPerGb": "Cost / GB",
+      "costPerNode": "Cost / Node",
+      "monthlySeries": "Monthly Spending",
+      "perNode": "Per Node",
+      "nodeName": "Node",
+      "provider": "Provider",
+      "usersOnline": "Online"
+    },
+    "providers": {
+      "description": "Infrastructure providers for hosting nodes",
+      "create": "Add Provider",
+      "empty": "No providers yet",
+      "openPanel": "Open provider panel",
+      "totalSpent": "Total spent",
+      "totalBills": "Total bills",
+      "created": "Provider created",
+      "createError": "Failed to create provider",
+      "updated": "Provider updated",
+      "updateError": "Failed to update provider",
+      "deleted": "Provider deleted",
+      "deleteError": "Failed to delete provider",
+      "createTitle": "Add Provider",
+      "createDescription": "Enter details for the new infrastructure provider",
+      "editTitle": "Edit Provider",
+      "editDescription": "Update provider details",
+      "nameLabel": "Provider Name",
+      "namePlaceholder": "e.g. Hetzner",
+      "faviconLabel": "Favicon URL",
+      "faviconPlaceholder": "https://example.com/favicon.ico",
+      "loginUrlLabel": "Login URL",
+      "loginUrlPlaceholder": "https://console.example.com",
+      "deleteTitle": "Delete Provider",
+      "deleteDescription": "Are you sure you want to delete this provider? All associated billing records will be affected."
+    },
+    "history": {
+      "description": "Track billing payments to infrastructure providers",
+      "create": "Add Record",
+      "empty": "No billing records yet",
+      "totalAmount": "Total Amount",
+      "totalRecords": "Total Records",
+      "provider": "Provider",
+      "amount": "Amount",
+      "billedAt": "Billed At",
+      "created": "Billing record created",
+      "createError": "Failed to create billing record",
+      "deleted": "Billing record deleted",
+      "deleteError": "Failed to delete billing record",
+      "createTitle": "Add Billing Record",
+      "createDescription": "Record a payment to an infrastructure provider",
+      "providerLabel": "Provider",
+      "providerPlaceholder": "Select provider",
+      "amountLabel": "Amount",
+      "amountPlaceholder": "0.00",
+      "billedAtLabel": "Billed At",
+      "deleteTitle": "Delete Record",
+      "deleteDescription": "Are you sure you want to delete this billing record? This action cannot be undone."
+    },
+    "nodes": {
+      "description": "Manage billing associations for nodes",
+      "create": "Add Node",
+      "empty": "No billing nodes yet",
+      "upcoming": "Upcoming Payments",
+      "currentMonth": "Current Month",
+      "totalSpent": "Total Spent",
+      "node": "Node",
+      "provider": "Provider",
+      "nextBilling": "Next Billing",
+      "created": "Billing node added",
+      "createError": "Failed to add billing node",
+      "deleted": "Billing node removed",
+      "deleteError": "Failed to remove billing node",
+      "createTitle": "Add Billing Node",
+      "createDescription": "Associate a node with a billing provider",
+      "providerLabel": "Provider",
+      "providerPlaceholder": "Select provider",
+      "nodeLabel": "Node",
+      "nodePlaceholder": "Select node",
+      "nextBillingLabel": "Next Billing Date",
+      "deleteTitle": "Remove Billing Node",
+      "deleteDescription": "Are you sure you want to remove this billing node association?"
+    }
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Violation reports and ASN database management",
+    "tabs": {
+      "reports": "Violation Reports",
+      "schedule": "Schedule",
+      "asn": "ASN Database"
+    },
+    "schedule": {
+      "globalEnabled": "Report scheduling enabled",
+      "globalDescription": "Enable/disable all scheduled reports (daily, weekly, monthly)",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "time": "Time (UTC)",
+      "dayOfWeek": "Day of week",
+      "dayOfMonth": "Day of month",
+      "monday": "Monday",
+      "tuesday": "Tuesday",
+      "wednesday": "Wednesday",
+      "thursday": "Thursday",
+      "friday": "Friday",
+      "saturday": "Saturday",
+      "sunday": "Sunday"
+    },
+    "filterAll": "All types",
+    "filterDaily": "Daily",
+    "filterWeekly": "Weekly",
+    "filterMonthly": "Monthly",
+    "generate": "Generate",
+    "generating": "Generating...",
+    "generated": "Report generated successfully",
+    "generateError": "Failed to generate report",
+    "generateTitle": "Generate Report",
+    "generateDescription": "Generate a new violation report for the selected period",
+    "reportType": "Report Type",
+    "empty": "No reports yet",
+    "uniqueUsers": "Unique users",
+    "topViolators": "Top Violators",
+    "score": "Score",
+    "violations": "violations",
+    "byCountry": "By Country",
+    "byAsnType": "By ASN Type",
+    "asn": {
+      "description": "Russian ASN database synced from RIPE",
+      "sync": "Sync from RIPE",
+      "syncing": "Syncing...",
+      "syncSuccess": "Synced {{count}} ASN records",
+      "syncError": "Failed to sync ASN database",
+      "totalRecords": "Total Records",
+      "searchPlaceholder": "Search by organization name...",
+      "filterByType": "Filter by type",
+      "allTypes": "All types",
+      "searchHint": "Search by organization name or filter by provider type",
+      "noResults": "No ASN records found",
+      "orgName": "Organization",
+      "type": "Type",
+      "region": "Region",
+      "showingOf": "Showing {{shown}} of {{total}} records"
+    }
+  },
+  "errors": {
+    "INVALID_AUTH_HEADER": "Invalid authorization header",
+    "TOKEN_REQUIRED": "Authentication token required",
+    "INVALID_TOKEN": "Invalid or expired token",
+    "TOKEN_ALREADY_USED": "Token has already been used",
+    "INVALID_REFRESH_TOKEN": "Invalid refresh token",
+    "ACCOUNT_DISABLED": "Account is disabled",
+    "ADMIN_NOT_FOUND": "Administrator not found",
+    "NOT_AN_ADMIN": "You are not an administrator",
+    "INVALID_PASSWORD": "Invalid password",
+    "PASSWORD_UPDATE_FAILED": "Failed to update password",
+    "INVALID_USERNAME": "Invalid username",
+    "FORBIDDEN": "Access denied",
+    "EMAIL_NOT_CONFIGURED": "Email sending is not configured",
+    "RESET_TOKEN_INVALID": "Invalid or expired password reset link",
+    "USERNAME_EXISTS": "Username already exists",
+    "CANNOT_MODIFY_SELF": "Cannot modify your own account",
+    "ADMIN_CREATE_FAILED": "Failed to create administrator",
+    "ADMIN_UPDATE_FAILED": "Failed to update administrator",
+    "ADMIN_DELETE_FAILED": "Failed to delete administrator",
+    "ROLE_NOT_FOUND": "Role not found",
+    "ROLE_NAME_EXISTS": "Role name already exists",
+    "ROLE_CREATE_FAILED": "Failed to create role",
+    "ROLE_UPDATE_FAILED": "Failed to update role",
+    "ROLE_DELETE_FAILED": "Failed to delete role",
+    "SYSTEM_ROLE_PROTECTED": "System role cannot be modified",
+    "UNKNOWN_RESOURCE": "Unknown resource type",
+    "INVALID_ACTION": "Invalid action",
+    "USER_NOT_FOUND": "User not found",
+    "SYNC_FAILED": "Synchronization failed",
+    "NODE_NOT_FOUND": "Node not found",
+    "TOKEN_GENERATE_FAILED": "Failed to generate token",
+    "TOKEN_REVOKE_FAILED": "Failed to revoke token",
+    "HOST_NOT_FOUND": "Host not found",
+    "HOST_CREATE_FAILED": "Failed to create host",
+    "HOST_UPDATE_FAILED": "Failed to update host",
+    "HOST_DELETE_FAILED": "Failed to delete host",
+    "HOST_ENABLE_FAILED": "Failed to enable host",
+    "HOST_DISABLE_FAILED": "Failed to disable host",
+    "VIOLATION_NOT_FOUND": "Violation not found",
+    "VIOLATION_UPDATE_FAILED": "Failed to update violation",
+    "WHITELIST_ADD_FAILED": "Failed to add to whitelist",
+    "WHITELIST_USER_NOT_FOUND": "Whitelisted user not found",
+    "AUTOMATION_NOT_FOUND": "Automation rule not found",
+    "AUTOMATION_CREATE_FAILED": "Failed to create automation rule",
+    "AUTOMATION_UPDATE_FAILED": "Failed to update automation rule",
+    "AUTOMATION_TOGGLE_FAILED": "Failed to toggle automation rule",
+    "AUTOMATION_DELETE_FAILED": "Failed to delete automation rule",
+    "AUTOMATION_ACTIVATE_FAILED": "Failed to activate automation rule",
+    "TEMPLATE_NOT_FOUND": "Automation template not found",
+    "SETTING_NOT_FOUND": "Setting not found",
+    "SETTING_READONLY": "This setting is read-only",
+    "SCRIPT_NOT_FOUND": "Script not found",
+    "BUILTIN_SCRIPT_PROTECTED": "Built-in script cannot be modified",
+    "AGENT_NOT_CONNECTED": "Node agent is not connected",
+    "AGENT_TOKEN_NOT_FOUND": "Agent token not found",
+    "AGENT_COMMAND_FAILED": "Agent command failed",
+    "EXECUTION_NOT_FOUND": "Execution not found",
+    "INVALID_GITHUB_URL": "Invalid GitHub URL",
+    "CONTENT_TOO_LARGE": "Content is too large",
+    "REPO_NOT_FOUND": "Repository not found",
+    "NOTIFICATION_NOT_FOUND": "Notification not found",
+    "CHANNEL_NOT_FOUND": "Notification channel not found",
+    "ALERT_RULE_NOT_FOUND": "Alert rule not found",
+    "SMTP_NOT_CONFIGURED": "SMTP is not configured",
+    "SMTP_UPDATE_FAILED": "Failed to update SMTP configuration",
+    "SMTP_CREDENTIAL_NOT_FOUND": "SMTP credential not found",
+    "DOMAIN_NOT_FOUND": "Mail domain not found",
+    "NO_OUTBOUND_DOMAIN": "No outbound mail domain configured",
+    "QUEUE_ITEM_NOT_FOUND": "Mail queue item not found",
+    "MESSAGE_NOT_FOUND": "Mail message not found",
+    "REPORT_NOT_FOUND": "Report not found",
+    "ASN_NOT_FOUND": "ASN record not found",
+    "BACKUP_NOT_FOUND": "Backup file not found",
+    "BACKUP_CREATE_FAILED": "Failed to create backup",
+    "BACKUP_RESTORE_FAILED": "Failed to restore backup",
+    "BACKUP_DELETE_FAILED": "Failed to delete backup",
+    "IMPORT_FAILED": "Import failed",
+    "INVALID_FILENAME": "Invalid filename",
+    "NO_FIELDS_TO_UPDATE": "No fields to update",
+    "API_SERVICE_UNAVAILABLE": "API service is unavailable",
+    "DB_UNAVAILABLE": "Database is unavailable",
+    "INTERNAL_ERROR": "Internal server error"
+  },
+  "backup": {
+    "title": "Backups",
+    "subtitle": "Database backups, config export/import, and user import",
+    "tabs": {
+      "backups": "Backups",
+      "import": "Import",
+      "history": "History"
+    },
+    "files": "Backup Files",
+    "noFiles": "No backup files yet",
+    "createDatabase": "Database Backup",
+    "createConfig": "Config Backup",
+    "creating": "Creating...",
+    "created": "Backup created: {{filename}}",
+    "createFailed": "Failed to create backup",
+    "download": "Download",
+    "delete": "Delete",
+    "deleted": "Backup deleted",
+    "deleteFailed": "Failed to delete backup",
+    "restore": "Restore",
+    "restored": "Database restored successfully",
+    "restoreFailed": "Failed to restore database",
+    "confirmDelete": "Delete backup?",
+    "confirmDeleteDesc": "Are you sure you want to delete \"{{filename}}\"? This action cannot be undone.",
+    "confirmRestore": "Restore database?",
+    "confirmRestoreDesc": "This will overwrite the current database with the backup \"{{filename}}\". This action cannot be undone. Are you sure?",
+    "history": "Operation History",
+    "noHistory": "No backup operations recorded",
+    "importConfig": "Import Configuration",
+    "noConfigFiles": "No config backup files available. Create a config backup first.",
+    "importMissing": "Import Missing",
+    "importOverwrite": "Overwrite All",
+    "importConfigSuccess": "Config imported: {{imported}} settings updated, {{skipped}} skipped",
+    "importFailed": "Import failed",
+    "importUsers": "Import Users",
+    "noUserFiles": "No user export files available. Upload a JSON file to the backup directory.",
+    "importUsersWarning": "User import will create new users via the Remnawave Panel API. Existing users with the same username will be skipped.",
+    "importStart": "Import",
+    "importUsersSuccess": "Users imported: {{imported}} created, {{skipped}} skipped",
+    "importUsersErrors": "{{count}} errors occurred during import"
+  },
+  "apiKeys": {
+    "title": "API Keys & Webhooks",
+    "subtitle": "Manage external API access and webhook subscriptions",
+    "apiDocs": "API Docs",
+    "tabs": {
+      "keys": "API Keys",
+      "webhooks": "Webhooks"
+    },
+    "keys": "API Keys",
+    "noKeys": "No API keys created yet",
+    "createKey": "Create API Key",
+    "keyName": "Key name",
+    "keyNamePlaceholder": "e.g. Monitoring Integration",
+    "scopes": "Scopes",
+    "noScopes": "no scopes",
+    "create": "Create",
+    "createFailed": "Failed to create",
+    "deleted": "API key deleted",
+    "disabled": "Disabled",
+    "lastUsed": "Last used",
+    "keyCreated": "API Key Created",
+    "keyCreatedWarning": "Copy this key now. You won't be able to see it again.",
+    "confirmDelete": "Delete API key?",
+    "confirmDeleteDesc": "This will permanently revoke this API key. Any integrations using it will stop working.",
+    "webhooks": "Webhooks",
+    "noWebhooks": "No webhook subscriptions yet",
+    "createWebhook": "Create Webhook",
+    "webhookName": "Name",
+    "webhookNamePlaceholder": "e.g. Slack Notifications",
+    "webhookSecret": "Secret (optional)",
+    "webhookSecretPlaceholder": "HMAC signing secret",
+    "events": "Events",
+    "webhookCreated": "Webhook created",
+    "webhookDeleted": "Webhook deleted",
+    "signed": "Signed",
+    "failures": "failures",
+    "lastTriggered": "Last triggered",
+    "confirmDeleteWebhook": "Delete webhook?",
+    "confirmDeleteWebhookDesc": "This will permanently delete this webhook subscription.",
+    "editKey": "Edit key",
+    "editWebhook": "Edit webhook",
+    "updated": "Key updated",
+    "updateFailed": "Failed to update",
+    "webhookUpdated": "Webhook updated",
+    "deleteFailed": "Failed to delete",
+    "expired": "Expired",
+    "expiresAt": "Expires",
+    "ttl": "Expiration",
+    "ttlNever": "Never",
+    "day": "day",
+    "days": "days",
+    "confirmSaved": "I have saved this key in a secure place",
+    "urlInvalid": "URL must start with http:// or https://",
+    "secretHint": "Signature is sent in X-Webhook-Signature header (HMAC-SHA256)",
+    "changeSecret": "Change secret",
+    "toggleActive": "Toggle active",
+    "testWebhook": "Send test delivery",
+    "testResult": "Test result",
+    "testFailed": "Test failed",
+    "deliveryHistory": "Delivery history",
+    "noDeliveries": "No deliveries yet",
+    "showResponse": "Show response"
+  },
+  "forcePassword": {
+    "title": "Password change required",
+    "description": "Your password was set by an administrator. For security, please set your own password."
+  },
+  "squads": {
+    "title": "Squads",
+    "subtitle": "Manage internal and external squads for user grouping",
+    "internal": "Internal",
+    "external": "External",
+    "createInternal": "Create Internal Squad",
+    "createExternal": "Create External Squad",
+    "noInternal": "No internal squads",
+    "noExternal": "No external squads",
+    "name": "Squad name",
+    "created": "Squad created",
+    "updated": "Squad updated",
+    "deleted": "Squad deleted",
+    "editInternal": "Edit Internal Squad",
+    "editExternal": "Edit External Squad",
+    "deleteConfirm": "Delete squad?",
+    "deleteDescription": "This will remove the squad. Users will be unassigned.",
+    "members": "members"
+  },
+  "ipControl": {
+    "title": "IP Addresses",
+    "fetchIps": "Fetch IPs",
+    "starting": "Starting scan...",
+    "progress": "Scanning nodes...",
+    "failed": "Failed to fetch IPs",
+    "found": "Found",
+    "nodes": "nodes",
+    "drop": "Drop All",
+    "dropped": "Connections dropped",
+    "noIps": "No active connections found"
+  },
+  "bedolaga": {
+    "title": "Bedolaga Bot",
+    "subtitle": "Bedolaga Bot statistics and monitoring",
+    "tooltip": "Data is fetched from Bedolaga Bot API in real time",
+    "notConfigured": "Bedolaga API is not configured",
+    "notConfiguredDesc": "Add BEDOLAGA_API_URL and BEDOLAGA_API_TOKEN environment variables to connect to the Bedolaga Bot API.",
+    "online": "Online",
+    "offline": "Offline",
+    "maintenance": "Maintenance",
+    "stats": {
+      "totalUsers": "Users",
+      "active": "Active",
+      "blockedUsers": "Blocked",
+      "activeSubs": "Subscriptions",
+      "expired": "Expired",
+      "depositsToday": "Deposits today",
+      "totalBalance": "Total balance",
+      "openTickets": "Open tickets",
+      "botStatus": "Bot status",
+      "services": "Services"
+    },
+    "sections": {
+      "newUsers": "New users",
+      "income": "Income & Expenses",
+      "paymentMethods": "Payment methods",
+      "referrals": "Referral program",
+      "plans": "Subscription plans"
+    },
+    "periods": {
+      "today": "Today",
+      "week": "Week",
+      "month": "Month"
+    },
+    "income": {
+      "revenue": "Revenue",
+      "expenses": "Expenses"
+    },
+    "customers": {
+      "title": "Bedolaga Customers",
+      "subtitle": "Manage bot customers",
+      "searchPlaceholder": "Search by name or Telegram ID...",
+      "user": "User",
+      "status": "Status",
+      "statusActive": "Active",
+      "statusBlocked": "Blocked",
+      "balance": "Balance",
+      "subscription": "Subscription",
+      "lastActivity": "Activity",
+      "noResults": "No customers found",
+      "subActive": "Active",
+      "subExpired": "Expired",
+      "subTrial": "Trial",
+      "subNone": "No subscription"
+    },
+    "customerDetail": {
+      "notFound": "Customer not found",
+      "userInfo": "Information",
+      "name": "Name",
+      "registered": "Registered",
+      "lastActivity": "Last activity",
+      "promoGroup": "Promo group",
+      "referralCode": "Referral code",
+      "balance": "Balance",
+      "changeBalance": "Change balance",
+      "changeBalanceDesc": "Enter amount (positive — deposit, negative — withdrawal)",
+      "amountRubles": "Amount (₽)",
+      "reason": "Reason",
+      "reasonPlaceholder": "Reason for change...",
+      "balanceUpdated": "Balance updated",
+      "kopeks": "kopeks",
+      "subscription": "Subscription",
+      "noSubscription": "No subscription",
+      "status": "Status",
+      "validUntil": "Valid until",
+      "traffic": "Traffic",
+      "devices": "Devices",
+      "autopay": "Autopay",
+      "extend": "Extend",
+      "extendSubscription": "Extend subscription",
+      "extendDesc": "Enter number of days to extend",
+      "subscriptionExtended": "Subscription extended",
+      "days": "Days",
+      "recentTransactions": "Recent transactions",
+      "noTransactions": "No transactions",
+      "events": "Subscription events",
+      "editUser": "Edit",
+      "editUserTitle": "Edit customer",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "userUpdated": "Customer updated",
+      "userUpdateError": "Update failed",
+      "resetDevices": "Reset",
+      "devicesReset": "Devices reset",
+      "customDays": "Or enter manually",
+      "referralProgram": "Referral program",
+      "refCode": "Ref. code",
+      "refInvited": "Invited",
+      "refEarnings": "Earnings",
+      "refLevel": "Level",
+      "refList": "Invited users"
+    },
+    "trial": "Trial",
+    "conversions": "Conversions",
+    "referrals": {
+      "title": "Referral Network",
+      "subtitle": "Referrers and the customers they have brought in",
+      "top": "Top referrers",
+      "active": "active",
+      "totalReferrers": "Referrers",
+      "totalReferrals": "Referrals",
+      "totalEarnings": "Total paid",
+      "monthEarnings": "Paid this month",
+      "searchPlaceholder": "Search by name, username or referral code...",
+      "noData": "No referrers match the filter",
+      "noRefsForUser": "This referrer hasn't brought anyone yet",
+      "openProfile": "Open profile",
+      "resetFilters": "Reset",
+      "topOnly": "Top (10+)",
+      "minRefs": "Min referrals",
+      "minRefsAny": "Any count",
+      "referrer": "Referrer",
+      "referral": "Referral",
+      "invited": "Invited",
+      "activeRefs": "Active",
+      "earnedTotal": "Earnings",
+      "earnedMonth": "This month",
+      "lastActivity": "Activity",
+      "createdAt": "Registered",
+      "registered": "Registered",
+      "balance": "Balance",
+      "subStatus": "Subscription",
+      "showing": "{{from}}–{{to}} of {{total}}",
+      "sort": {
+        "invitedDesc": "By invited ↓",
+        "invitedAsc": "By invited ↑",
+        "earnedDesc": "By earnings ↓",
+        "earnedAsc": "By earnings ↑",
+        "activityDesc": "By activity",
+        "createdDesc": "By registration date"
+      },
+      "subLabels": {
+        "active": "Paid",
+        "trial": "Trial",
+        "expired": "Expired"
+      }
+    },
+    "promo": {
+      "title": "Promo Codes",
+      "subtitle": "Manage Bedolaga Bot promo codes",
+      "searchPlaceholder": "Search by code...",
+      "code": "Code",
+      "discount": "Discount",
+      "bonus": "Bonus",
+      "uses": "Uses",
+      "expires": "Expires",
+      "status": "Status",
+      "active": "Active",
+      "inactive": "Inactive",
+      "create": "New promo code",
+      "edit": "Edit promo code",
+      "discountPercent": "Discount (%)",
+      "discountAmount": "Discount (fixed)",
+      "inKopeks": "in kopeks",
+      "bonusDays": "Bonus days",
+      "bonusTraffic": "Bonus traffic (GB)",
+      "maxUses": "Max uses",
+      "unlimited": "Unlimited",
+      "expiresAt": "Expires at",
+      "description": "Description",
+      "descriptionPlaceholder": "Promo code description...",
+      "isActive": "Active",
+      "days": "days",
+      "noResults": "No promo codes found",
+      "created": "Promo code created",
+      "createError": "Failed to create promo code",
+      "updated": "Promo code updated",
+      "updateError": "Failed to update promo code",
+      "deleted": "Promo code deleted",
+      "deleteError": "Failed to delete promo code",
+      "deleteConfirm": "Delete promo code?",
+      "deleteConfirmText": "Are you sure you want to delete promo code {{code}}? This action cannot be undone.",
+      "stats": "Statistics",
+      "totalUses": "Total uses",
+      "uniqueUsers": "Unique users",
+      "totalDiscount": "Total discount",
+      "conversions": "Conversions",
+      "noStats": "No statistics available",
+      "todayUses": "Today",
+      "recentUses": "Recent uses",
+      "promoType": "Type",
+      "typeBalance": "Balance bonus",
+      "typeSubscription": "Subscription",
+      "typeMixed": "Mixed",
+      "balanceBonus": "Bonus (kopeks)"
+    },
+    "marketing": {
+      "title": "Marketing",
+      "subtitle": "Bedolaga Bot campaigns and mailings",
+      "campaigns": "Campaigns",
+      "mailings": "Mailings",
+      "campaignName": "Name",
+      "status": "Status",
+      "audience": "Audience",
+      "scheduledAt": "Scheduled",
+      "createdAt": "Created",
+      "progress": "Progress",
+      "allUsers": "All users",
+      "createCampaign": "New campaign",
+      "editCampaign": "Edit campaign",
+      "messageText": "Message text",
+      "promoId": "Promo code ID",
+      "promoIdPlaceholder": "Link promo code (optional)",
+      "noCampaigns": "No campaigns found",
+      "campaignCreated": "Campaign created",
+      "campaignCreateError": "Failed to create campaign",
+      "campaignUpdated": "Campaign updated",
+      "campaignUpdateError": "Failed to update campaign",
+      "campaignDeleted": "Campaign deleted",
+      "campaignDeleteError": "Failed to delete campaign",
+      "deleteCampaignConfirm": "Delete campaign?",
+      "deleteCampaignText": "Are you sure you want to delete campaign \"{{name}}\"?",
+      "sendCampaignConfirm": "Send campaign?",
+      "sendCampaignText": "Start sending campaign \"{{name}}\"? This action cannot be undone.",
+      "send": "Send",
+      "campaignSent": "Campaign sent",
+      "campaignSendError": "Failed to send campaign",
+      "campaignStats": "Campaign statistics",
+      "stat_sent": "Sent",
+      "stat_delivered": "Delivered",
+      "stat_read": "Read",
+      "stat_clicked": "Clicked",
+      "noStats": "No statistics available",
+      "createMailing": "New mailing",
+      "mailingSubject": "Subject",
+      "sendImmediately": "Send immediately",
+      "noMailings": "No mailings found",
+      "mailingCreated": "Mailing created",
+      "mailingCreateError": "Failed to create mailing",
+      "cancelMailingConfirm": "Cancel mailing?",
+      "cancelMailingText": "Cancel mailing \"{{subject}}\"?",
+      "cancelMailing": "Cancel",
+      "mailingCancelled": "Mailing cancelled",
+      "mailingCancelError": "Failed to cancel mailing",
+      "partners": "Partners",
+      "noPartners": "No partners found",
+      "monthEarned": "This month",
+      "totalEarned": "Total",
+      "bonusType": "Bonus type",
+      "registrations": "Registrations",
+      "tariff": "Tariff",
+      "campaignDesc": "Advertising campaign with deep-link parameter",
+      "broadcastDesc": "Mass broadcast to target audience",
+      "targetActive": "Active subscriptions",
+      "targetTrial": "Trial",
+      "targetNoSub": "No subscription",
+      "targetExpired": "Expired",
+      "targetExpiring": "Expiring"
+    }
+  },
+  "notFound": {
+    "title": "Page Not Found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "goHome": "Go to Dashboard",
+    "goBack": "Go Back"
+  },
+  "resetPassword": {
+    "title": "Reset Password",
+    "description": "Enter the email associated with your account. We'll send a password reset link.",
+    "emailPlaceholder": "admin@example.com",
+    "sendLink": "Send Reset Link",
+    "backToLogin": "Back to Login",
+    "emailSent": "Email Sent",
+    "emailSentDescription": "If this email is associated with an account, you'll receive a password reset link. Check your inbox, including spam folder.",
+    "newPasswordTitle": "New Password",
+    "newPasswordDescription": "Create a new password for your account",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "resetButton": "Reset Password",
+    "success": "Password Changed",
+    "successDescription": "Your password has been reset successfully. You can now log in with your new password.",
+    "goToLogin": "Go to Login",
+    "error": "An error occurred. Please try again later."
+  },
+  "accessPolicies": {
+    "listTitle": "Scope Templates",
+    "create": "Create",
+    "empty": "No templates yet",
+    "selectHint": "Pick a template on the left or create a new one",
+    "editorTitle": "Template Editor",
+    "name": "Name",
+    "description": "Description",
+    "rules": "Access Rules",
+    "addRule": "Add rule",
+    "noRules": "No rules — this template is empty and doesn't restrict anything. Add a rule to define a whitelist.",
+    "resourceType": "Resource type",
+    "scopeType": "Scope",
+    "scopeValue": "Value",
+    "actions": "Allowed actions",
+    "attachedRoles": "Attached to roles",
+    "roleHint": "All admins with these roles inherit the template's rules.",
+    "attachedAdmins": "Personal attachment to admins",
+    "adminHint": "Template applies only to the selected admins (on top of role attachments).",
+    "noAdmins": "No other administrators",
+    "pickResource": "Pick...",
+    "loading": "Loading...",
+    "noResources": "No resources found",
+    "promptName": "Template name",
+    "confirmDelete": "Delete this template? Admins who inherited it will lose these rights.",
+    "createdOk": "Template created",
+    "savedOk": "Saved",
+    "deletedOk": "Template deleted",
+    "createFailed": "Failed to create",
+    "saveFailed": "Failed to save",
+    "roleAttachFailed": "Failed to sync role attachments",
+    "errNoScopeValue": "Fill in scope value for every rule",
+    "errNoAction": "Select at least one action in every rule",
+    "resource": {
+      "node": "Node",
+      "host": "Host",
+      "squad": "Squad"
+    },
+    "scope": {
+      "uuid": "By UUID",
+      "tag": "By Tag"
+    },
+    "action": {
+      "view": "View",
+      "edit": "Edit",
+      "delete": "Delete"
+    }
+  },
+  "adminPlugins": {
+    "title": "Plugins",
+    "subtitle": "Manage paid add-ons: upload wheel, set license, uninstall.",
+    "refresh": "Refresh",
+    "install": "Install plugin",
+    "master_license": "Master key",
+    "restart": "Restart backend",
+    "restart_started": "Restart in progress",
+    "restart_hint": "Restart the backend after any change to apply it.",
+    "empty": "No plugins installed. Upload a wheel from the vendor to start.",
+    "pending_wheel": "Wheel found but no license attached — provide a JWT via Install or Master key.",
+    "dir_label": "Plugins directory",
+    "update_license": "Update license",
+    "update_license_success": "License updated",
+    "uninstall_success": "Plugin removed",
+    "master_license_applied": "Applied to {{count}} plugins",
+    "license": {
+      "valid": "active",
+      "expired": "expired",
+      "missing": "missing",
+      "invalid": "invalid"
+    },
+    "install_dialog": {
+      "title": "Install plugin",
+      "subtitle": "Upload the wheel file and paste the vendor-issued JWT. The plugin activates after a restart.",
+      "plugin_id": "Plugin ID",
+      "plugin_id_hint": "Same id the vendor uses (e.g. smart_support).",
+      "wheel": ".whl file",
+      "jwt": "License key (JWT)",
+      "submit": "Install"
+    },
+    "master_dialog": {
+      "title": "Master key",
+      "subtitle": "A single JWT can cover several plugins. Paste it and the panel will fan it out to every plugin it licenses.",
+      "jwt": "Bundle JWT",
+      "submit": "Apply"
+    },
+    "license_dialog": {
+      "title": "Update license: {{name}}",
+      "subtitle": "Paste a new JWT for this plugin.",
+      "submit": "Save"
+    },
+    "uninstall_dialog": {
+      "title": "Remove plugin",
+      "subtitle": "Plugin \"{{name}}\" will be removed together with its license. This is irreversible. Continue?",
+      "confirm": "Remove"
+    },
+    "restart_dialog": {
+      "title": "Restart backend?",
+      "subtitle": "The backend will shut down and the container should bring it back automatically (if docker-compose has restart: unless-stopped). Panel will be briefly unavailable.",
+      "confirm": "Restart"
+    },
+    "errors": {
+      "upload_failed": "Failed to install plugin",
+      "master_failed": "Failed to apply master key",
+      "update_license_failed": "Failed to update license",
+      "uninstall_failed": "Failed to remove plugin",
+      "restart_failed": "Failed to restart backend"
+    }
+  },
+  "plugins": {
+    "smart_support": {
+      "nav": "Smart Support",
+      "license": {
+        "missing_title": "License not active",
+        "missing_body": "Install your Smart Support key in settings to continue.",
+        "expired_title": "License expired",
+        "expired_body": "Renew your subscription to use the debugger again."
+      },
+      "search": {
+        "title": "Smart Support — user lookup",
+        "subtitle": "UUID, short_uuid, email, IP, Telegram ID or a chunk of the username — we'll find them.",
+        "placeholder": "Paste any identifier from the ticket…",
+        "hint": "Any free-form string works — the resolver picks the right lookup automatically.",
+        "matched_by": "Matched by: {{kind}}",
+        "count": "found: {{n}}",
+        "empty": "Nothing matched. Try a shorter or different query."
+      },
+      "report": {
+        "back_to_search": "Back to search",
+        "copy": "Copy",
+        "generated_at": "Captured at {{ts}}",
+        "error": "Failed to load the report.",
+        "client_unknown": "Client app could not be inferred from recent subscription requests.",
+        "nodes_empty": "No nodes touched in the last 24 hours.",
+        "nodes_active": "active now",
+        "nodes_online": "online",
+        "nodes_offline": "offline",
+        "correlations_empty": "No correlations yet — the background worker isn't running or no patterns matched.",
+        "correlations_affected": "affected: {{n}}",
+        "correlations_window": "in the last {{minutes}} min",
+        "violations_empty": "No violations recorded in the last 14 days.",
+        "sections": {
+          "user": "Subscription & user",
+          "client": "Client app",
+          "nodes": "User's nodes",
+          "history": "24h connection history",
+          "correlations": "Correlations",
+          "violations": "Violations",
+          "hypotheses": "Most likely causes",
+          "ai_analysis": "AI analysis",
+          "actions": "Quick actions",
+          "sessions": "Action history"
+        },
+        "sessions_empty": "No actions on this user yet.",
+        "sessions_unknown_admin": "(system)",
+        "ai_confidence": {
+          "low": "low confidence",
+          "medium": "medium confidence",
+          "high": "high confidence"
+        },
+        "fields": {
+          "status": "Status",
+          "expire_at": "Expires at",
+          "days_left": "Days left",
+          "traffic": "Traffic",
+          "hwid": "Devices",
+          "hwid_blacklisted": "Warning: one device is on the blacklist.",
+          "squads": "Squads",
+          "app": "App",
+          "version": "Version",
+          "last_request": "Last subscription request",
+          "outdated_warning": "Client version is outdated — ask the user to update.",
+          "connections": "Connections",
+          "unique_ips": "Unique IPs",
+          "unique_countries": "Countries",
+          "unique_asns": "ASNs",
+          "anomalies": "Anomalies"
+        },
+        "hypotheses": {
+          "show_more": "{{n}} more",
+          "show_less": "Collapse",
+          "confidence": "{{pct}}% confidence",
+          "suggested": {
+            "switch_node": "Switch node",
+            "extend_subscription": "Extend subscription",
+            "reset_traffic": "Reset traffic",
+            "notify_update": "Notify about update"
+          }
+        }
+      },
+      "audit": {
+        "title": "Audit log",
+        "subtitle": "Every quick action triggered through Smart Support. Append-only — entries can't be edited or removed.",
+        "open": "Audit",
+        "filter_action": "Action",
+        "filter_action_all": "All",
+        "filter_admin": "Admin",
+        "filter_admin_placeholder": "username",
+        "total": "{{n}} entries",
+        "empty": "Nothing matches the current filters.",
+        "prev": "← Prev",
+        "next": "Next →"
+      },
+      "actions": {
+        "run": "Run",
+        "success": "Done",
+        "error": "Action failed",
+        "confirm_safe": "Confirm the action.",
+        "confirm_destructive": "This is irreversible. Continue?",
+        "reset_traffic": {
+          "title": "Reset traffic"
+        },
+        "extend_subscription": {
+          "title": "Extend subscription",
+          "params": {
+            "days": "Days"
+          }
+        },
+        "revoke_subscription": {
+          "title": "Revoke subscription",
+          "params": {
+            "revoke_only_passwords": "Rotate proxy passwords only (keep the subscription URL)"
+          }
+        },
+        "disable_user": {
+          "title": "Disable user"
+        },
+        "enable_user": {
+          "title": "Enable user"
+        },
+        "disconnect_user": {
+          "title": "Drop active connections"
+        }
+      },
+      "rules": {
+        "node_overloaded": {
+          "title": "Node overloaded",
+          "detail": "CPU/RAM are near the limit — the user may experience slowness."
+        },
+        "node_disconnected": {
+          "title": "Node unavailable",
+          "detail": "The active node is offline or hasn't reported metrics in a while."
+        },
+        "subscription_expired": {
+          "title": "Subscription expired",
+          "detail": "The plan has lapsed — the user is disconnected by design."
+        },
+        "traffic_exhausted": {
+          "title": "Traffic exhausted",
+          "detail": "The user has used up the traffic quota of their plan."
+        },
+        "client_version_outdated": {
+          "title": "Client outdated",
+          "detail": "An older version of the app is installed — bugs may be involved."
+        },
+        "affected_by_cluster": {
+          "title": "Mass incident",
+          "detail": "User is part of an active incident cluster — several users affected at once."
+        }
+      },
+      "settings": {
+        "title": "Smart Support settings",
+        "subtitle": "Rule firing thresholds and correlation worker schedule. Change with care.",
+        "save": "Save",
+        "saved": "Settings saved",
+        "save_error": "Could not save — please try again",
+        "open": "Settings",
+        "dirty": "unsaved",
+        "sections": {
+          "node": "Node thresholds",
+          "traffic": "Traffic thresholds",
+          "cluster_node": "Node clusters (reconnect spike)",
+          "cluster_asn": "ASN clusters (violations + shared provider)",
+          "worker": "Correlation worker",
+          "ai": "AI analysis"
+        },
+        "ai": {
+          "enabled": "Enable AI analysis in reports",
+          "chain": "Provider priority",
+          "chain_hint": "Comma-separated list. Allowed: gemini, groq, openrouter. When the first one runs out of free-tier limits, the request falls through to the next.",
+          "key_set": "key set",
+          "key_placeholder_set": "Enter a new key to replace it",
+          "key_placeholder_empty": "Enter API key",
+          "status_title": "Current provider status",
+          "status_ok": "available",
+          "status_cooldown": "paused {{seconds}}s",
+          "reset_cooldown": "reset",
+          "cooldown_reset": "Cooldowns cleared",
+          "providers": {
+            "gemini": {
+              "label": "Google Gemini",
+              "model_placeholder": "gemini-2.0-flash"
+            },
+            "groq": {
+              "label": "Groq",
+              "model_placeholder": "llama-3.3-70b-versatile"
+            },
+            "openrouter": {
+              "label": "OpenRouter",
+              "model_placeholder": "meta-llama/llama-3.3-70b-instruct:free"
+            }
+          }
+        },
+        "fields": {
+          "node_cpu_high": {
+            "label": "CPU threshold, %",
+            "help": "\"Node overloaded\" fires when CPU >= this value."
+          },
+          "node_cpu_critical": {
+            "label": "Critical CPU, %",
+            "help": "Hypothesis confidence climbs once this threshold is exceeded."
+          },
+          "node_memory_high": {
+            "label": "RAM threshold, %",
+            "help": "\"Node overloaded\" fires when memory usage >= this value."
+          },
+          "node_metrics_stale_seconds": {
+            "label": "Metrics stale after, sec",
+            "help": "Treat the node as stuck if its last update is older than this."
+          },
+          "traffic_high": {
+            "label": "Traffic high threshold, %",
+            "help": "\"Traffic exhausted\" fires once usage >= this percent."
+          },
+          "traffic_full": {
+            "label": "Fully exhausted, %",
+            "help": "Confidence reaches 1.0 at this value."
+          },
+          "traffic_high_confidence": {
+            "label": "Confidence (high)",
+            "help": "Hypothesis confidence between high and full (0..1)."
+          },
+          "traffic_full_confidence": {
+            "label": "Confidence (full)",
+            "help": "Hypothesis confidence at the full mark (0..1)."
+          },
+          "cluster_node_window_minutes": {
+            "label": "Node window, min",
+            "help": "How recent reconnect spikes on a single node we look at."
+          },
+          "cluster_node_reconnects_per_user": {
+            "label": "Reconnects per user",
+            "help": "Reconnect count inside the window to count a user toward a cluster."
+          },
+          "cluster_node_min_affected": {
+            "label": "Min users in cluster (node)",
+            "help": "Unique users needed for the node cluster to become hot."
+          },
+          "cluster_asn_window_minutes": {
+            "label": "ASN window, min",
+            "help": "How far back we collect violations for ASN clusters."
+          },
+          "cluster_asn_min_affected": {
+            "label": "Min users in cluster (ASN)",
+            "help": "Unique users needed for the ASN cluster to become hot."
+          },
+          "correlation_recompute_seconds": {
+            "label": "Recompute interval, sec",
+            "help": "Takes effect on the next panel restart."
+          },
+          "correlation_max_age_minutes": {
+            "label": "Cache TTL, min",
+            "help": "Older clusters are not surfaced in reports even if still in DB."
+          }
+        }
+      }
+    }
+  }
+}

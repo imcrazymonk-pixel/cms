@@ -538,12 +538,325 @@ $router->delete('api/users/(\d+)', function($id) {
 });
 
 // ============================================
+// API: Logs (/api/logs/*)
+// ============================================
+
+$router->addRoute('OPTIONS', 'api/logs', function() { apiCorsHeaders(); http_response_code(204); exit; });
+$router->addRoute('OPTIONS', 'api/logs/clear', function() { apiCorsHeaders(); http_response_code(204); exit; });
+
+// GET /api/logs — paginated list with filters
+$router->get('api/logs', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $level    = (string)($_GET['level'] ?? '');
+    $category = (string)($_GET['category'] ?? '');
+    $channel  = (string)($_GET['channel'] ?? '');
+    $source   = (string)($_GET['source'] ?? '');
+    $q        = (string)($_GET['q'] ?? '');
+    $page     = max(1, (int)($_GET['page'] ?? 1));
+    $perPage  = min(200, max(1, (int)($_GET['per_page'] ?? 50)));
+
+    $filters = [];
+    if ($level !== '')    $filters['level'] = $level;
+    if ($category !== '') $filters['category'] = $category;
+    if ($channel !== '')  $filters['channel'] = $channel;
+    if ($source !== '')   $filters['source'] = $source;
+    if ($q !== '')        $filters['q'] = $q;
+
+    $log = new AppLog();
+    $result = $log->getAll($filters, $page, $perPage);
+
+    apiJson([
+        'success' => true,
+        'data' => $result['rows'],
+        'total' => $result['total'],
+        'page' => $page,
+        'per_page' => $perPage,
+    ]);
+});
+
+// POST /api/logs/clear — clear logs (optionally by category)
+$router->post('api/logs/clear', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $category = $body['category'] ?? '';
+    $channel  = $body['channel'] ?? '';
+
+    $log = new AppLog();
+    if ($channel !== '') {
+        $deleted = $log->clearByChannel($channel);
+    } elseif ($category !== '' && $category !== 'all') {
+        $deleted = $log->clearByCategory($category);
+    } else {
+        $deleted = $log->clear();
+    }
+
+    apiJson(['success' => true, 'deleted' => $deleted]);
+});
+
+// ============================================
+// API: Widgets (/api/widgets/*)
+// ============================================
+
+$router->addRoute('OPTIONS', 'api/widgets', function() { apiCorsHeaders(); http_response_code(204); exit; });
+$router->addRoute('OPTIONS', 'api/widgets/(\d+)', function() { apiCorsHeaders(); http_response_code(204); exit; });
+
+// GET /api/widgets — list all widgets
+$router->get('api/widgets', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $widget = new Widget();
+    $widgets = $widget->getAll();
+
+    apiJson(['success' => true, 'data' => $widgets]);
+});
+
+// GET /api/widgets/{id} — single widget
+$router->get('api/widgets/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+
+    $widget = new Widget();
+    $entity = $widget->getById((int)$id);
+    if (!$entity) apiError('Виджет не найден', 404);
+
+    apiJson(['success' => true, 'data' => $entity]);
+});
+
+// POST /api/widgets — create
+$router->post('api/widgets', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $title = trim($body['title'] ?? '');
+    if (empty($title)) apiError('Название виджета обязательно');
+
+    $widget = new Widget();
+    $id = $widget->create([
+        'area'       => $body['area'] ?? 'footer',
+        'title'      => $title,
+        'content'    => $body['content'] ?? '',
+        'sort_order' => (int)($body['sort_order'] ?? 0),
+    ]);
+
+    apiJson(['success' => true, 'data' => ['id' => $id]], 201);
+});
+
+// POST /api/widgets/{id} — update
+$router->post('api/widgets/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+
+    $widget = new Widget();
+    $existing = $widget->getById((int)$id);
+    if (!$existing) apiError('Виджет не найден', 404);
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $data = [];
+    foreach (['area', 'title', 'content'] as $field) {
+        if (isset($body[$field])) $data[$field] = trim($body[$field]);
+    }
+    if (isset($body['sort_order'])) $data['sort_order'] = (int)$body['sort_order'];
+
+    if (!empty($data)) {
+        $widget->update((int)$id, $data);
+    }
+
+    apiJson(['success' => true]);
+});
+
+// DELETE /api/widgets/{id} — delete
+$router->delete('api/widgets/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+
+    $widget = new Widget();
+    $existing = $widget->getById((int)$id);
+    if (!$existing) apiError('Виджет не найден', 404);
+
+    $widget->delete((int)$id);
+    apiJson(['success' => true]);
+});
+
+// ============================================
+// API: Menus (/api/menus/*)
+// ============================================
+
+$router->addRoute('OPTIONS', 'api/menus', function() { apiCorsHeaders(); http_response_code(204); exit; });
+$router->addRoute('OPTIONS', 'api/menus/(\d+)', function() { apiCorsHeaders(); http_response_code(204); exit; });
+
+// GET /api/menus — list all menu items
+$router->get('api/menus', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $menu = new Menu();
+    $items = $menu->getAll();
+
+    apiJson(['success' => true, 'data' => $items]);
+});
+
+// GET /api/menus/{id} — single menu item
+$router->get('api/menus/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+
+    $menu = new Menu();
+    $entity = $menu->getById((int)$id);
+    if (!$entity) apiError('Пункт меню не найден', 404);
+
+    apiJson(['success' => true, 'data' => $entity]);
+});
+
+// POST /api/menus — create
+$router->post('api/menus', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $name = trim($body['name'] ?? '');
+    $url  = trim($body['url'] ?? '');
+    if (empty($name) || empty($url)) apiError('Название и URL обязательны');
+
+    $menu = new Menu();
+    $id = $menu->create([
+        'name'     => $name,
+        'url'      => $url,
+        'location' => $body['location'] ?? 'main',
+    ]);
+
+    apiJson(['success' => true, 'data' => ['id' => $id]], 201);
+});
+
+// POST /api/menus/{id} — update
+$router->post('api/menus/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+
+    $menu = new Menu();
+    $existing = $menu->getById((int)$id);
+    if (!$existing) apiError('Пункт меню не найден', 404);
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $data = [];
+    foreach (['name', 'url', 'location'] as $field) {
+        if (isset($body[$field])) $data[$field] = trim($body[$field]);
+    }
+
+    if (!empty($data)) {
+        $menu->update((int)$id, $data);
+    }
+
+    apiJson(['success' => true]);
+});
+
+// DELETE /api/menus/{id} — delete
+$router->delete('api/menus/(\d+)', function($id) {
+    apiCorsHeaders();
+    apiAuth();
+
+    $menu = new Menu();
+    $existing = $menu->getById((int)$id);
+    if (!$existing) apiError('Пункт меню не найден', 404);
+
+    $menu->delete((int)$id);
+    apiJson(['success' => true]);
+});
+
+// ============================================
+// API: Theme Settings (/api/themes/settings)
+// ============================================
+
+$router->addRoute('OPTIONS', 'api/themes/settings', function() { apiCorsHeaders(); http_response_code(204); exit; });
+
+// GET /api/themes/settings — get settings for the active theme
+$router->get('api/themes/settings', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $themeName = active_theme_name();
+    $config = get_theme_config($themeName);
+    $setting = new Setting();
+    $allSettings = $setting->getAll();
+
+    // Filter only settings that belong to this theme (prefixed with theme name)
+    $prefix = $themeName . '_';
+    $themeSettings = [];
+    foreach ($allSettings as $key => $value) {
+        if (strpos($key, $prefix) === 0) {
+            $themeSettings[substr($key, strlen($prefix))] = $value;
+        }
+    }
+
+    // Build options with defaults from theme config
+    $options = [];
+    foreach ($config['options'] ?? [] as $groupName => $group) {
+        foreach ($group as $key => $option) {
+            $options[$key] = [
+                'label'   => $option['label'] ?? $key,
+                'type'    => $option['type'] ?? 'text',
+                'default' => $option['default'] ?? '',
+                'value'   => $themeSettings[$key] ?? $option['default'] ?? '',
+            ];
+            if (isset($option['hint']))    $options[$key]['hint'] = $option['hint'];
+            if (isset($option['rows']))    $options[$key]['rows'] = $option['rows'];
+            if (isset($option['options'])) $options[$key]['options'] = $option['options'];
+        }
+    }
+
+    apiJson([
+        'success' => true,
+        'data' => [
+            'theme'   => $themeName,
+            'label'   => $config['name'] ?? $themeName,
+            'options' => $options,
+        ],
+    ]);
+});
+
+// POST /api/themes/settings — update theme settings
+$router->post('api/themes/settings', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+
+    $themeName = active_theme_name();
+    $prefix = $themeName . '_';
+    $setting = new Setting();
+
+    $saved = [];
+    foreach ($body as $key => $value) {
+        if (is_string($value)) {
+            $setting->set($prefix . $key, trim($value));
+            $saved[] = $key;
+        }
+    }
+
+    apiJson(['success' => true, 'saved' => $saved]);
+});
+
+// ============================================
 // Маршруты админки
 // ============================================
 
 // Дашборд
 $router->get('admin', function() {
     Auth::requireAdmin();
+
+    // Гибридный режим: проверяем, хочет ли пользователь React SPA
+    $pref = new UserPreference();
+    $useReact = $pref->get(Auth::id(), 'use_react_admin');
+    if ($useReact === '1') {
+        header('Location: http://localhost:3000/admin/');
+        http_response_code(302);
+        exit;
+    }
 
     $post = new Post();
     $category = new Category();
@@ -679,6 +992,11 @@ $router->get('admin/logs', [AdminLogController::class, 'index']);
 $router->post('admin/logs/clear', [AdminLogController::class, 'clear']);
 $router->get('admin/logs/docker/preview', [AdminLogController::class, 'dockerPreview']);
 $router->get('admin/logs/loki/preview', [AdminLogController::class, 'lokiPreview']);
+
+// Диагностика нод
+$router->get('admin/diagnostics', [AdminDiagnosticsController::class, 'index']);
+$router->get('admin/diagnostics/api/data', [AdminDiagnosticsController::class, 'apiData']);
+$router->post('admin/diagnostics/api/collect', [AdminDiagnosticsController::class, 'apiCollect']);
 
 // Финансовый модуль
 $router->get('admin/finance', [AdminFinanceController::class, 'index']);
@@ -945,7 +1263,7 @@ $router->post('admin/settings/save-preference', function() {
     $body = json_decode(file_get_contents('php://input'), true) ?: [];
     $key = $body['key'] ?? '';
     $value = $body['value'] ?? '';
-    $allowed = ['theme', 'mode', 'density', 'radius', 'fontSize'];
+    $allowed = ['theme', 'mode', 'density', 'radius', 'fontSize', 'use_react_admin'];
     if (in_array($key, $allowed, true) && $value !== '') {
         $pref = new UserPreference();
         $pref->set(Auth::id(), $key, (string)$value);

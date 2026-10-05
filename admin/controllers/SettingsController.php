@@ -21,6 +21,9 @@ class AdminSettingsController
 
         $settings = $this->setting->getAll();
         $finSettings = (new FinSetting())->getAll();
+        $userPrefs = new UserPreference();
+        $useReactAdmin = $userPrefs->get((int)Auth::id(), 'use_react_admin') === '1';
+
         $dockerConfig = $this->loadJsonSetting('docker_config', [
             'docker_ssh_host' => 'localhost',
             'docker_ssh_user' => 'kilo',
@@ -43,6 +46,7 @@ class AdminSettingsController
         $template->set('finSettings', $finSettings);
         $template->set('dockerConfig', $dockerConfig);
         $template->set('lokiConfig', $lokiConfig);
+        $template->set('useReactAdmin', $useReactAdmin);
         $template->setLayout('layouts/main');
         $template->display('settings/index');
     }

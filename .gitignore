@@ -55,6 +55,10 @@ __pycache__/
 /.claude/
 /skills-lock.json
 
+# React SPA — node_modules и сборка
+/admin-react/node_modules/
+/admin-react/dist/
+
 # Docker
 /.env
 /docker-compose.override.yml
