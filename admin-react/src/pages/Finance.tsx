@@ -2,8 +2,13 @@ import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
-  Plus, Trash2, Pencil, RefreshCw, CreditCard, BarChart3, History,
+  Plus, Trash2, Pencil, RefreshCw, BarChart3, History,
 } from 'lucide-react'
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip,
+  ResponsiveContainer, Cell,
+} from 'recharts'
 import { financeApi, Transaction } from '../api/finance'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -60,6 +65,7 @@ export default function Finance() {
       return financeApi.getData(params)
     },
     staleTime: 5_000,
+    retry: 2,
   })
 
   // Build filter params for mutations
@@ -241,12 +247,12 @@ export default function Finance() {
                         if (e.target.checked) setSelectedIds(new Set(data.transactions.map(t => t.id)))
                         else setSelectedIds(new Set())
                       }} /></TableHead>
-                      <TableHead sortable onClick={() => toggleSort('date')}>Дата {sort === 'date' ? (dir === 'asc' ? '▲' : '▼') : ''}</TableHead>
+                      <TableHead sortable="true" onClick={() => toggleSort('date')}>Дата {sort === 'date' ? (dir === 'asc' ? '▲' : '▼') : ''}</TableHead>
                       <TableHead>Тип</TableHead>
-                      <TableHead sortable onClick={() => toggleSort('category')}>Категория {sort === 'category' ? (dir === 'asc' ? '▲' : '▼') : ''}</TableHead>
+                      <TableHead sortable="true" onClick={() => toggleSort('category')}>Категория {sort === 'category' ? (dir === 'asc' ? '▲' : '▼') : ''}</TableHead>
                       <TableHead>Контрагент</TableHead>
                       <TableHead>Описание</TableHead>
-                      <TableHead sortable onClick={() => toggleSort('amount')}>Сумма {sort === 'amount' ? (dir === 'asc' ? '▲' : '▼') : ''}</TableHead>
+                      <TableHead sortable="true" onClick={() => toggleSort('amount')}>Сумма {sort === 'amount' ? (dir === 'asc' ? '▲' : '▼') : ''}</TableHead>
                       <TableHead className="w-24">Действия</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -304,36 +310,68 @@ export default function Finance() {
 
         {/* ── Charts Tab ── */}
         <TabsContent value="charts">
-          {data && (
-            <Card className="rounded-xl">
-              <CardHeader><CardTitle>Доходы и расходы по месяцам</CardTitle></CardHeader>
-              <CardContent>
-                {data.chart.monthly.length === 0 ? (
-                  <EmptyState title="Нет данных" description="Недостаточно данных для построения графика" />
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Месяц</TableHead>
-                          <TableHead>Доход</TableHead>
-                          <TableHead>Расход</TableHead>
-                          <TableHead>Баланс</TableHead>
+          {data && data.chart.monthly.length > 0 && (
+            <>
+              {/* Bar chart with recharts */}
+              <Card className="rounded-xl">
+                <CardHeader><CardTitle>Доходы и расходы по месяцам</CardTitle></CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart
+                      data={[...data.chart.monthly].reverse().filter(r => r?.date).map(row => ({
+                        month: row.date.slice(5),
+                        income: row.income ?? 0,
+                        expense: -(row.expense ?? 0),
+                        balance: row.balance ?? 0,
+                      }))}
+                    >
+                      <CartesianGrid stroke="rgba(148,163,184,0.08)" strokeDasharray="3 3" />
+                      <XAxis dataKey="month" type="category" stroke="rgba(148,163,184,0.3)" fontSize={11} />
+                      <YAxis type="number" stroke="rgba(148,163,184,0.3)" fontSize={10} tick={{ fill: 'rgba(148,163,184,0.5)' }} />
+                      <RechartsTooltip contentStyle={{ background: 'rgba(0,0,0,0.8)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', color: '#fff' }} />
+                      <Bar dataKey="income" name="Доход" radius={4} maxBarSize={40}>
+                        <Cell fill="#22c55e" />
+                      </Bar>
+                      <Bar dataKey="expense" name="Расход" radius={4} maxBarSize={40}>
+                        <Cell fill="#ef4444" />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Data table */}
+              <Card className="rounded-xl">
+                <CardHeader><CardTitle>Детальные данные</CardTitle></CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Месяц</TableHead>
+                        <TableHead>Доход</TableHead>
+                        <TableHead>Расход</TableHead>
+                        <TableHead>Баланс</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {[...data.chart.monthly].reverse().map(row => (
+                        <TableRow key={row.date}>
+                          <TableCell>{row.date}</TableCell>
+                          <TableCell className="text-green-400">{formatCurrency(row.income)}</TableCell>
+                          <TableCell className="text-red-400">{formatCurrency(row.expense)}</TableCell>
+                          <TableCell className={row.balance >= 0 ? 'text-teal-400' : 'text-red-400'}>{formatCurrency(row.balance)}</TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {data.chart.monthly.map(row => (
-                          <TableRow key={row.date}>
-                            <TableCell>{row.date}</TableCell>
-                            <TableCell className="text-green-400">{formatCurrency(row.income)}</TableCell>
-                            <TableCell className="text-red-400">{formatCurrency(row.expense)}</TableCell>
-                            <TableCell className={row.balance >= 0 ? 'text-teal-400' : 'text-red-400'}>{formatCurrency(row.balance)}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </>
+          )}
+          {data && data.chart.monthly.length === 0 && (
+            <Card className="rounded-xl">
+              <CardContent>
+                <EmptyState title="Нет данных" description="Недостаточно данных для построения графика" />
               </CardContent>
             </Card>
           )}
