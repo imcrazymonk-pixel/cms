@@ -19,6 +19,8 @@ export default defineConfig({
     // Прокси‑запросы к backend (PHP API)
     proxy: {
       '/api': { target: 'http://localhost', changeOrigin: true },
+      // Проксируем только API-запросы к PHP, НЕ страницы
+      '/admin/finance/api': { target: 'http://localhost', changeOrigin: true },
     },
     // Увеличиваем надёжность HMR на Windows
     watch: { usePolling: true },

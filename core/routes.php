@@ -1000,38 +1000,58 @@ $router->post('admin/diagnostics/api/collect', [AdminDiagnosticsController::clas
 
 // Финансовый модуль
 $router->get('admin/finance', [AdminFinanceController::class, 'index']);
-$router->get('admin/finance/api/data', [AdminFinanceController::class, 'apiData']);
-$router->post('admin/finance/api/add', [AdminFinanceController::class, 'apiAdd']);
-$router->post('admin/finance/api/edit', [AdminFinanceController::class, 'apiEdit']);
-$router->post('admin/finance/api/delete', [AdminFinanceController::class, 'apiDelete']);
-$router->post('admin/finance/api/delete-bulk', [AdminFinanceController::class, 'apiDeleteBulk']);
-$router->post('admin/finance/api/import', [AdminFinanceController::class, 'apiImport']);
-$router->get('admin/finance/api/export/csv', [AdminFinanceController::class, 'apiExportCsv']);
-$router->get('admin/finance/api/settings', [AdminFinanceController::class, 'apiSettings']);
-$router->post('admin/finance/api/settings', [AdminFinanceController::class, 'apiSettings']);
+
+// API-маршруты финансов — с поддержкой JWT (React SPA)
+function jwtBridge(): void
+{
+    // Если уже есть сессия — пропускаем
+    if (Auth::check()) return;
+
+    // Если есть JWT Bearer — валидируем и создаём сессию для Auth::requireAdmin()
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+    if (preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
+        $payload = JWTAuth::validateToken($matches[1]);
+        if ($payload && isset($payload['user_id'])) {
+            Session::set('user_id', $payload['user_id']);
+            Session::set('user_role', 'admin');
+            Session::set('user_login', $payload['login'] ?? '');
+            return;
+        }
+    }
+}
+
+$router->get('admin/finance/api/data', function() { jwtBridge(); (new AdminFinanceController())->apiData(); });
+$router->post('admin/finance/api/add', function() { jwtBridge(); (new AdminFinanceController())->apiAdd(); });
+$router->post('admin/finance/api/edit', function() { jwtBridge(); (new AdminFinanceController())->apiEdit(); });
+$router->post('admin/finance/api/delete', function() { jwtBridge(); (new AdminFinanceController())->apiDelete(); });
+$router->post('admin/finance/api/delete-bulk', function() { jwtBridge(); (new AdminFinanceController())->apiDeleteBulk(); });
+$router->post('admin/finance/api/import', function() { jwtBridge(); (new AdminFinanceController())->apiImport(); });
+$router->get('admin/finance/api/export/csv', function() { jwtBridge(); (new AdminFinanceController())->apiExportCsv(); });
+$router->get('admin/finance/api/settings', function() { jwtBridge(); (new AdminFinanceController())->apiSettings(); });
+$router->post('admin/finance/api/settings', function() { jwtBridge(); (new AdminFinanceController())->apiSettings(); });
 
 // Platega import
-$router->post('admin/finance/api/platega/preview', [AdminFinanceController::class, 'apiPlategaPreview']);
-$router->post('admin/finance/api/platega/import', [AdminFinanceController::class, 'apiPlategaImport']);
-$router->post('admin/finance/api/platega/sync', [AdminFinanceController::class, 'apiPlategaSync']);
-$router->get('admin/finance/api/platega/cron-sync', [AdminFinanceController::class, 'apiPlategaCronSync']);
-$router->get('admin/finance/api/platega/settings', [AdminFinanceController::class, 'apiPlategaSettings']);
-$router->post('admin/finance/api/platega/settings', [AdminFinanceController::class, 'apiPlategaSaveSettings']);
+$router->post('admin/finance/api/platega/preview', function() { jwtBridge(); (new AdminFinanceController())->apiPlategaPreview(); });
+$router->post('admin/finance/api/platega/import', function() { jwtBridge(); (new AdminFinanceController())->apiPlategaImport(); });
+$router->post('admin/finance/api/platega/sync', function() { jwtBridge(); (new AdminFinanceController())->apiPlategaSync(); });
+$router->get('admin/finance/api/platega/cron-sync', function() { jwtBridge(); (new AdminFinanceController())->apiPlategaCronSync(); });
+$router->get('admin/finance/api/platega/settings', function() { jwtBridge(); (new AdminFinanceController())->apiPlategaSettings(); });
+$router->post('admin/finance/api/platega/settings', function() { jwtBridge(); (new AdminFinanceController())->apiPlategaSaveSettings(); });
 
 // YooKassa import
-$router->post('admin/finance/api/yookassa/preview', [AdminFinanceController::class, 'apiYooKassaPreview']);
-$router->post('admin/finance/api/yookassa/import', [AdminFinanceController::class, 'apiYooKassaImport']);
-$router->post('admin/finance/api/yookassa/sync', [AdminFinanceController::class, 'apiYooKassaSync']);
-$router->get('admin/finance/api/yookassa/cron-sync', [AdminFinanceController::class, 'apiYooKassaCronSync']);
-$router->get('admin/finance/api/yookassa/settings', [AdminFinanceController::class, 'apiYooKassaSettings']);
-$router->post('admin/finance/api/yookassa/settings', [AdminFinanceController::class, 'apiYooKassaSaveSettings']);
+$router->post('admin/finance/api/yookassa/preview', function() { jwtBridge(); (new AdminFinanceController())->apiYooKassaPreview(); });
+$router->post('admin/finance/api/yookassa/import', function() { jwtBridge(); (new AdminFinanceController())->apiYooKassaImport(); });
+$router->post('admin/finance/api/yookassa/sync', function() { jwtBridge(); (new AdminFinanceController())->apiYooKassaSync(); });
+$router->get('admin/finance/api/yookassa/cron-sync', function() { jwtBridge(); (new AdminFinanceController())->apiYooKassaCronSync(); });
+$router->get('admin/finance/api/yookassa/settings', function() { jwtBridge(); (new AdminFinanceController())->apiYooKassaSettings(); });
+$router->post('admin/finance/api/yookassa/settings', function() { jwtBridge(); (new AdminFinanceController())->apiYooKassaSaveSettings(); });
 
 // Bulk actions
-$router->post('admin/finance/api/bulk/type', [AdminFinanceController::class, 'apiBulkType']);
-$router->post('admin/finance/api/bulk/category', [AdminFinanceController::class, 'apiBulkCategory']);
-$router->post('admin/finance/api/bulk/participant', [AdminFinanceController::class, 'apiBulkParticipant']);
-$router->post('admin/finance/api/bulk/description', [AdminFinanceController::class, 'apiBulkDescription']);
-$router->post('admin/finance/api/export/selected', [AdminFinanceController::class, 'apiExportSelected']);
+$router->post('admin/finance/api/bulk/type', function() { jwtBridge(); (new AdminFinanceController())->apiBulkType(); });
+$router->post('admin/finance/api/bulk/category', function() { jwtBridge(); (new AdminFinanceController())->apiBulkCategory(); });
+$router->post('admin/finance/api/bulk/participant', function() { jwtBridge(); (new AdminFinanceController())->apiBulkParticipant(); });
+$router->post('admin/finance/api/bulk/description', function() { jwtBridge(); (new AdminFinanceController())->apiBulkDescription(); });
+$router->post('admin/finance/api/export/selected', function() { jwtBridge(); (new AdminFinanceController())->apiExportSelected(); });
 
 // ============================================
 // Публичные маршруты

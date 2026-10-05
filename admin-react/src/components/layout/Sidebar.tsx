@@ -112,14 +112,14 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
       {/* Navigation */}
       <ScrollArea className="flex-1 py-4">
         <nav className={cn("px-3 space-y-0.5", collapsed && "px-2")}>
-          {(navigation as NavigationEntry[]).map((entry) => {
+          {(navigation as NavigationEntry[]).map((entry, idx) => {
             if (isNavSection(entry)) {
               if (collapsed) {
-                return <div key={entry.name} className="my-2 mx-1 border-t border-[var(--glass-border)]" />
+                return <div key={`s-${idx}`} className="my-2 mx-1 border-t border-[var(--glass-border)]" />
               }
               return (
                 <div
-                  key={entry.name}
+                  key={`s-${idx}`}
                   className="sidebar-section-title px-3 pt-4 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-dark-400 select-none"
                 >
                   {entry.name}
@@ -133,7 +133,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
 
               if (collapsed) {
                 return (
-                  <div key={entry.name} className="space-y-0.5">
+                  <div key={`g-${idx}`} className="space-y-0.5">
                     {entry.items.map((item) => {
                       const isActive = location.pathname === item.href
                       return (
@@ -168,7 +168,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
               }
 
               return (
-                <div key={entry.name} className="space-y-0.5">
+                <div key={`g-${idx}`} className="space-y-0.5">
                   <button
                     onClick={() => toggleGroup(entry.name)}
                     className={cn(
