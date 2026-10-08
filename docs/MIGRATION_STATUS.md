@@ -102,13 +102,28 @@
 
 **Тесты:** 47 pytest (unit/auth/route-registration) + 25 e2e smoke (реальная БД через nginx) — **все зелёные**.
 
-**Browser E2E (React против FastAPI, `http://localhost/admin/`):**
-- Login → Dashboard: реальные KPI (2 поста, 1 юзер, 2 категории) ✅
-- Posts list: реальные данные, даты `DD.MM.YYYY`, категории, автор ✅
-- PostEdit: заголовок/избранное/excerpt/рубрика/статус/дата/теги/SEO/обложка (из uploads-volume) ✅
-- **Создание поста из UI** → `POST /api/posts` → редирект на `/posts/{id}` ✅
-- Finance (PHP bridge `/admin/finance/api/*`): реальные суммы (Доходы 49193.8 ₽ / Расходы 35816.0 ₽ / Баланс 13377.8 ₽) ✅
-- Консоль: только pre-existing warning TinyMCE (не связан с миграцией) ✅
+**Browser E2E — ВСЕ 15 разделов админки (React против FastAPI, `http://localhost/admin/`):**
+
+| Раздел | Результат |
+|--------|-----------|
+| Login | вход `admn`, редирект на Dashboard ✅ |
+| Dashboard | реальные KPI (2 поста, 1 юзер, 2 категории) ✅ |
+| Posts (список) | реальные данные, даты `DD.MM.YYYY`, категория, автор ✅ |
+| PostEdit | заголовок/excerpt/рубрика/статус/дата/теги/SEO/обложка (uploads-volume) ✅ |
+| **Создание поста (UI)** | `POST /api/posts` → редирект `/posts/{id}` ✅ |
+| Categories | 2 категории (name/slug/description) ✅ |
+| Pages | пустое состояние «Страниц пока нет» ✅ |
+| Menus | пустое состояние ✅ |
+| Widgets | пустое состояние ✅ |
+| Media | 4 файла + превью, размеры, даты ✅ |
+| Themes | активная тема `hexaveil`, все опции из `theme_config.py` ✅ |
+| Users | 1 юзер (login/email/role/date) ✅ |
+| Settings | реальные настройки (site_name, description, meta, posts_per_page) ✅ |
+| Logs | реальные `app_logs` (дата/уровень/категория/канал/сообщение) ✅ |
+| Finance (PHP bridge) | реальные суммы (Доходы 49193.8 ₽ / Расходы 35816.0 ₽ / Баланс 13377.8 ₽) ✅ |
+| Diagnostics (PHP bridge) | рендерится (сбор нод не настроен — вне Фазы 2) ✅ |
+
+Консоль: только pre-existing warning TinyMCE (не связан с миграцией) ✅
 
 ---
 
