@@ -94,6 +94,7 @@
 | **M5** — PHP deprecated | ✅ | `core/routes.php` — блок `/api/*` помечен `DEPRECATED` (оставлен как fallback) |
 | **M6** — remnawave-модули | 🟡 | сделано: structlog (+ротация JSON-файла) и request-лог `api_call … (ms)` как в Remnawave. Осталось (опц.): RBAC, slowapi rate-limit, audit-middleware |
 | **M7** — перенос PHP-bridge | ✅ | **Finance (ядро + Platega/YooKassa), Diagnostics, Preferences → FastAPI.** На PHP остался только публичный сайт |
+| **M8** — отключение старой PHP-админки (Шаг 1) | ✅ | nginx: `/admin/logout` → 302 `/admin/login`; `index.php`: guard `LEGACY_PHP_ADMIN=false` → 404 на `/admin/*` и `/api/*` (даже в обход nginx). Публичный сайт не затронут. Файлы PHP-админки пока на месте (Шаг 2 — удаление — отложен до боевой проверки) |
 
 **Ключевые находки при интеграции (исправлено):**
 - SQLAlchemy 2.1: `execute("SELECT 1")` → `text(...)`.

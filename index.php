@@ -59,6 +59,26 @@ try {
 // Событие после инициализации темы/плагинов
 do_action('after_setup_theme');
 
+// ============================================
+// Legacy PHP admin + JSON API disabled (Phase 2 migration)
+// ============================================
+// Админка отдаётся React SPA (admin-react/dist), весь JSON — FastAPI (backend/).
+// Старые PHP-маршруты admin/* и /api/* недоступны. Публичный сайт не затрагивается.
+// Для аварийного отката: set LEGACY_PHP_ADMIN = true (или константу в config.php).
+if (!defined('LEGACY_PHP_ADMIN')) {
+    define('LEGACY_PHP_ADMIN', false);
+}
+if (!LEGACY_PHP_ADMIN) {
+    $__reqPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/';
+    if (preg_match('#^/(admin|api)(/|$)#', $__reqPath)) {
+        http_response_code(404);
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => false, 'error' => 'Not Found']);
+        exit;
+    }
+    unset($__reqPath);
+}
+
 // Инициализация роутера
 $router = new Router();
 
