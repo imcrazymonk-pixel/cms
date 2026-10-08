@@ -621,3 +621,24 @@ curl http://localhost:8000/api/health
 - PHP `JWTAuth.php` (130 строк) — чистый HMAC-SHA256, без библиотек. python-jose должен быть совместим.
 - `.env` содержит `APP_ENCRYPTION_KEY=140ce5c3fc65a29787e350261b047dc01997ce19a76d7dbe760d2106e371dcab` — может использоваться как JWT_SECRET.
 - В корне лежат мусорные файлы (`IMG_2468.heic`, `tools/`) — удалить при P0.
+
+---
+
+## 10. РАЗВЁРНУТО НА ПРОД (2026-10-09)
+
+Хост: `qvkhlqltsa` = MCP-соединение `video` = **159.194.221.84 / 85.198.99.102**.
+Тут же живут `nginx-selfsteal` (RU-нода/decoy, host network) и `remnanode` — **их не трогать**.
+
+Что сделано:
+- Прод-репо `/opt/HexaVeil_CMS` (ветка `master`) обновлён merge'ом `origin/main` (сохранён прод-файл `_deploy.bat`).
+- Миграции применены: `posts-metadata`, `pages-status`.
+- `admin-react/dist` доставлен вручную (git его не несёт; собран локально, распакован через контейнер, т.к. `/opt` под root).
+- Собран и поднят контейнер **`hexacms_api`** (FastAPI); nginx `hexacms_web` **перезагружен** (`nginx -s reload`), контейнер НЕ пересоздавался.
+- **Проверено:** `/api/health` → `database: connected`; `/` и `/blog` → 200; `/admin/`, `/admin/login` → 200 (SPA); `/admin/logout` → 302; login `admn` OK; финансы отдают реальные данные через FastAPI.
+
+Важные особенности прода:
+- **Порты:** `hexacms_web` слушает host **:3000** (не :80). `:80`/`:443` заняты `nginx-selfsteal` (host network). Поэтому CMS доступна снаружи через хостовый прокси на :3000.
+- **Грабля с bind-mount одного файла:** после `git merge` контейнер `web` видел старый `default.conf` (новый inode). Обход: `cat > /etc/nginx/conf.d/default.conf` внутрь контейнера + `nginx -s reload`.
+- Создан `/opt/HexaVeil_CMS/docker-compose.override.yml` (gitignored) с `web.ports: !override ["3000:80"]` — чтобы любой будущий `docker compose up -d` не занял :80 и не конфликтнул с selfsteal.
+- ⚠️ **Не запускать полный `docker compose up -d`** без этого override.
+- Публичный доступ (домен `hexaveil.xyz`) снаружи не проверялся из репо — проверить в браузере.

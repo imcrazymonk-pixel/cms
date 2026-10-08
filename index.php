@@ -9,7 +9,6 @@ define('ROOT_PATH', __DIR__);
 
 // Константы по умолчанию (переопределяются в config.php если существует)
 if (!defined('CORE_PATH')) define('CORE_PATH', ROOT_PATH . '/core');
-if (!defined('ADMIN_PATH')) define('ADMIN_PATH', ROOT_PATH . '/admin');
 if (!defined('PUBLIC_PATH')) define('PUBLIC_PATH', ROOT_PATH . '/public');
 if (!defined('TEMPLATES_PATH')) define('TEMPLATES_PATH', ROOT_PATH . '/templates');
 
@@ -83,33 +82,10 @@ if (!LEGACY_PHP_ADMIN) {
 $router = new Router();
 
 // ============================================
-// Инициализация контроллеров админки
+// PHP-админка удалена (Фаза 2).
+// Админка — React SPA (/admin/), JSON API — FastAPI (backend/).
+// PHP обслуживает только публичный сайт.
 // ============================================
-
-if (file_exists(ROOT_PATH . '/install.lock') && file_exists(ROOT_PATH . '/config/config.php')) {
-    require_once ADMIN_PATH . '/controllers/PostsController.php';
-    require_once ADMIN_PATH . '/controllers/CategoriesController.php';
-    require_once ADMIN_PATH . '/controllers/PagesController.php';
-    require_once ADMIN_PATH . '/controllers/UsersController.php';
-    require_once ADMIN_PATH . '/controllers/MediaController.php';
-    require_once ADMIN_PATH . '/controllers/SettingsController.php';
-    require_once ADMIN_PATH . '/controllers/MenusController.php';
-    require_once ADMIN_PATH . '/controllers/ThemeController.php';
-    require_once ADMIN_PATH . '/controllers/WidgetsController.php';
-    require_once ADMIN_PATH . '/controllers/FinanceController.php';
-    require_once ADMIN_PATH . '/controllers/LogController.php';
-    require_once ADMIN_PATH . '/controllers/DiagnosticsController.php';
-
-    $postsController = new AdminPostsController();
-    $categoriesController = new AdminCategoriesController();
-    $pagesController = new AdminPagesController();
-    $usersController = new AdminUsersController();
-    $mediaController = new AdminMediaController();
-    $settingsController = new AdminSettingsController();
-    $menusController = new AdminMenusController();
-    $themeController = new AdminThemeController();
-    $widgetsController = new AdminWidgetsController();
-}
 
 // ============================================
 // Загрузка маршрутов
