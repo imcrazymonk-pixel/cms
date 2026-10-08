@@ -73,7 +73,8 @@
 
 ### P2 — Фаза 2 (FastAPI)
 - [x] **M0–M5** — каркас, auth, read+write, cutover nginx, PHP deprecated (см. §4.0)
-- [ ] **M6** — (опц.) remnawave-модули: RBAC, rate-limit, audit
+- [x] **M6 (частично)** — structlog + request-лог (паттерн Remnawave)
+- [ ] **M6 (остаток, опц.)** — RBAC, rate-limit (slowapi), audit-middleware
 
 ---
 
@@ -91,7 +92,7 @@
 | **M3** — write | ✅ | 25 e2e smoke-тестов (CRUD posts/categories/pages/menus/widgets/users + settings/themes/media) |
 | **M4** — cutover nginx | ✅ | `location /api/ → api:8000`; React-эндпоинты работают через nginx без правок |
 | **M5** — PHP deprecated | ✅ | `core/routes.php` — блок `/api/*` помечен `DEPRECATED` (оставлен как fallback) |
-| **M6** — remnawave-модули | ❌ | опционально |
+| **M6** — remnawave-модули | 🟡 | сделано: structlog (+ротация JSON-файла) и request-лог `api_call … (ms)` как в Remnawave. Осталось (опц.): RBAC, slowapi rate-limit, audit-middleware |
 
 **Ключевые находки при интеграции (исправлено):**
 - SQLAlchemy 2.1: `execute("SELECT 1")` → `text(...)`.

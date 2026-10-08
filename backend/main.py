@@ -15,8 +15,10 @@ from fastapi.responses import JSONResponse
 from backend.core.config import get_cms_settings
 from backend.core.database import check_connection, close_engine
 from backend.core.errors import E
+from backend.core.logging_config import setup_logging
 from backend.schemas.common import HealthResponse
 
+setup_logging()
 logger = logging.getLogger(__name__)
 
 
@@ -125,6 +127,19 @@ def create_app() -> FastAPI:
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["X-XSS-Protection"] = "1; mode=block"
+        return response
+
+    # ── Request logging (mirrors Remnawave's api_call log line) ──
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        import time
+        start = time.perf_counter()
+        response = await call_next(request)
+        duration_ms = round((time.perf_counter() - start) * 1000, 1)
+        logger.info(
+            "api_call %s %s -> %s (%sms)",
+            request.method, request.url.path, response.status_code, duration_ms,
+        )
         return response
 
     # ── Include routers ─────────────────────────────────────────
