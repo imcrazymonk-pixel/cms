@@ -159,6 +159,7 @@ def create_app() -> FastAPI:
     from backend.api.v1 import preferences as preferences_api
     from backend.api.v1 import diagnostics as diagnostics_api
     from backend.api.v1 import finance as finance_api
+    from backend.api.v1 import finance_payments as finance_payments_api
 
     app.include_router(auth_api.router, prefix="/api", tags=["auth"])
     app.include_router(dashboard_api.router, prefix="/api", tags=["dashboard"])
@@ -178,6 +179,7 @@ def create_app() -> FastAPI:
     app.include_router(preferences_api.router, prefix="/admin/settings", tags=["preferences"])
     app.include_router(diagnostics_api.router, prefix="/admin/diagnostics/api", tags=["diagnostics"])
     app.include_router(finance_api.router, prefix="/admin/finance/api", tags=["finance"])
+    app.include_router(finance_payments_api.router, prefix="/admin/finance/api", tags=["finance-payments"])
 
     # ── Health check ────────────────────────────────────────────
     @app.get("/api/health", tags=["health"])

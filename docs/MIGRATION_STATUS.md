@@ -93,7 +93,7 @@
 | **M4** — cutover nginx | ✅ | `location /api/ → api:8000`; React-эндпоинты работают через nginx без правок |
 | **M5** — PHP deprecated | ✅ | `core/routes.php` — блок `/api/*` помечен `DEPRECATED` (оставлен как fallback) |
 | **M6** — remnawave-модули | 🟡 | сделано: structlog (+ротация JSON-файла) и request-лог `api_call … (ms)` как в Remnawave. Осталось (опц.): RBAC, slowapi rate-limit, audit-middleware |
-| **M7** — перенос PHP-bridge | 🟡 | **Finance (ядро), Diagnostics, Preferences → FastAPI** ✅. Осталось на PHP: публичный сайт, platega/yookassa sync, `/admin/logout` |
+| **M7** — перенос PHP-bridge | ✅ | **Finance (ядро + Platega/YooKassa), Diagnostics, Preferences → FastAPI.** На PHP остался только публичный сайт |
 
 **Ключевые находки при интеграции (исправлено):**
 - SQLAlchemy 2.1: `execute("SELECT 1")` → `text(...)`.
@@ -131,11 +131,12 @@
 | PHP-модуль | Новые файлы | Эндпоинты | Статус |
 |------------|-------------|-----------|--------|
 | Finance (ядро) | `backend/api/v1/finance.py`, `backend/core/crypto.py` | `/admin/finance/api/{data,add,edit,delete,delete-bulk,bulk/*,export/csv,export/selected,import,settings}` | ✅ crypto-parity MATCH, CRUD, CSV BOM `;`, UI OK |
+| **Platega + YooKassa** | `backend/api/v1/finance_payments.py` | `/platega/{preview,import,sync,cron-sync,settings}`, `/yookassa/{preview,import,sync,cron-sync,settings}` | ✅ live preview: Platega 223 строки, YooKassa 71 `new`; cron bad-token → 403 |
 | Diagnostics | `backend/api/v1/diagnostics.py` | `/admin/diagnostics/api/{data,collect}` | ✅ |
 | Preferences | `backend/api/v1/preferences.py` | `/admin/settings/{save-preference,save-all-preferences}` | ✅ `{"ok":true}` |
-| **Осталось на PHP** | — | публичный сайт; `/admin/finance/api/{platega,yookassa}/*`; `/admin/logout` | 🟡 по плану |
+| **Осталось на PHP** | — | только публичный сайт (лендинг + блог) | 🟡 по указанию владельца |
 
-nginx: `/admin/finance/api/` → FastAPI, но `/platega/` и `/yookassa/` → PHP (более специфичные `^~`-локации). React вызовы finance теперь обслуживает FastAPI.
+nginx: **весь** `/admin/finance/api/` (включая platega/yookassa) → FastAPI; `/admin/diagnostics/api/`, `/admin/settings/save-*` → FastAPI. PHP-API админки больше не используется nginx.
 
 **UI write-paths проверены кликом (все 200):**
 
