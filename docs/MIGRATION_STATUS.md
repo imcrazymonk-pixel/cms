@@ -93,6 +93,7 @@
 | **M4** — cutover nginx | ✅ | `location /api/ → api:8000`; React-эндпоинты работают через nginx без правок |
 | **M5** — PHP deprecated | ✅ | `core/routes.php` — блок `/api/*` помечен `DEPRECATED` (оставлен как fallback) |
 | **M6** — remnawave-модули | 🟡 | сделано: structlog (+ротация JSON-файла) и request-лог `api_call … (ms)` как в Remnawave. Осталось (опц.): RBAC, slowapi rate-limit, audit-middleware |
+| **M7** — перенос PHP-bridge | 🟡 | **Finance (ядро), Diagnostics, Preferences → FastAPI** ✅. Осталось на PHP: публичный сайт, platega/yookassa sync, `/admin/logout` |
 
 **Ключевые находки при интеграции (исправлено):**
 - SQLAlchemy 2.1: `execute("SELECT 1")` → `text(...)`.
@@ -124,6 +125,17 @@
 | Diagnostics (PHP bridge) | рендерится (сбор нод не настроен — вне Фазы 2) ✅ |
 
 Консоль: только pre-existing warning TinyMCE (не связан с миграцией) ✅
+
+**M7 — перенос PHP-bridge на FastAPI (проверено живьём, 2026-10-08):**
+
+| PHP-модуль | Новые файлы | Эндпоинты | Статус |
+|------------|-------------|-----------|--------|
+| Finance (ядро) | `backend/api/v1/finance.py`, `backend/core/crypto.py` | `/admin/finance/api/{data,add,edit,delete,delete-bulk,bulk/*,export/csv,export/selected,import,settings}` | ✅ crypto-parity MATCH, CRUD, CSV BOM `;`, UI OK |
+| Diagnostics | `backend/api/v1/diagnostics.py` | `/admin/diagnostics/api/{data,collect}` | ✅ |
+| Preferences | `backend/api/v1/preferences.py` | `/admin/settings/{save-preference,save-all-preferences}` | ✅ `{"ok":true}` |
+| **Осталось на PHP** | — | публичный сайт; `/admin/finance/api/{platega,yookassa}/*`; `/admin/logout` | 🟡 по плану |
+
+nginx: `/admin/finance/api/` → FastAPI, но `/platega/` и `/yookassa/` → PHP (более специфичные `^~`-локации). React вызовы finance теперь обслуживает FastAPI.
 
 **UI write-paths проверены кликом (все 200):**
 

@@ -67,6 +67,7 @@ class CmsSettings(BaseSettings):
     # Uploads
     upload_dir: str = Field(default="/var/www/html/public/uploads", alias="UPLOAD_DIR")
     public_dir: str = Field(default="/var/www/html/public", alias="PUBLIC_DIR")
+    root_path: str = Field(default="/var/www/html", alias="ROOT_PATH")
     max_upload_size: int = Field(default=64 * 1024 * 1024, alias="MAX_UPLOAD_SIZE")  # 64MB
 
 

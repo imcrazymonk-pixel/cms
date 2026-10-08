@@ -26,6 +26,7 @@ services:
         condition: service_healthy
     volumes:
       - ./backend:/app/backend
+      - .:/var/www/html
       - uploads_data:/var/www/html/public/uploads
     networks:
       - cms-network
