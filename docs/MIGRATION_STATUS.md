@@ -72,8 +72,7 @@
 - [ ] Сверить все разделы в браузере.
 
 ### P2 — Фаза 2 (FastAPI)
-- [x] **M0–M4** — каркас, auth, read+write, cutover nginx (см. §4.0)
-- [ ] **M5** — пометить PHP-API `/api/*` как `// DEPRECATED`
+- [x] **M0–M5** — каркас, auth, read+write, cutover nginx, PHP deprecated (см. §4.0)
 - [ ] **M6** — (опц.) remnawave-модули: RBAC, rate-limit, audit
 
 ---
@@ -91,7 +90,7 @@
 | **M2** — read-only | ✅ | все GET вернули реальные данные (posts/users/categories/settings/media/themes) |
 | **M3** — write | ✅ | 25 e2e smoke-тестов (CRUD posts/categories/pages/menus/widgets/users + settings/themes/media) |
 | **M4** — cutover nginx | ✅ | `location /api/ → api:8000`; React-эндпоинты работают через nginx без правок |
-| **M5** — PHP deprecated | ❌ | не начато (PHP-роуты `/api/*` пока живы, но nginx их не использует) |
+| **M5** — PHP deprecated | ✅ | `core/routes.php` — блок `/api/*` помечен `DEPRECATED` (оставлен как fallback) |
 | **M6** — remnawave-модули | ❌ | опционально |
 
 **Ключевые находки при интеграции (исправлено):**

@@ -127,8 +127,13 @@ function apiAuth(): array
 }
 
 // ============================================
-// API маршруты (React SPA)
+// API маршруты (React SPA) — DEPRECATED
 // ============================================
+// ⚠️ DEPRECATED: эти JSON-эндпоинты заменены на FastAPI (backend/, Фаза 2).
+// nginx теперь проксирует /api/* → api:8000 (FastAPI), поэтому данные маршруты
+// в проде НЕ используются. Оставлены как аварийный fallback и для совместимости.
+// Не расширять: новую логику добавлять в backend/api/v1/*, а не здесь.
+// См. docs/MIGRATION_STATUS.md §4.0.
 
 // CORS preflight — разрешить все API-запросы
 $router->addRoute('OPTIONS', 'api/auth/login', function() {
