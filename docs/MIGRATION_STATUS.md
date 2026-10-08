@@ -125,6 +125,15 @@
 
 Консоль: только pre-existing warning TinyMCE (не связан с миграцией) ✅
 
+**UI write-paths проверены кликом (все 200):**
+
+| Действие | Эндпоинт | Результат |
+|----------|----------|-----------|
+| Создать пост | `POST /api/posts` (FastAPI) | редирект на `/posts/{id}` ✅ |
+| Settings → «Сохранить всё» | `POST /api/settings` (FastAPI) + `finance/api/settings` + `save-preference` (PHP) | ок, без ошибок ✅ |
+| Themes → «Сохранить» | `POST /api/themes/settings` (FastAPI) | 200 ✅ |
+| Media → «Загрузить» | `POST /api/media/upload` (FastAPI, multipart) | файл появился (4→5), тест-файл удалён ✅ |
+
 ---
 
 ### 4.1 Полная карта эндпоинтов PHP API (что заменяем)
