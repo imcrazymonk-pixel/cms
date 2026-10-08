@@ -1,0 +1,1 @@
+# HexaVeil CMS Backend — SQLAlchemy models (read-only mapping)
