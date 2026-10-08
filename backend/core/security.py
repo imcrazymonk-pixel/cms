@@ -66,15 +66,19 @@ def decode_token(token: str) -> Optional[dict]:
 
 
 def verify_admin_password(password: str, hash: str) -> bool:
-    """Verify bcrypt password hash — uses passlib (same as PHP)."""
-    from passlib.hash import bcrypt
+    """Verify bcrypt password hash — compatible with PHP password_hash().
+
+    PHP emits `$2y$` hashes; the `bcrypt` library normalises `$2a$/$2b$/$2y$`
+    and verifies all of them.
+    """
+    import bcrypt
     try:
-        return bcrypt.verify(password, hash)
+        return bcrypt.checkpw(password.encode("utf-8"), hash.encode("utf-8"))
     except Exception:
         return False
 
 
 def hash_password(password: str) -> str:
-    """Hash password with bcrypt — compatible with PHP password_hash()."""
-    from passlib.hash import bcrypt
-    return bcrypt.hash(password)
+    """Hash password with bcrypt (cost 10, PHP 8.1 PASSWORD_BCRYPT default)."""
+    import bcrypt
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt(rounds=10)).decode("utf-8")

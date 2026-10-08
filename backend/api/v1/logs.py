@@ -1,14 +1,15 @@
-"""Logs API — read endpoints.
+"""Logs API — read + clear endpoints.
 
-Mirrors PHP:
-  GET /api/logs → { success, data: [...], total, page, per_page }
+  GET  /api/logs        → { success, data, total, page, per_page }
+  POST /api/logs/clear  → { success, deleted }
 """
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import AdminUser, get_current_admin
 from backend.core.database import get_db
+from backend.core.request_utils import json_body
 from backend.core.serializers import rows_to_list
 
 router = APIRouter()
@@ -16,13 +17,13 @@ router = APIRouter()
 
 @router.get("/logs")
 async def list_logs(
-    level: str = Query(""),
-    category: str = Query(""),
-    channel: str = Query(""),
-    source: str = Query(""),
-    q: str = Query(""),
-    page: int = Query(1),
-    per_page: int = Query(50),
+    level: str = "",
+    category: str = "",
+    channel: str = "",
+    source: str = "",
+    q: str = "",
+    page: int = 1,
+    per_page: int = 50,
     admin: AdminUser = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
@@ -69,3 +70,29 @@ async def list_logs(
         "page": page,
         "per_page": per_page,
     }
+
+
+@router.post("/logs/clear")
+async def clear_logs(
+    request: Request,
+    admin: AdminUser = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    body = await json_body(request)
+    category = body.get("category") or ""
+    channel = body.get("channel") or ""
+
+    if channel != "":
+        res = await db.execute(
+            text("DELETE FROM app_logs WHERE channel = :channel"), {"channel": channel}
+        )
+    elif category != "" and category != "all":
+        res = await db.execute(
+            text("DELETE FROM app_logs WHERE category = :category"), {"category": category}
+        )
+    else:
+        res = await db.execute(text("DELETE FROM app_logs"))
+
+    deleted = res.rowcount
+    await db.commit()
+    return {"success": True, "deleted": deleted}

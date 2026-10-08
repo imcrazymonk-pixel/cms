@@ -1,17 +1,16 @@
-"""Theme settings API — read endpoint.
+"""Theme settings API — read + write endpoints.
 
-Mirrors PHP GET /api/themes/settings:
-  - Determines active theme from settings.active_theme
-  - Loads theme option definitions (theme_config.py mirrors theme.php)
-  - Merges saved values (settings keys prefixed with "{theme}_")
-  Response: { success, data: { theme, label, options } }
+  GET  /api/themes/settings → { success, data: { theme, label, options } }
+  POST /api/themes/settings → { success, saved: [keys] }
 """
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.api.deps import AdminUser, get_current_admin
 from backend.core.database import get_db
+from backend.core.db_helpers import upsert_setting
+from backend.core.request_utils import json_body
 from backend.core.theme_config import get_theme_config
 
 router = APIRouter()
@@ -33,7 +32,6 @@ async def get_theme_settings(
     config = get_theme_config(theme_name)
     prefix = f"{theme_name}_"
 
-    # Settings belonging to this theme (prefixed with theme name)
     theme_settings = {}
     for key, value in all_settings.items():
         if key.startswith(prefix):
@@ -64,3 +62,25 @@ async def get_theme_settings(
             "options": options,
         },
     }
+
+
+@router.post("/themes/settings")
+async def update_theme_settings(
+    request: Request,
+    admin: AdminUser = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    body = await json_body(request)
+    all_settings = await _get_all_settings(db)
+    theme_name = all_settings.get("active_theme") or "default"
+    prefix = f"{theme_name}_"
+
+    saved = []
+    for key, value in body.items():
+        if isinstance(value, str):
+            await upsert_setting(db, f"{prefix}{key}", value.strip())
+            saved.append(key)
+
+    if saved:
+        await db.commit()
+    return {"success": True, "saved": saved}
