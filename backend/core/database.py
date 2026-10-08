@@ -54,10 +54,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 async def check_connection() -> bool:
     """Health check — verify DB connection."""
+    from sqlalchemy import text
     try:
         factory = await get_session_factory()
         async with factory() as session:
-            await session.execute("SELECT 1")
+            await session.execute(text("SELECT 1"))
         return True
     except Exception as e:
         logger.error("DB connection failed: %s", e)

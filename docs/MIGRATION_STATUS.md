@@ -72,11 +72,37 @@
 - [ ] Сверить все разделы в браузере.
 
 ### P2 — Фаза 2 (FastAPI)
-- [ ] M0–M6 (полная карта — §4).
+- [x] **M0–M4** — каркас, auth, read+write, cutover nginx (см. §4.0)
+- [ ] **M5** — пометить PHP-API `/api/*` как `// DEPRECATED`
+- [ ] **M6** — (опц.) remnawave-модули: RBAC, rate-limit, audit
 
 ---
 
 ## 4. Фаза 2: PHP API → FastAPI
+
+### 4.0 Прогресс (обновлено 2026-10-08, вечер)
+
+> **Все эндпоинты из §4.1 ниже — ПЕРЕНЕСЕНЫ (✅).** Колонка «Status ❌» в таблице §4.1 устарела — она показывает исходное состояние до миграции; фактически каждый путь уже обслуживается FastAPI.
+
+| Этап | Статус | Доказательство |
+|------|--------|----------------|
+| **M0** — каркас `backend/` | ✅ | `GET /api/health` → `{"status":"ok","database":"connected"}` |
+| **M1** — Auth (JWT) | ✅ | login через nginx → FastAPI вернул PHP-формат; **PHP-токен принят FastAPI** (interop-тест) |
+| **M2** — read-only | ✅ | все GET вернули реальные данные (posts/users/categories/settings/media/themes) |
+| **M3** — write | ✅ | 25 e2e smoke-тестов (CRUD posts/categories/pages/menus/widgets/users + settings/themes/media) |
+| **M4** — cutover nginx | ✅ | `location /api/ → api:8000`; React-эндпоинты работают через nginx без правок |
+| **M5** — PHP deprecated | ❌ | не начато (PHP-роуты `/api/*` пока живы, но nginx их не использует) |
+| **M6** — remnawave-модули | ❌ | опционально |
+
+**Ключевые находки при интеграции (исправлено):**
+- SQLAlchemy 2.1: `execute("SELECT 1")` → `text(...)`.
+- PyJWT ≥2.10 отвергал integer `sub` (PHP использует int) → `options={"verify_sub": False}`.
+- asyncpg требует `datetime` для TIMESTAMP (не строку) → `datetime.now()`.
+- **Схема `pages`** не имела колонок `status`/`updated_at`, хотя и PHP-роут, и React их используют → создана миграция `db/migrations/2026-10-08-pages-status.sql` (применена локально).
+
+**Тесты:** 47 pytest (unit/auth/route-registration) + 25 e2e smoke (реальная БД через nginx) — **все зелёные**.
+
+---
 
 ### 4.1 Полная карта эндпоинтов PHP API (что заменяем)
 

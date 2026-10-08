@@ -15,7 +15,9 @@ services:
       - cms-network
 
   api:
-    build: ./backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     container_name: hexacms_api
     restart: unless-stopped
     env_file: .env

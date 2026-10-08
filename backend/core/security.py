@@ -58,6 +58,10 @@ def decode_token(token: str) -> Optional[dict]:
             token,
             settings.jwt_secret_resolved,
             algorithms=[settings.jwt_algorithm],
+            # PHP JWTAuth stores `sub` as an integer (user id). PyJWT >=2.10
+            # enforces a string subject, so we disable that check to accept
+            # both PHP-issued and FastAPI-issued tokens.
+            options={"verify_sub": False},
         )
         return payload
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, Exception) as e:

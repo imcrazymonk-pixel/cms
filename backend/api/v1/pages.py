@@ -97,7 +97,7 @@ async def update_page(
             data[field] = val
 
     if data:
-        data["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        data["updated_at"] = datetime.now()
         await update_row(db, "pages", data, page_id)
         await db.commit()
     return {"success": True}

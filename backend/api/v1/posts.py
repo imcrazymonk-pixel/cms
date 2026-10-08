@@ -11,6 +11,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from datetime import datetime
+
 from backend.api.deps import AdminUser, get_current_admin
 from backend.core.database import get_db
 from backend.core.db_helpers import delete_row, insert_row, update_row
@@ -197,8 +199,7 @@ async def update_post(
         data["created_at"] = publish_date
 
     if data:
-        from datetime import datetime
-        data["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        data["updated_at"] = datetime.now()
         await update_row(db, "posts", data, post_id)
 
     if isinstance(body.get("tags"), list):

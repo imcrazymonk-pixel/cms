@@ -43,9 +43,10 @@ def to_bool(value: Any) -> bool:
     return bool(value)
 
 
-def parse_publish_date(value: Any) -> Optional[str]:
-    """Parse a publish date into 'YYYY-MM-DD HH:MM:SS' (PHP date() format).
+def parse_publish_date(value: Any) -> Optional[datetime]:
+    """Parse a publish date into a datetime (for TIMESTAMP columns).
 
+    asyncpg requires a real datetime object (unlike PDO which casts strings).
     Returns None if unparseable (mirrors strtotime() === false).
     """
     if value is None:
@@ -65,4 +66,7 @@ def parse_publish_date(value: Any) -> Optional[str]:
                 continue
         else:
             return None
-    return dt.strftime("%Y-%m-%d %H:%M:%S")
+    # Drop tzinfo — the columns are TIMESTAMP WITHOUT TIME ZONE (like PHP)
+    if dt.tzinfo is not None:
+        dt = dt.replace(tzinfo=None)
+    return dt
