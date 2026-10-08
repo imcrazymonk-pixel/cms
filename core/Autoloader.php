@@ -27,12 +27,7 @@ class Autoloader
             'TemplateEngine' => CORE_PATH . '/TemplateEngine.php',
             'Request' => CORE_PATH . '/Request.php',
             'Session' => CORE_PATH . '/Session.php',
-            'Auth' => CORE_PATH . '/Auth.php',
             'Hooks' => CORE_PATH . '/Hooks.php',
-            'DataGrid' => CORE_PATH . '/DataGrid.php',
-            'Crypto' => CORE_PATH . '/Crypto.php',
-            'JWTAuth' => CORE_PATH . '/JWTAuth.php',
-            'YooKassaClient' => CORE_PATH . '/payments/YooKassaClient.php',
         ];
 
         if (isset($classMap[$class])) {
@@ -42,7 +37,7 @@ class Autoloader
             return;
         }
 
-        // Модели (Post, Page, Category, User, Comment, Menu, Setting)
+        // Модели (Post, Page, Category, Menu, Setting, Widget)
         $modelFile = CORE_PATH . '/models/' . $class . '.php';
         if (file_exists($modelFile)) {
             require_once $modelFile;
