@@ -48,13 +48,5 @@ class Autoloader
             require_once $modelFile;
             return;
         }
-
-        // Автозагрузка контроллеров админки
-        if (strpos($class, 'Admin') === 0 && strpos($class, 'Controller') !== false) {
-            $controllerFile = ADMIN_PATH . '/controllers/' . str_replace('Controller', '', $class) . '.php';
-            if (file_exists($controllerFile)) {
-                require_once $controllerFile;
-            }
-        }
     }
 }

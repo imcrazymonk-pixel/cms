@@ -54,10 +54,16 @@ CREATE TABLE IF NOT EXISTS posts (
     views INTEGER DEFAULT 0,
     user_id INTEGER NOT NULL,
     category_id INTEGER,
+    seo_title VARCHAR(255),
+    seo_description TEXT,
+    canonical VARCHAR(255),
+    featured BOOLEAN NOT NULL DEFAULT FALSE,
+    comments_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_posts_status ON posts(status);
+CREATE INDEX IF NOT EXISTS idx_posts_featured ON posts(featured);
 CREATE INDEX IF NOT EXISTS idx_posts_category ON posts(category_id);
 CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id);
 
@@ -85,6 +91,8 @@ CREATE TABLE IF NOT EXISTS pages (
     user_id INTEGER DEFAULT NULL,
     template VARCHAR(100) DEFAULT 'default',
     is_home SMALLINT DEFAULT 0,
+    status VARCHAR(50) NOT NULL DEFAULT 'draft',
+    updated_at TIMESTAMP DEFAULT NOW(),
     created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_pages_is_home ON pages(is_home);
@@ -220,8 +228,11 @@ CREATE TABLE IF NOT EXISTS app_logs (
     level VARCHAR(20) NOT NULL DEFAULT 'info',
     channel VARCHAR(50) NOT NULL DEFAULT 'system',
     message TEXT NOT NULL,
-    context TEXT DEFAULT NULL
+    context TEXT DEFAULT NULL,
+    category VARCHAR(50) NOT NULL DEFAULT 'system',
+    source VARCHAR(50) DEFAULT NULL
 );
+CREATE INDEX IF NOT EXISTS idx_app_logs_category_level ON app_logs(category, level);
 CREATE INDEX IF NOT EXISTS idx_app_logs_created_at ON app_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_app_logs_level_channel ON app_logs(level, channel);
 

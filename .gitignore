@@ -55,9 +55,10 @@ __pycache__/
 /.claude/
 /skills-lock.json
 
-# React SPA — node_modules и сборка
+# React SPA — node_modules игнорируем, а сборку (dist) КОММИТИМ,
+# чтобы `git pull` на сервере (без Node) сразу отдавал админку.
 /admin-react/node_modules/
-/admin-react/dist/
+# (admin-react/dist/ намеренно НЕ в .gitignore)
 
 # Docker
 /.env
