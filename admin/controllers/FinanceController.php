@@ -1518,6 +1518,9 @@ AppLog::add('info', 'yookassa', 'YooKassa sync OK', [
 
     private function verifyJsonCsrf(array $body): bool
     {
+        if (!empty($GLOBALS['jwt_authed'])) {
+            return true;
+        }
         $token = $body['csrf_token'] ?? '';
         return $token !== '' && $token === Session::get('csrf_token');
     }
@@ -1529,6 +1532,8 @@ AppLog::add('info', 'yookassa', 'YooKassa sync OK', [
             'since' => (string)Request::get('since', ''),
             'until' => (string)Request::get('until', ''),
             'type' => (string)Request::get('type', ''),
+            'category' => (string)Request::get('category', ''),
+            'participant' => (string)Request::get('participant', ''),
             'q' => (string)Request::get('q', ''),
         ];
     }

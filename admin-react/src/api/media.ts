@@ -1,14 +1,12 @@
 import { api } from './client'
 
+// Matches GET /api/media response shape (core/routes.php)
 export interface MediaItem {
-  id: number
-  filename: string
   path: string
-  alt?: string
-  size?: number
-  mime_type?: string
-  uploaded_by?: number
-  created_at: string
+  url: string
+  name: string
+  size: number
+  modified: number
 }
 
 export const mediaApi = {
@@ -18,6 +16,6 @@ export const mediaApi = {
     api.post('/media/upload', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then(r => r.data),
-  delete: (id: number) =>
-    api.post('/media/delete', { id }).then(r => r.data),
+  delete: (path: string) =>
+    api.post('/media/delete', { path }).then(r => r.data),
 }

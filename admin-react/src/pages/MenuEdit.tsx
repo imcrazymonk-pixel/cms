@@ -1,17 +1,5 @@
-import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card'
+import { Navigate } from 'react-router-dom'
 
 export default function MenuEdit() {
-  return (
-    <div className="MenuEdit-page">
-      <div className="page-header">
-        <h1>MenuEdit</h1>
-        <p className="page-subtitle">Страница в разработке</p>
-      </div>
-      <Card>
-        <CardContent>
-          <p className="text-muted">Эта страница будет реализована в рамках миграции на React SPA.</p>
-        </CardContent>
-      </Card>
-    </div>
-  )
+  return <Navigate to="/admin/menus" replace />
 }

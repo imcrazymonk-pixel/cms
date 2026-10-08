@@ -13,6 +13,12 @@ export interface Post {
   user_id?: number
   author_name?: string
   views?: number
+  seo_title?: string | null
+  seo_description?: string | null
+  canonical?: string | null
+  featured?: boolean
+  comments_enabled?: boolean
+  tags?: string[]
   created_at: string
   updated_at: string
 }

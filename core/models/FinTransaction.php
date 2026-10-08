@@ -146,8 +146,9 @@ class FinTransaction
         $params = [];
 
         if (!empty($f['month']) && preg_match('/^\d{4}-\d{2}$/', (string)$f['month'])) {
-            $where[] = 'date LIKE ?';
-            $params[] = $f['month'] . '%';
+            // PostgreSQL: date is a DATE column, LIKE is invalid — compare formatted month.
+            $where[] = 'TO_CHAR("date", \'YYYY-MM\') = ?';
+            $params[] = $f['month'];
         }
         if (!empty($f['since']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string)$f['since'])) {
             $where[] = 'date >= ?';
@@ -160,6 +161,14 @@ class FinTransaction
         if (!empty($f['type']) && in_array($f['type'], ['income', 'expense'], true)) {
             $where[] = 'type = ?';
             $params[] = $f['type'];
+        }
+        if (!empty($f['category'])) {
+            $where[] = 'category = ?';
+            $params[] = $f['category'];
+        }
+        if (!empty($f['participant'])) {
+            $where[] = 'participant = ?';
+            $params[] = $f['participant'];
         }
         if (!empty($f['q'])) {
             $where[] = '(category LIKE ? OR participant LIKE ? OR description LIKE ?)';

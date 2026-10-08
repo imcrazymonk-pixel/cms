@@ -78,6 +78,7 @@ if (file_exists(ROOT_PATH . '/install.lock') && file_exists(ROOT_PATH . '/config
     require_once ADMIN_PATH . '/controllers/WidgetsController.php';
     require_once ADMIN_PATH . '/controllers/FinanceController.php';
     require_once ADMIN_PATH . '/controllers/LogController.php';
+    require_once ADMIN_PATH . '/controllers/DiagnosticsController.php';
 
     $postsController = new AdminPostsController();
     $categoriesController = new AdminCategoriesController();

@@ -6,7 +6,7 @@ const API_BASE = typeof import.meta !== 'undefined' && import.meta.env?.VITE_API
 
 export const api = axios.create({
   baseURL: API_BASE,
-  headers: { 'Content-Type': 'application/json' },
+  headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
 })
 
 api.interceptors.request.use((config) => {

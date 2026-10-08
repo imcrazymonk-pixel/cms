@@ -1,5 +1,3 @@
-import { api } from './client'
-
 // Finance API uses /admin URLs (not /api prefix) — separate instance
 import axios from 'axios'
 
@@ -45,17 +43,33 @@ export interface Transaction {
   description: string
 }
 
+export interface ChartPoint {
+  key: string
+  label: string
+  income: number
+  expense: number
+  balance: number
+}
+
 export interface FinanceData {
   summary: { income: number; expense: number; balance: number; count: number }
   averages: {
-    income: { day: number; week: number; month: number; year: number }
-    expense: { day: number; week: number; month: number; year: number }
+    income: number
+    expense: number
+    balance: number
+    total: number
+    avg_days: number
+    avg_weeks: number
+    avg_months: number
+    avg_years: number
+    avg_income: { day: number; week: number; month: number; year: number }
+    avg_expense: { day: number; week: number; month: number; year: number }
   }
   chart: {
-    daily: { date: string; income: number; expense: number; balance: number }[]
-    weekly: { date: string; income: number; expense: number; balance: number }[]
-    monthly: { date: string; income: number; expense: number; balance: number }[]
-    yearly: { date: string; income: number; expense: number; balance: number }[]
+    daily: ChartPoint[]
+    weekly: ChartPoint[]
+    monthly: ChartPoint[]
+    yearly: ChartPoint[]
   }
   categories: { category: string; income: number; expense: number }[]
   transactions: Transaction[]
@@ -64,7 +78,7 @@ export interface FinanceData {
   all_months: string[]
   all_categories: string[]
   all_participants: string[]
-  anomalies: unknown[]
+  anomalies: number[]
 }
 
 export const financeApi = {
@@ -82,6 +96,24 @@ export const financeApi = {
 
   deleteBulk: (ids: number[]) =>
     adminApi.post('/admin/finance/api/delete-bulk', { ids }).then(r => r.data),
+
+  bulkType: (ids: number[], value: string) =>
+    adminApi.post('/admin/finance/api/bulk/type', { ids, type: value }).then(r => r.data),
+
+  bulkCategory: (ids: number[], value: string) =>
+    adminApi.post('/admin/finance/api/bulk/category', { ids, category: value }).then(r => r.data),
+
+  bulkParticipant: (ids: number[], value: string) =>
+    adminApi.post('/admin/finance/api/bulk/participant', { ids, participant: value }).then(r => r.data),
+
+  bulkDescription: (ids: number[], value: string) =>
+    adminApi.post('/admin/finance/api/bulk/description', { ids, description: value }).then(r => r.data),
+
+  exportCsv: (params?: Record<string, unknown>) =>
+    adminApi.get('/admin/finance/api/export/csv', { params, responseType: 'blob' }).then(r => r.data),
+
+  exportSelected: (ids: number[]) =>
+    adminApi.post('/admin/finance/api/export/selected', { ids }, { responseType: 'blob' }).then(r => r.data),
 
   getSettings: () =>
     adminApi.get('/admin/finance/api/settings').then(r => r.data),

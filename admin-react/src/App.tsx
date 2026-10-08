@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { AppearanceProvider } from './components/AppearanceProvider'
@@ -39,8 +39,6 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const { token } = useAuthStore()
-
   return (
     <AppearanceProvider>
       <ErrorBoundary>

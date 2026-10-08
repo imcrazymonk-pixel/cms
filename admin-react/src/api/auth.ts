@@ -3,6 +3,7 @@ import { api } from './client'
 export interface LoginResponse {
   success: boolean
   token: string
+  error?: string
   user: { id: number; login: string; email: string; role: string }
 }
 

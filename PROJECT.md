@@ -109,9 +109,9 @@ NewWeb/
 └── docs/
     ├── decisions/
     │   └── ADR-001-panel-design-system.md  # Документация редизайна админки
-    └── superpowers/
-        ├── plans/
-        └── specs/
+    ├── MIGRATION_BRIEF.md                  # Краткий бриф миграции на React SPA
+    ├── MIGRATION_TO_REMNAWAVE_STACK.md     # Полное ТЗ миграции (3 фазы)
+    └── MIGRATION_STATUS.md                 # Статус: что сделано / что осталось (handoff)
 ```
 
 ---
@@ -646,7 +646,8 @@ cms-admin/                          # Новый React SPA
 
 ### Планирование (ссылка на план)
 
-Подробный пошаговый план — `docs/superpowers/plans/2026-09-28-cms-react-migration.md`
+Полное ТЗ миграции — `docs/MIGRATION_TO_REMNAWAVE_STACK.md`
+Текущий статус (что сделано / что осталось, handoff) — `docs/MIGRATION_STATUS.md`
 
 ---
 

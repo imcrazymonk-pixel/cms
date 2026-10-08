@@ -288,6 +288,7 @@ $router->get('api/posts/(\d+)', function($id) {
     $post = new Post();
     $entity = $post->getById((int)$id);
     if (!$entity) apiError('Пост не найден', 404);
+    $entity['tags'] = array_map(fn($t) => $t['name'], $post->getTags((int)$id));
     apiJson(['success' => true, 'data' => $entity]);
 });
 
@@ -306,7 +307,7 @@ $router->post('api/posts', function() {
     }
 
     $post = new Post();
-    $id = $post->create([
+    $postData = [
         'title' => $title,
         'slug' => $slug,
         'content' => $body['content'] ?? '',
@@ -314,8 +315,23 @@ $router->post('api/posts', function() {
         'category_id' => (int)($body['category_id'] ?? 0) ?: null,
         'status' => $body['status'] ?? 'draft',
         'image' => $body['image'] ?? '',
+        'seo_title' => $body['seo_title'] ?? null,
+        'seo_description' => $body['seo_description'] ?? null,
+        'canonical' => $body['canonical'] ?? null,
+        'featured' => !empty($body['featured']) ? 'true' : 'false',
+        'comments_enabled' => array_key_exists('comments_enabled', $body)
+            ? ($body['comments_enabled'] ? 'true' : 'false') : 'true',
         'user_id' => (int)$auth['sub'],
-    ]);
+    ];
+    if (!empty($body['publish_date'])) {
+        $ts = strtotime((string)$body['publish_date']);
+        if ($ts) $postData['created_at'] = date('Y-m-d H:i:s', $ts);
+    }
+
+    $id = $post->create($postData);
+    if (!empty($body['tags']) && is_array($body['tags'])) {
+        $post->setTags($id, $body['tags']);
+    }
 
     apiJson(['success' => true, 'data' => ['id' => $id]], 201);
 });
@@ -331,14 +347,23 @@ $router->post('api/posts/(\d+)', function($id) {
 
     $body = json_decode(file_get_contents('php://input'), true) ?: [];
     $data = [];
-    foreach (['title', 'slug', 'content', 'excerpt', 'status', 'image'] as $field) {
-        if (isset($body[$field])) $data[$field] = trim($body[$field]);
+    foreach (['title', 'slug', 'content', 'excerpt', 'status', 'image', 'seo_title', 'seo_description', 'canonical'] as $field) {
+        if (isset($body[$field])) $data[$field] = trim((string)$body[$field]);
     }
     if (isset($body['category_id'])) $data['category_id'] = (int)$body['category_id'] ?: null;
+    if (isset($body['featured'])) $data['featured'] = $body['featured'] ? 'true' : 'false';
+    if (isset($body['comments_enabled'])) $data['comments_enabled'] = $body['comments_enabled'] ? 'true' : 'false';
+    if (!empty($body['publish_date'])) {
+        $ts = strtotime((string)$body['publish_date']);
+        if ($ts) $data['created_at'] = date('Y-m-d H:i:s', $ts);
+    }
 
     if (!empty($data)) {
         $data['updated_at'] = date('Y-m-d H:i:s');
         $post->update((int)$id, $data);
+    }
+    if (array_key_exists('tags', $body) && is_array($body['tags'])) {
+        $post->setTags((int)$id, $body['tags']);
     }
 
     apiJson(['success' => true]);
@@ -842,6 +867,163 @@ $router->post('api/themes/settings', function() {
 });
 
 // ============================================
+// API: Settings (/api/settings)
+// ============================================
+
+$router->addRoute('OPTIONS', 'api/settings', function() { apiCorsHeaders(); http_response_code(204); exit; });
+
+// GET /api/settings — get all site settings
+$router->get('api/settings', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $s = new Setting();
+    $all = $s->getAll();
+
+    // Exclude sensitive keys
+    $allowed = ['site_name', 'site_description', 'meta_keywords', 'meta_description',
+        'active_theme', 'posts_per_page', 'comments_auto_approve', 'maintenance_mode',
+        'docker_config', 'loki_config'];
+    $out = [];
+    foreach ($allowed as $k) {
+        if (isset($all[$k])) $out[$k] = $all[$k];
+    }
+
+    apiJson(['success' => true, 'data' => $out]);
+});
+
+// POST /api/settings — update site settings
+$router->post('api/settings', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $allowed = ['site_name', 'site_description', 'meta_description', 'meta_keywords',
+        'posts_per_page', 'comments_auto_approve', 'maintenance_mode',
+        'active_theme', 'docker_config', 'loki_config'];
+
+    $s = new Setting();
+    $saved = 0;
+    foreach ($allowed as $k) {
+        if (isset($body[$k])) {
+            $s->set($k, (string)$body[$k]);
+            $saved++;
+        }
+    }
+
+    apiJson(['success' => true, 'saved' => $saved]);
+});
+
+// ============================================
+// API: Notifications (stubs — CMS has no notifications backend)
+// ============================================
+$router->get('api/notifications/unread-count', function() {
+    apiCorsHeaders();
+    apiAuth();
+    apiJson(['count' => 0]);
+});
+
+$router->get('api/notifications', function() {
+    apiCorsHeaders();
+    apiAuth();
+    apiJson(['items' => [], 'data' => [], 'total' => 0, 'page' => 1, 'per_page' => 8]);
+});
+
+$router->post('api/notifications/mark-read', function() {
+    apiCorsHeaders();
+    apiAuth();
+    apiJson(['success' => true]);
+});
+
+// ============================================
+// API: Media (/api/media)
+// ============================================
+
+$router->addRoute('OPTIONS', 'api/media', function() { apiCorsHeaders(); http_response_code(204); exit; });
+$router->addRoute('OPTIONS', 'api/media/upload', function() { apiCorsHeaders(); http_response_code(204); exit; });
+$router->addRoute('OPTIONS', 'api/media/delete', function() { apiCorsHeaders(); http_response_code(204); exit; });
+
+// GET /api/media — list all media files
+$router->get('api/media', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $uploadDir = ROOT_PATH . '/public/uploads/';
+    $files = [];
+
+    if (is_dir($uploadDir)) {
+        $iterator = new RecursiveIteratorIterator(
+            new RecursiveDirectoryIterator($uploadDir)
+        );
+        foreach ($iterator as $file) {
+            if ($file->isFile() && in_array(strtolower($file->getExtension()), ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])) {
+                $relativePath = str_replace(ROOT_PATH, '', $file->getPathname());
+                $files[] = [
+                    'path' => $relativePath,
+                    'url' => '/public' . str_replace('/public', '', $relativePath),
+                    'name' => $file->getFilename(),
+                    'size' => $file->getSize(),
+                    'modified' => $file->getMTime(),
+                ];
+            }
+        }
+    }
+
+    apiJson(['success' => true, 'data' => $files]);
+});
+
+// POST /api/media/upload — upload a file
+$router->post('api/media/upload', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $src = $_FILES['file'] ?? $_FILES['image'] ?? $_FILES['upload'] ?? null;
+    if (!$src || $src['error'] !== UPLOAD_ERR_OK) {
+        apiError('Файл не загружен', 400);
+    }
+
+    $uploadDir = ROOT_PATH . '/public/uploads/';
+    if (!is_dir($uploadDir)) {
+        @mkdir($uploadDir, 0755, true);
+    }
+
+    $ext = strtolower(pathinfo($src['name'], PATHINFO_EXTENSION));
+    $allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'];
+    if (!in_array($ext, $allowedExts)) {
+        apiError('Недопустимый тип файла', 400);
+    }
+
+    $filename = date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+    $destPath = $uploadDir . $filename;
+    move_uploaded_file($src['tmp_name'], $destPath);
+
+    apiJson(['success' => true, 'data' => [
+        'path' => '/public/uploads/' . $filename,
+        'url' => '/public/uploads/' . $filename,
+        'name' => $filename,
+    ]]);
+});
+
+// POST /api/media/delete — delete a media file
+$router->post('api/media/delete', function() {
+    apiCorsHeaders();
+    apiAuth();
+
+    $body = json_decode(file_get_contents('php://input'), true) ?: [];
+    $id = (int)($body['id'] ?? 0);
+    $path = (string)($body['path'] ?? '');
+
+    if ($path !== '') {
+        $fullPath = ROOT_PATH . $path;
+        if (file_exists($fullPath)) {
+            @unlink($fullPath);
+        }
+    }
+
+    apiJson(['success' => true]);
+});
+
+// ============================================
 // Маршруты админки
 // ============================================
 
@@ -853,7 +1035,7 @@ $router->get('admin', function() {
     $pref = new UserPreference();
     $useReact = $pref->get(Auth::id(), 'use_react_admin');
     if ($useReact === '1') {
-        header('Location: http://localhost:3000/admin/');
+        header('Location: /admin/');
         http_response_code(302);
         exit;
     }
@@ -995,8 +1177,10 @@ $router->get('admin/logs/loki/preview', [AdminLogController::class, 'lokiPreview
 
 // Диагностика нод
 $router->get('admin/diagnostics', [AdminDiagnosticsController::class, 'index']);
-$router->get('admin/diagnostics/api/data', [AdminDiagnosticsController::class, 'apiData']);
-$router->post('admin/diagnostics/api/collect', [AdminDiagnosticsController::class, 'apiCollect']);
+
+// API-маршруты диагностики — с поддержкой JWT (React SPA)
+$router->get('admin/diagnostics/api/data', function() { jwtBridge(); (new AdminDiagnosticsController())->apiData(); });
+$router->post('admin/diagnostics/api/collect', function() { jwtBridge(); (new AdminDiagnosticsController())->apiCollect(); });
 
 // Финансовый модуль
 $router->get('admin/finance', [AdminFinanceController::class, 'index']);
@@ -1004,17 +1188,22 @@ $router->get('admin/finance', [AdminFinanceController::class, 'index']);
 // API-маршруты финансов — с поддержкой JWT (React SPA)
 function jwtBridge(): void
 {
-    // Если уже есть сессия — пропускаем
-    if (Auth::check()) return;
-
-    // Если есть JWT Bearer — валидируем и создаём сессию для Auth::requireAdmin()
+    // If there is a valid JWT Bearer token, treat the request as JWT-authenticated
+    // (mark it so CSRF checks can be skipped — a bearer token is not cookie-bound).
+    // This must also run when a session cookie is already present, otherwise a
+    // later POST would be rejected with "CSRF token invalid".
     $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
     if (preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
         $payload = JWTAuth::validateToken($matches[1]);
-        if ($payload && isset($payload['user_id'])) {
-            Session::set('user_id', $payload['user_id']);
-            Session::set('user_role', 'admin');
-            Session::set('user_login', $payload['login'] ?? '');
+        // JWT subject is exposed as "sub" by JWTAuth (legacy: "user_id").
+        $userId = $payload['user_id'] ?? $payload['sub'] ?? null;
+        if ($payload && $userId !== null) {
+            if (!Auth::check()) {
+                Session::set('user_id', (int)$userId);
+                Session::set('user_role', $payload['role'] ?? 'admin');
+                Session::set('user_login', $payload['login'] ?? '');
+            }
+            $GLOBALS['jwt_authed'] = true;
             return;
         }
     }
@@ -1267,6 +1456,7 @@ $router->get('{slug}', function($slug) {
 // Вся панель UI: тема, режим, плотность, радиус, шрифт, анимации,
 // свёрнутый сайдбар, колонки и т.д. — всё в одном ключе panel_ui_state.
 $router->post('admin/settings/save-all-preferences', function() {
+    jwtBridge();
     Auth::requireAdmin();
     $body = json_decode(file_get_contents('php://input'), true) ?: [];
     if (!empty($body)) {
@@ -1279,6 +1469,7 @@ $router->post('admin/settings/save-all-preferences', function() {
 
 // Старый эндпоинт — сохранён для обратной совместимости (не используется в panel.js)
 $router->post('admin/settings/save-preference', function() {
+    jwtBridge();
     Auth::requireAdmin();
     $body = json_decode(file_get_contents('php://input'), true) ?: [];
     $key = $body['key'] ?? '';

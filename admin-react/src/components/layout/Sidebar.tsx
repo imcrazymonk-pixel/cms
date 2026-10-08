@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import navigation from '@/config/navigation'
-import { useTranslation } from 'react-i18next'
 import { Link, useLocation } from 'react-router-dom'
 import {
   ChevronDown,
@@ -53,7 +52,6 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
-  const { t } = useTranslation()
   const location = useLocation()
   const { clearAuth } = useAuthStore()
   const collapsed = useAppearanceStore((s) => s.sidebarCollapsed)

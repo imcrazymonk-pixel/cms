@@ -122,6 +122,11 @@ function csrf_field(): string
  */
 function verify_csrf(?string $token = null): bool
 {
+    // Bearer/JWT-authenticated requests (React SPA) are not cookie-bound,
+    // so CSRF does not apply — jwtBridge() flags them.
+    if (!empty($GLOBALS['jwt_authed'])) {
+        return true;
+    }
     $token = $token ?? Request::post('csrf_token');
     return $token && $token === Session::get('csrf_token');
 }
