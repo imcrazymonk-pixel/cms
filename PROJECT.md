@@ -109,9 +109,9 @@ NewWeb/
 └── docs/
     ├── decisions/
     │   └── ADR-001-panel-design-system.md  # Документация редизайна админки
-    └── superpowers/
-        ├── plans/
-        └── specs/
+    ├── MIGRATION_BRIEF.md                  # Краткий бриф миграции на React SPA
+    ├── MIGRATION_TO_REMNAWAVE_STACK.md     # Полное ТЗ миграции (3 фазы)
+    └── MIGRATION_STATUS.md                 # Статус: что сделано / что осталось (handoff)
 ```
 
 ---
@@ -548,14 +548,119 @@ docker compose exec -T db psql -U cms -d cms -c "SET session_replication_role = 
 docker compose exec app php -r "\$pdo = new PDO('pgsql:host=db;port=5432;dbname=cms','cms','cms_secret_2026'); \$pdo->prepare('UPDATE users SET password=? WHERE login=?')->execute([password_hash('Cke;bkb2Njdfhbof',PASSWORD_BCRYPT),'admn']); echo 'done';"
 ```
 
+---
+
+## 🎯 React CMS Admin — новая архитектура (план)
+
+> **Статус:** план. К реализации не приступали.
+
+### Цель
+
+Перенести PHP-рендереную админ-панель на **React SPA** с **визуалом 1:1 как в Remnawave-admin** (React + Tailwind + Radix UI).
+
+### Архитектура (гибрид)
+
+```
+hexaveil.xyz (один сервер, один Docker-контейнер)
+  │
+  ├── /*                   → PHP (публичная часть: лендинг + блог) — НЕ ТРОГАЕТСЯ
+  │
+  ├── /cms-admin/          → React SPA (новая админка, Vite + React 18 + TypeScript)
+  │     └── API calls → /api/* → PHP JSON-эндпоинты
+  │
+  └── /api/*               → PHP (JWT-аутентификация, JSON-ответы)
+```
+
+### Что копируется из Remnawave-admin-main
+
+| Компонент | Откуда | Что меняется |
+|-----------|--------|-------------|
+| Layout (sidebar + header + mesh-фон) | `remnawave-admin/.../layout/` | Навигация под CMS |
+| 23 UI-компонента (button, table, card...) | `remnawave-admin/.../ui/` | Без изменений |
+| Система тем (5 пресетов + dark/light) | `remnawave-admin/.../useAppearanceStore.ts` | Ключ localStorage |
+| Command Palette (Ctrl+K) | `remnawave-admin/.../CommandPalette.tsx` | Поиск по страницам CMS |
+| Auth (JWT) | `remnawave-admin/.../authStore.ts` | Адаптирован под PHP |
+| API-клиент (axios) | `remnawave-admin/.../api/client.ts` | baseURL = '/' |
+
+### Стратегия миграции (страница за страницей)
+
+1. **JWT Auth** (PHP) — новый эндпоинт `/api/auth/login`, middleware
+2. **Login** (React) — форма входа, authStore
+3. **Dashboard** (React + PHP API) — статистика, 4 glass-карточки
+4. **Posts** + **Categories** (React + PHP API) — DataGrid, CRUD
+5. **Post Form** (React) — CKEditor 5, title, status
+6. **Pages** (React + PHP API)
+7. **Users** (React + PHP API)
+8. **Media** (React + PHP API)
+9. **Finance** (React + PHP API)
+10. **Settings** (React + PHP API)
+11. **Nginx cutover** — `/admin` → React (когда всё готово)
+
+### Размещение
+
+- React-сборка (Vite build) → `public/cms-admin/`
+- Nginx: `/cms-admin/*` → статика React
+- PHP: `/api/*` → JSON-эндпоинты
+- Оба сервиса в **одном Docker-контейнере** (`hexacms_web`)
+
+### Проект React
+
+```
+cms-admin/                          # Новый React SPA
+├── package.json
+├── vite.config.ts
+├── tailwind.config.js
+├── src/
+│   ├── App.tsx                     # Роутинг
+│   ├── main.tsx                    # Entry point
+│   ├── index.css                   # Tailwind + CSS variables
+│   ├── api/
+│   │   ├── client.ts               # Axios + JWT interceptor
+│   │   ├── auth.ts
+│   │   ├── posts.ts
+│   │   ├── pages.ts
+│   │   ├── users.ts
+│   │   ├── media.ts
+│   │   ├── finance.ts
+│   │   ├── settings.ts
+│   │   ├── dashboard.ts
+│   │   └── categories.ts
+│   ├── store/
+│   │   ├── authStore.ts            # JWT (Zustand + localStorage)
+│   │   └── appearanceStore.ts      # Темизация
+│   ├── config/
+│   │   └── navigation.ts           # Навигация CMS
+│   ├── components/
+│   │   ├── layout/                 # Layout, Sidebar, Header
+│   │   └── ui/                     # 23 Radix UI-компонента
+│   └── pages/                      # Страницы админки
+│       ├── Login.tsx
+│       ├── Dashboard.tsx
+│       ├── posts/
+│       ├── pages/
+│       ├── users/
+│       ├── media/
+│       ├── finance/
+│       └── settings/
+```
+
+### Планирование (ссылка на план)
+
+Полное ТЗ миграции — `docs/MIGRATION_TO_REMNAWAVE_STACK.md`
+Текущий статус (что сделано / что осталось, handoff) — `docs/MIGRATION_STATUS.md`
+
+---
+
 ## Технические ограничения
 
-- **Никаких npm/сборщиков** — весь код vanilla
+- **Никаких npm/сборщиков на PHP-стороне** — весь код vanilla
+- React-админка использует npm (Vite + TypeScript) — это ок, она отдельный проект
 - **Избегать монолитных файлов** — разделять на логические модули
 - **Не трогать публичную часть** (если задача только про админку)
 - **Не менять маршруты/контроллеры/логику/имена полей форм** без необходимости
 - **PHP 8.1+**
 - **Не коммитить папку `Fin/`**
+- **React-админка:** `cms-admin/` использует npm (Vite + TypeScript) — это отдельный проект, не влияет на PHP-сторону
 
 ---
 

@@ -184,7 +184,37 @@ if (!empty($finSettings['yookassa_cron_token'])) {
                 <div class="help-text">Выберите тему для всего сайта. Шаблоны берутся из папки templates/themes</div>
             </div>
         </div>
+
+        <div class="card form-card">
+            <h3><?= icon('monitor') ?> Панель управления</h3>
+
+            <div class="form-switch">
+                <div class="form-switch-body">
+                    <label for="use_react_admin">Новая панель управления</label>
+                    <div class="form-hint">React SPA в стиле Remnawave. Включите — и админка переключится на новый интерфейс. Выключите — вернётся текущая PHP-панель.</div>
+                </div>
+                <label class="ap-switch">
+                    <input type="checkbox" id="use_react_admin" <?= $useReactAdmin ? 'checked' : '' ?> onchange="toggleReactAdmin()">
+                    <span class="ap-switch-slider"></span>
+                </label>
+            </div>
+        </div>
     </div>
+
+    <script>
+    function toggleReactAdmin() {
+        var enabled = document.getElementById('use_react_admin').checked;
+        fetch('/admin/settings/save-preference', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: 'use_react_admin', value: enabled ? '1' : '0' })
+        }).then(function(r) { return r.json(); }).then(function(d) {
+            if (d.ok) {
+                window.location.href = '/admin/';
+            }
+        });
+    }
+    </script>
 
     <!-- ==================== Финансы ==================== -->
     <div class="settings-panel <?= $activeTab === 'finance' ? 'active' : '' ?>" data-panel="finance">

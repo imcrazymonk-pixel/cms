@@ -1,0 +1,114 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  // Served under /admin/ (nginx alias → admin-react/dist), SPA basename "/admin"
+  base: '/admin/',
+  plugins: [
+    react(),
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
+  },
+  server: {
+    // Настройки сервера разработки
+    port: 3000,
+    host: true,
+    // Прокси‑запросы к backend (PHP API)
+    proxy: {
+      '/api': { target: 'http://localhost', changeOrigin: true },
+      // Проксируем все admin/finance/api запросы к PHP (через nginx)
+      '/admin/finance/api': {
+        target: 'http://localhost',
+        changeOrigin: true,
+        rewrite: (path) => path,
+      },
+    },
+    // Увеличиваем надёжность HMR на Windows
+    watch: { usePolling: true },
+    hmr: false,
+  },
+  preview: {
+    port: 4173,
+    host: true,
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+
+          // Let Vite handle CSS association with its importing chunk naturally;
+          // forcing CSS into a manualChunk breaks lazy-load CSS code-splitting.
+          if (id.endsWith('.css')) return
+
+          // Core React runtime + all React-dependent libs that touch
+          // React at module-init. Anything that calls React.createContext,
+          // React.forwardRef, etc. synchronously in its module body MUST
+          // ride in the same chunk as React itself; otherwise it can
+          // race ahead of vendor-react and crash with
+          // `Cannot read properties of undefined (reading 'forwardRef'/'createContext')`.
+          //
+          // react-is, recharts (Surface.js), @tanstack/react-query
+          // (QueryClientProvider.js) and zustand (use-sync-external-store)
+          // all bit us in production — keep them together.
+          if (
+            id.includes('/react/') ||
+            id.includes('/react-dom/') ||
+            id.includes('/react-router') ||
+            id.includes('/react-is/') ||
+            id.includes('/use-sync-external-store/') ||
+            id.includes('/scheduler/') ||
+            id.includes('/@tanstack/react-query/') ||
+            id.includes('/zustand/')
+          ) {
+            return 'vendor-react'
+          }
+
+          // HTTP client — pure JS, no React touch at init, can ship separately
+          if (id.includes('/axios/')) {
+            return 'vendor-data'
+          }
+
+          // i18n
+          if (
+            id.includes('/i18next/') ||
+            id.includes('/react-i18next/') ||
+            id.includes('/i18next-browser-languagedetector/')
+          ) {
+            return 'vendor-i18n'
+          }
+
+          // UI primitives (Radix)
+          if (id.includes('/@radix-ui/')) {
+            return 'vendor-radix'
+          }
+
+          // Charts — recharts must share the React chunk so its synchronous
+          // `forwardRef` access never races a separate vendor file. d3-*
+          // is recharts' transitive dep, keep it together to avoid
+          // splitting recharts' internals across multiple chunks.
+          if (id.includes('/recharts/') || id.includes('/d3-')) {
+            return 'vendor-react'
+          }
+
+          // Maps (heavy — loaded only with Analytics page)
+          if (id.includes('/leaflet/') || id.includes('/react-leaflet/')) {
+            return 'vendor-maps'
+          }
+
+          // Icons
+          if (id.includes('/lucide-react/')) {
+            return 'vendor-icons'
+          }
+        },
+      },
+    },
+  },
+})

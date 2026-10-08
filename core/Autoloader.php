@@ -31,6 +31,7 @@ class Autoloader
             'Hooks' => CORE_PATH . '/Hooks.php',
             'DataGrid' => CORE_PATH . '/DataGrid.php',
             'Crypto' => CORE_PATH . '/Crypto.php',
+            'JWTAuth' => CORE_PATH . '/JWTAuth.php',
             'YooKassaClient' => CORE_PATH . '/payments/YooKassaClient.php',
         ];
 

@@ -101,6 +101,7 @@ $panelStateJson = json_encode($panelPrefs, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG
                 <a href="/admin/users" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/users') ?>"><?= icon('users') ?><span class="sidebar-text">Пользователи</span></a>
                 <a href="/admin/settings" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/settings') ?>"><?= icon('settings') ?><span class="sidebar-text">Настройки</span></a>
                 <a href="/admin/logs" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/logs') ?>"><?= icon('terminal') ?><span class="sidebar-text">Логи</span></a>
+                <a href="/admin/diagnostics" class="sidebar-nav-item <?= TemplateEngine::isActive('admin/diagnostics') ?>"><?= icon('monitor') ?><span class="sidebar-text">Диагностика</span></a>
             </nav>
             <div class="sidebar-footer">
                 <div class="sidebar-footer-tools">

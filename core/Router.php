@@ -51,6 +51,22 @@ class Router
     }
 
     /**
+     * Добавить PUT маршрут
+     */
+    public function put(string $path, $handler): void
+    {
+        $this->addRoute('PUT', $path, $handler);
+    }
+
+    /**
+     * Добавить DELETE маршрут
+     */
+    public function delete(string $path, $handler): void
+    {
+        $this->addRoute('DELETE', $path, $handler);
+    }
+
+    /**
      * Обработать текущий запрос
      * @return mixed Результат работы контроллера
      */
@@ -106,7 +122,15 @@ class Router
         $pattern = '#^' . $pattern . '$#';
 
         if (preg_match($pattern, $uri, $matches)) {
-            $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
+            // Keep positional capture groups. Index 0 is the full match — skip it.
+            // Raw groups like (\d+) and {name} groups both produce numeric keys,
+            // so handlers receive params positionally: function ($id) { ... }.
+            $params = [];
+            foreach ($matches as $key => $value) {
+                if (is_int($key) && $key > 0) {
+                    $params[] = $value;
+                }
+            }
             return true;
         }
 

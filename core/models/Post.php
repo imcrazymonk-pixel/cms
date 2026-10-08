@@ -86,6 +86,34 @@ class Post
     }
 
     /**
+     * Сохранить набор тегов поста (по именам). Создаёт отсутствующие теги.
+     */
+    public function setTags(int $postId, array $tagNames): void
+    {
+        $this->db->query('DELETE FROM post_tags WHERE post_id = :pid', ['pid' => $postId]);
+
+        foreach ($tagNames as $name) {
+            $name = trim((string)$name);
+            if ($name === '') {
+                continue;
+            }
+            if (mb_strlen($name) > 50) {
+                $name = mb_substr($name, 0, 50);
+            }
+            $slug = function_exists('slugify') ? slugify($name) : '';
+            if ($slug === '') {
+                $slug = 'tag-' . substr(md5($name), 0, 10);
+            }
+            $row = $this->db->fetchOne('SELECT id FROM tags WHERE slug = :slug', ['slug' => $slug]);
+            $tagId = $row ? (int)$row['id'] : (int)$this->db->insert('tags', ['name' => $name, 'slug' => $slug]);
+            $this->db->query(
+                'INSERT INTO post_tags (post_id, tag_id) VALUES (:pid, :tid) ON CONFLICT DO NOTHING',
+                ['pid' => $postId, 'tid' => $tagId]
+            );
+        }
+    }
+
+    /**
      * Получить связанные посты
      */
     public function getRelated(?int $categoryId, int $currentId, int $limit = 3): array
