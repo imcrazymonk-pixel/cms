@@ -101,6 +101,14 @@
 
 **Тесты:** 47 pytest (unit/auth/route-registration) + 25 e2e smoke (реальная БД через nginx) — **все зелёные**.
 
+**Browser E2E (React против FastAPI, `http://localhost/admin/`):**
+- Login → Dashboard: реальные KPI (2 поста, 1 юзер, 2 категории) ✅
+- Posts list: реальные данные, даты `DD.MM.YYYY`, категории, автор ✅
+- PostEdit: заголовок/избранное/excerpt/рубрика/статус/дата/теги/SEO/обложка (из uploads-volume) ✅
+- **Создание поста из UI** → `POST /api/posts` → редирект на `/posts/{id}` ✅
+- Finance (PHP bridge `/admin/finance/api/*`): реальные суммы (Доходы 49193.8 ₽ / Расходы 35816.0 ₽ / Баланс 13377.8 ₽) ✅
+- Консоль: только pre-existing warning TinyMCE (не связан с миграцией) ✅
+
 ---
 
 ### 4.1 Полная карта эндпоинтов PHP API (что заменяем)
