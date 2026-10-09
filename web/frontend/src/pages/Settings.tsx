@@ -17,7 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { QueryError } from '@/components/QueryError'
 import { toast } from 'sonner'
-import { ChevronDown, ChevronRight, Save, RefreshCw, Database, Zap, Check, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Save, RefreshCw, Database, Zap, Check, X, Search } from 'lucide-react'
 
 type Values = Record<string, string>
 
@@ -68,6 +68,50 @@ function Section({
           <div className="divide-y divide-dark-700/50">{children}</div>
         </div>
       )}
+    </Card>
+  )
+}
+
+function SearchBar({ value, onChange, count }: { value: string; onChange: (v: string) => void; count: number }) {
+  return (
+    <div className="animate-fade-in-up">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-dark-300 pointer-events-none" />
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Поиск настроек..."
+          className="pl-10 pr-10"
+          autoComplete="off"
+        />
+        {value && (
+          <button
+            type="button"
+            onClick={() => onChange('')}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-dark-300 hover:text-dark-100"
+            aria-label="Очистить"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+      {value && <p className="text-xs text-dark-200 mt-1 ml-1">Найдено: {count}</p>}
+    </div>
+  )
+}
+
+function Legend() {
+  return (
+    <Card className="animate-fade-in-up">
+      <div className="p-4 md:p-5">
+        <h3 className="text-xs font-medium text-dark-300 uppercase tracking-wider mb-2">Обозначения</h3>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-dark-200">
+          <span className="inline-flex items-center gap-1.5"><SourceBadge source="db" /> значение из базы</span>
+          <span className="inline-flex items-center gap-1.5"><SourceBadge source="env" /> переопределено в .env</span>
+          <span className="inline-flex items-center gap-1.5"><SourceBadge source="default" /> значение по умолчанию</span>
+          <span className="inline-flex items-center gap-1.5"><X className="w-3.5 h-3.5" /> сбросить к значению по умолчанию</span>
+        </div>
+      </div>
     </Card>
   )
 }
@@ -219,6 +263,7 @@ export default function Settings() {
   const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set())
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set())
   const [savingTab, setSavingTab] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   const [docker, setDocker] = useState<Values>({})
   const [loki, setLoki] = useState<Values>({})
@@ -422,23 +467,37 @@ export default function Settings() {
     }
   }
 
-  const renderCategory = (category: string, catItems: RegistryItem[]) => (
-    <Section key={category} title={category} description={CATEGORY_DESC[category]}>
-      {catItems.map((it) => (
-        <SettingItem
-          key={it.key}
-          item={it}
-          value={effective(it)}
-          isSaving={savingKeys.has(it.key)}
-          wasSaved={savedKeys.has(it.key)}
-          themes={themes}
-          onSave={onSave}
-          onReset={onReset}
-          onChange={onChange}
-        />
-      ))}
-    </Section>
-  )
+  const q = search.trim().toLowerCase()
+  const match = (it: RegistryItem) =>
+    !q ||
+    it.label.toLowerCase().includes(q) ||
+    it.key.toLowerCase().includes(q) ||
+    (it.description || '').toLowerCase().includes(q)
+
+  const countMatches = (cats: [string, RegistryItem[]][]) =>
+    cats.reduce((n, [, ci]) => n + ci.filter(match).length, 0)
+
+  const renderCategory = (category: string, catItems: RegistryItem[]) => {
+    const filtered = catItems.filter(match)
+    if (q && filtered.length === 0) return null
+    return (
+      <Section key={category} title={category} description={CATEGORY_DESC[category]}>
+        {filtered.map((it) => (
+          <SettingItem
+            key={it.key}
+            item={it}
+            value={effective(it)}
+            isSaving={savingKeys.has(it.key)}
+            wasSaved={savedKeys.has(it.key)}
+            themes={themes}
+            onSave={onSave}
+            onReset={onReset}
+            onChange={onChange}
+          />
+        ))}
+      </Section>
+    )
+  }
 
   if (isPending) {
     return (
@@ -484,13 +543,16 @@ export default function Settings() {
 
           {/* ── Основные (registry-driven) ── */}
           <TabsContent value="basic" className="space-y-2 mt-4">
+            <SearchBar value={search} onChange={setSearch} count={countMatches(Object.entries(byTab.basic || {}))} />
             {Object.entries(byTab.basic || {}).map(([cat, catItems]) =>
               renderCategory(cat, catItems)
             )}
+            {!search && <Legend />}
           </TabsContent>
 
           {/* ── Внешний вид (registry-driven) ── */}
           <TabsContent value="appearance" className="space-y-2 mt-4">
+            <SearchBar value={search} onChange={setSearch} count={countMatches(Object.entries(byTab.appearance || {}))} />
             {Object.entries(byTab.appearance || {}).map(([cat, catItems]) =>
               renderCategory(cat, catItems)
             )}
