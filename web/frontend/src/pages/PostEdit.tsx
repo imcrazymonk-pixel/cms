@@ -5,7 +5,7 @@ import { categoriesApi, Category } from '../api/categories'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CollapsibleCard } from '@/components/CollapsibleCard'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { QueryError } from '@/components/QueryError'
@@ -381,10 +381,9 @@ ${excerpt ? `<p class="post-lead">${escapeHtml(excerpt)}</p>` : ''}
 
           {/* Sidebar */}
           <div className="space-y-4">
-            {/* Category */}
-            <Card className="rounded-xl">
-              <CardHeader><CardTitle>Параметры</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
+            {/* Параметры */}
+            <CollapsibleCard title="Параметры">
+              <div className="space-y-3 pt-3">
                 <div className="space-y-2">
                   <Label>URL (slug)</Label>
                   <div className="flex items-center gap-1 text-xs text-dark-300">
@@ -510,13 +509,12 @@ ${excerpt ? `<p class="post-lead">${escapeHtml(excerpt)}</p>` : ''}
                     <span className="font-semibold text-right text-dark-100">{content ? (content.match(/<p[\s>]/gi) || []).length || content.split(/\n\s*\n/).filter(Boolean).length : 0}</span>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CollapsibleCard>
 
             {/* SEO */}
-            <Card className="rounded-xl">
-              <CardHeader><CardTitle>SEO</CardTitle></CardHeader>
-              <CardContent className="space-y-3">
+            <CollapsibleCard title="SEO">
+              <div className="space-y-3 pt-3">
                 <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--glass-border, rgba(255,255,255,0.08))' }}>
                   <div className="text-[11px] text-dark-400 truncate">hexaveil.xyz › blog › <span className="text-green-400">{slug || 'url-post'}</span></div>
                   <div className="text-sm text-blue-400 truncate">{seoTitle || title || 'Заголовок поста'}</div>
@@ -550,8 +548,8 @@ ${excerpt ? `<p class="post-lead">${escapeHtml(excerpt)}</p>` : ''}
                   <Label>Канонический URL</Label>
                   <Input value={canonical} onChange={(e) => setCanonical(e.target.value)} placeholder="(совпадает с URL поста)" />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CollapsibleCard>
 
             {/* Save button */}
             <Button variant="default" className="w-full" onClick={save} disabled={saving || !title.trim()}>
