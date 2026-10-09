@@ -3,6 +3,7 @@
 Pattern: remnawave's main.py (simplified for CMS).
 CORS, middleware, health endpoint, router registration.
 """
+import asyncio
 import logging
 import sys
 from contextlib import asynccontextmanager
@@ -12,6 +13,7 @@ from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from web.backend.core.auto_sync import auto_sync_loop
 from web.backend.core.config import get_cms_settings
 from web.backend.core.database import check_connection, close_engine
 from web.backend.core.errors import E
@@ -36,9 +38,18 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("Database connection failed — API will run with limited functionality")
 
+    # Start the in-app auto-sync loop (acts only when a provider has
+    # `*_auto_sync` enabled in fin_settings).
+    auto_sync_task = asyncio.create_task(auto_sync_loop())
+
     yield
 
     # Shutdown
+    auto_sync_task.cancel()
+    try:
+        await auto_sync_task
+    except asyncio.CancelledError:
+        pass
     await close_engine()
     logger.info("👋 CMS API stopped")
 
