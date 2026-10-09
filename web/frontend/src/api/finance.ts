@@ -81,6 +81,54 @@ export interface FinanceData {
   anomalies: number[]
 }
 
+export interface PaymentPreviewRow {
+  record_id: string
+  date: string
+  type: string
+  participant: string
+  category: string
+  amount: number
+  gross?: number
+  description: string
+  status: 'new' | 'duplicate' | 'skipped'
+  method?: string
+  method_label?: string
+  commission_pct?: number | null
+}
+
+export interface PaymentSettings {
+  last_sync: string
+  last_sync_ok: number
+  last_error: string
+  auto_sync: number
+  days_back: number
+  [key: string]: unknown
+}
+
+export interface PaymentImportResult {
+  success: boolean
+  added?: number
+  skipped?: number
+  new?: number
+  error?: string
+}
+
+function paymentsProvider(base: string) {
+  return {
+    preview: (body: Record<string, unknown> = {}) =>
+      adminApi.post<{ success: boolean; transactions?: PaymentPreviewRow[]; error?: string }>(
+        `/admin/finance/api/${base}/preview`, body).then(r => r.data),
+    import: (transactions: (PaymentPreviewRow & { include: boolean })[]) =>
+      adminApi.post<PaymentImportResult>(`/admin/finance/api/${base}/import`, { transactions }).then(r => r.data),
+    sync: () =>
+      adminApi.post<PaymentImportResult>(`/admin/finance/api/${base}/sync`, {}).then(r => r.data),
+    settings: () =>
+      adminApi.get<PaymentSettings>(`/admin/finance/api/${base}/settings`).then(r => r.data),
+    saveSettings: (body: Record<string, unknown>) =>
+      adminApi.post(`/admin/finance/api/${base}/settings`, body).then(r => r.data),
+  }
+}
+
 export const financeApi = {
   getData: (params?: Record<string, unknown>) =>
     adminApi.get<FinanceData>('/admin/finance/api/data', { params }).then(r => r.data),
@@ -120,4 +168,9 @@ export const financeApi = {
 
   saveSettings: (data: Record<string, unknown>) =>
     adminApi.post('/admin/finance/api/settings', data).then(r => r.data),
+
+  payments: {
+    platega: paymentsProvider('platega'),
+    yookassa: paymentsProvider('yookassa'),
+  },
 }

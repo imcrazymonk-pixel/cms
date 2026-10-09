@@ -25,6 +25,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { EmptyState } from '@/components/EmptyState'
 import { QueryError } from '@/components/QueryError'
+import PaymentSync from '@/components/PaymentSync'
 
 const PAGE_SIZE = 25
 const PAGE_SIZES = [25, 50, 100, 200]
@@ -298,6 +299,7 @@ export default function Finance() {
         <TabsList>
           <TabsTrigger value="table"><History className="w-4 h-4" /> Таблица</TabsTrigger>
           <TabsTrigger value="charts"><BarChart3 className="w-4 h-4" /> Графики</TabsTrigger>
+          <TabsTrigger value="sync"><RefreshCw className="w-4 h-4" /> Синхронизация</TabsTrigger>
         </TabsList>
 
         {/* ── Table Tab ── */}
@@ -545,6 +547,11 @@ export default function Finance() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* ── Sync Tab ── */}
+        <TabsContent value="sync" className="space-y-4">
+          <PaymentSync />
         </TabsContent>
       </Tabs>
 
