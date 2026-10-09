@@ -108,10 +108,10 @@ NewWeb/
 │   └── YooKassaClient.php # YooKassa API-клиент
 └── docs/
     ├── decisions/
-    │   └── ADR-001-panel-design-system.md  # Документация редизайна админки
-    ├── MIGRATION_BRIEF.md                  # Краткий бриф миграции на React SPA
-    ├── MIGRATION_TO_REMNAWAVE_STACK.md     # Полное ТЗ миграции (3 фазы)
-    └── MIGRATION_STATUS.md                 # Статус: что сделано / что осталось (handoff)
+    │   ├── ADR-001-panel-design-system.md  # Дизайн-система админки
+    │   └── ADR-002-remnawave-structure-parity.md  # Структурный паритет с Remnawave
+    ├── ARCHITECTURE.md                     # Архитектура и история проекта
+    └── plans/                              # Реализованные планы работ
 ```
 
 ---
@@ -646,8 +646,8 @@ cms-admin/                          # Новый React SPA
 
 ### Планирование (ссылка на план)
 
-Полное ТЗ миграции — `docs/MIGRATION_TO_REMNAWAVE_STACK.md`
-Текущий статус (что сделано / что осталось, handoff) — `docs/MIGRATION_STATUS.md`
+Архитектура и история проекта — `docs/ARCHITECTURE.md`
+Решения (ADR) — `docs/decisions/`
 
 ---
 

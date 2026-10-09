@@ -61,7 +61,7 @@ do_action('after_setup_theme');
 // ============================================
 // Legacy PHP admin + JSON API disabled (Phase 2 migration)
 // ============================================
-// Админка отдаётся React SPA (admin-react/dist), весь JSON — FastAPI (backend/).
+// Админка отдаётся React SPA (web/frontend/dist), весь JSON — FastAPI (web/backend/).
 // Старые PHP-маршруты admin/* и /api/* недоступны. Публичный сайт не затрагивается.
 // Для аварийного отката: set LEGACY_PHP_ADMIN = true (или константу в config.php).
 if (!defined('LEGACY_PHP_ADMIN')) {

@@ -71,7 +71,7 @@ function createTemplate(): TemplateEngine
 }
 
 // ============================================
-// API и PHP-админка перенесены на FastAPI + React SPA (см. docs/MIGRATION_STATUS.md).
+// API и PHP-админка перенесены на FastAPI + React SPA (см. docs/ARCHITECTURE.md).
 // nginx: /api/* и /admin/* в PHP не идут (см. .docker/nginx/default.conf).
 // Здесь — только публичный сайт (лендинг + блог).
 // ============================================

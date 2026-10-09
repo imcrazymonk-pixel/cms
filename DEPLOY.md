@@ -168,3 +168,25 @@ docker compose up --build -d
 # Проверить логи
 docker compose logs -f
 ```
+
+---
+
+## 9. Реальный прод (85.198.99.102 / hexaveil.xyz)
+
+⚠️ На хосте порты **:80/:443 заняты** `nginx-selfsteal` (RU-нода/decoy, host network) и
+`remnanode` — **их не трогать**.
+
+- Поэтому `hexacms_web` слушает host **:3000**; снаружи CMS доступна через хостовый
+  nginx-прокси на `127.0.0.1:3000`.
+- **Не запускать полный `docker compose up -d`** без override — иначе `web` займёт :80
+  и конфликтует с selfsteal. На сервере есть `/opt/HexaVeil_CMS/docker-compose.override.yml`
+  (gitignored): `web.ports: !override ["3000:80"]`.
+- **Грабля с bind-mount одного файла:** после `git pull` контейнер `web` может видеть
+  старый `default.conf` (новый inode). Обход: `cat > /etc/nginx/conf.d/default.conf`
+  внутрь контейнера + `nginx -s reload` — **контейнер не пересоздавать**.
+- **FastAPI (`hexacms_api`):** при обновлении — `docker compose build api && docker compose up -d api`.
+- **Админка (SPA):** `web/frontend/dist` (ранее `admin-react/dist`) доставляется вручную
+  (git его может не нести); пересборка локально → распаковка в контейнер (т.к. `/opt` под root).
+- **Проверки после выката:** `/api/health` → `database: connected`; `/`, `/blog` → 200;
+  `/admin/`, `/admin/login` → 200; `/admin/logout` → 302; вход `admn`; финансы отдают данные.
+- Прод-файл `_deploy.bat` сохраняется при merge (не перезаписывать).
