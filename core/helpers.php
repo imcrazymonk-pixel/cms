@@ -224,14 +224,10 @@ function log_message(string $message, string $level = 'info'): void
 }
 
 /**
- * Получить настройку темы (активной) с кэшированием в рамках запроса.
- * Ключ может быть указан без префикса ('hero_title') — тогда он будет
- * разрешён в '<имя_темы>_hero_title', или с префиксом ('hexaveil_hero_title').
- * @param string $key Ключ настройки
- * @param string $default Значение по умолчанию
- * @return string
+ * Все настройки сайта (таблица settings) с кэшированием в рамках запроса.
+ * @return array<string,string>
  */
-function theme_setting(string $key, string $default = ''): string
+function cms_all_settings(): array
 {
     static $settings = null;
 
@@ -242,6 +238,33 @@ function theme_setting(string $key, string $default = ''): string
             $settings = [];
         }
     }
+
+    return $settings;
+}
+
+/**
+ * Значение глобальной настройки (без префикса темы).
+ * @param string $key Ключ настройки
+ * @param string $default Значение по умолчанию
+ * @return string
+ */
+function setting(string $key, string $default = ''): string
+{
+    $settings = cms_all_settings();
+    return (string)($settings[$key] ?? $default);
+}
+
+/**
+ * Получить настройку темы (активной) с кэшированием в рамках запроса.
+ * Ключ может быть указан без префикса ('hero_title') — тогда он будет
+ * разрешён в '<имя_темы>_hero_title', или с префиксом ('hexaveil_hero_title').
+ * @param string $key Ключ настройки
+ * @param string $default Значение по умолчанию
+ * @return string
+ */
+function theme_setting(string $key, string $default = ''): string
+{
+    $settings = cms_all_settings();
 
     $prefix = $settings['active_theme'] ?? 'default';
     $fullKey = (strpos($key, $prefix . '_') === 0) ? $key : $prefix . '_' . $key;

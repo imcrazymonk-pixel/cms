@@ -5,20 +5,28 @@ export interface ThemeListItem {
   label: string
 }
 
+export interface ThemeOption {
+  label: string
+  type: string
+  default: string
+  value: string
+  hint?: string
+  rows?: number
+  options?: Record<string, string>
+}
+
+export interface ThemeGroup {
+  name: string
+  options: Record<string, ThemeOption>
+}
+
 export interface ThemeSettingsResponse {
   success: boolean
   data: {
     theme: string
     label: string
-    options: Record<string, {
-      label: string
-      type: string
-      default: string
-      value: string
-      hint?: string
-      rows?: number
-      options?: Record<string, string>
-    }>
+    options: Record<string, ThemeOption>
+    groups: ThemeGroup[]
   }
 }
 

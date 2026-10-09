@@ -1,7 +1,7 @@
 """Theme settings API — read + write endpoints.
 
   GET  /api/themes          → { success, data: [{ value, label }] }
-  GET  /api/themes/settings → { success, data: { theme, label, options } }
+  GET  /api/themes/settings → { success, data: { theme, label, options, groups } }
   POST /api/themes/settings → { success, saved: [keys] }
 """
 from pathlib import Path
@@ -63,7 +63,9 @@ async def get_theme_settings(
             theme_settings[key[len(prefix):]] = value
 
     options = {}
-    for _group_name, group in (config.get("options") or {}).items():
+    groups = []
+    for group_name, group in (config.get("options") or {}).items():
+        group_options = {}
         for key, option in group.items():
             opt = {
                 "label": option.get("label", key),
@@ -78,6 +80,8 @@ async def get_theme_settings(
             if "options" in option:
                 opt["options"] = option["options"]
             options[key] = opt
+            group_options[key] = opt
+        groups.append({"name": group_name, "options": group_options})
 
     return {
         "success": True,
@@ -85,6 +89,7 @@ async def get_theme_settings(
             "theme": theme_name,
             "label": config.get("name", theme_name),
             "options": options,
+            "groups": groups,
         },
     }
 

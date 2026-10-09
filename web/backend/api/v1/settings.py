@@ -44,7 +44,7 @@ def _validate_setting(key: str, value: Any) -> Optional[str]:
     elif key == "admin_email":
         if v != "" and not _EMAIL_RE.match(v):
             return "Некорректный email"
-    elif key in ("site_url", "favicon_url"):
+    elif key in ("site_url", "favicon_url", "og_image"):
         if v != "" and not v.startswith(("http://", "https://", "/")):
             return "URL должен начинаться с http://, https:// или /"
 

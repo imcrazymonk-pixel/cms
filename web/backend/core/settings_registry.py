@@ -114,22 +114,40 @@ REGISTRY: List[SettingDef] = [
 
     # ── SEO ───────────────────────────────────────────────────────────
     SettingDef(
-        "meta_description", "Meta Description", "SEO", tab="basic",
+        "meta_description", "Meta Description", "SEO", tab="seo",
         type="textarea",
         default="",
-        description="SEO-описание по умолчанию",
+        description="SEO-описание по умолчанию (используется в <meta name=\"description\">)",
         sort_order=10,
     ),
     SettingDef(
-        "meta_keywords", "Meta Keywords", "SEO", tab="basic",
+        "meta_keywords", "Meta Keywords", "SEO", tab="seo",
         default="",
         description="Ключевые слова через запятую",
         sort_order=20,
     ),
-
-    # ── Внешний вид ───────────────────────────────────────────────────
     SettingDef(
-        "active_theme", "Активная тема", "Внешний вид", tab="appearance",
+        "og_image", "OG-изображение", "SEO", tab="seo",
+        default="",
+        description="Картинка для превью в соцсетях (og:image). URL или путь",
+        sort_order=30,
+    ),
+    SettingDef(
+        "google_verification", "Google Search Console", "SEO", tab="seo",
+        default="",
+        description="Код подтверждения Google (мета-тег google-site-verification)",
+        sort_order=40,
+    ),
+    SettingDef(
+        "yandex_verification", "Яндекс.Вебмастер", "SEO", tab="seo",
+        default="",
+        description="Код подтверждения Яндекс (мета-тег yandex-verification)",
+        sort_order=50,
+    ),
+
+    # ── Тема оформления ───────────────────────────────────────────────
+    SettingDef(
+        "active_theme", "Активная тема", "Внешний вид", tab="theme",
         type="select", options_source="themes",
         default="hexaveil",
         description="Тема, применяемая к лендингу и блогу",

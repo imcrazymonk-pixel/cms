@@ -6,18 +6,29 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    <title><?= TemplateEngine::e($seo['title'] ?? ($title ?? 'HexaVeil – Доступ к мировому интернету')) ?></title>
-    <?php if (!empty($seo['description'])): ?>
-    <meta name="description" content="<?= TemplateEngine::e($seo['description']) ?>" />
-    <?php else: ?>
-    <meta name="description" content="Обходи блокировки и пользуйся любимыми иностранными сервисами. Современный VPN с киберпанк-эстетикой." />
+    <?php
+      $__siteTitle = setting('site_name', 'HexaVeil – Доступ к мировому интернету');
+      $__metaDesc = $seo['description'] ?? setting('meta_description', 'Обходи блокировки и пользуйся любимыми иностранными сервисами. Современный VPN с киберпанк-эстетикой.');
+      $__metaKeywords = setting('meta_keywords');
+      $__ogImage = setting('og_image');
+    ?>
+    <title><?= TemplateEngine::e($seo['title'] ?? ($title ?? $__siteTitle)) ?></title>
+    <meta name="description" content="<?= TemplateEngine::e($__metaDesc) ?>" />
+    <?php if ($__metaKeywords !== ''): ?>
+    <meta name="keywords" content="<?= TemplateEngine::e($__metaKeywords) ?>" />
     <?php endif; ?>
-    <meta property="og:title" content="<?= TemplateEngine::e($seo['title'] ?? 'HexaVeil – Интернет без границ') ?>" />
-    <meta
-      property="og:description"
-      content="<?= TemplateEngine::e($seo['description'] ?? 'Доступ к заблокированным сайтам, соцсетям и стримингу в один клик.') ?>"
-    />
+    <meta property="og:title" content="<?= TemplateEngine::e($seo['title'] ?? $__siteTitle) ?>" />
+    <meta property="og:description" content="<?= TemplateEngine::e($__metaDesc) ?>" />
     <meta property="og:type" content="website" />
+    <?php if ($__ogImage !== ''): ?>
+    <meta property="og:image" content="<?= TemplateEngine::e($__ogImage) ?>" />
+    <?php endif; ?>
+    <?php if (setting('google_verification') !== ''): ?>
+    <meta name="google-site-verification" content="<?= TemplateEngine::e(setting('google_verification')) ?>" />
+    <?php endif; ?>
+    <?php if (setting('yandex_verification') !== ''): ?>
+    <meta name="yandex-verification" content="<?= TemplateEngine::e(setting('yandex_verification')) ?>" />
+    <?php endif; ?>
     <link rel="canonical" href="<?= SITE_URL . ($_SERVER['REQUEST_URI'] ?? '') ?>">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

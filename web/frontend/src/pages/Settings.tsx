@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { settingsApi, type RegistryItem } from '../api/settings'
 import { financeApi } from '../api/finance'
-import { themesApi, type ThemeListItem } from '../api/themes'
+import { themesApi, type ThemeListItem, type ThemeGroup } from '../api/themes'
 import { authApi } from '../api/auth'
 import { useBrandingStore } from '../store/useBrandingStore'
 import { Button } from '@/components/ui/button'
@@ -269,6 +269,9 @@ export default function Settings() {
   const [loki, setLoki] = useState<Values>({})
   const [fin, setFin] = useState<Values>({})
   const [themes, setThemes] = useState<ThemeListItem[]>([])
+  const [themeGroups, setThemeGroups] = useState<ThemeGroup[]>([])
+  const [themeValues, setThemeValues] = useState<Values>({})
+  const [savingTheme, setSavingTheme] = useState(false)
 
   // Change password
   const [currentPassword, setCurrentPassword] = useState('')
@@ -329,11 +332,25 @@ export default function Settings() {
         const tr = await themesApi.list()
         setThemes(tr.success ? tr.data : [])
       } catch { /* themes optional */ }
+      await loadThemeOptions()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Ошибка')
     } finally {
       setIsPending(false)
     }
+  }
+
+  const loadThemeOptions = async () => {
+    try {
+      const ts = await themesApi.getSettings()
+      const groups = ts.data?.groups || []
+      setThemeGroups(groups)
+      const vals: Values = {}
+      for (const g of groups) {
+        for (const [k, o] of Object.entries(g.options)) vals[k] = o.value
+      }
+      setThemeValues(vals)
+    } catch { /* theme options optional */ }
   }
 
   useEffect(() => { load() }, [])
@@ -369,6 +386,10 @@ export default function Settings() {
       // branding depends on admin_title/browser_title — refresh it silently
       if (key === 'admin_title' || key === 'browser_title' || key === 'title_separator' || key === 'favicon_url') {
         useBrandingStore.getState().load()
+      }
+      // switching the active theme changes the available theme options
+      if (key === 'active_theme') {
+        await loadThemeOptions()
       }
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string } } }
@@ -412,8 +433,17 @@ export default function Settings() {
     finally { setSavingTab(null) }
   }
 
-  const saveFinance = async () => {
-    setSavingTab('finance')
+  const saveTheme = async () => {
+    setSavingTheme(true)
+    try {
+      const res = await themesApi.updateSettings(themeValues) as { success?: boolean }
+      if (res.success !== false) { toast.success('Настройки темы сохранены'); await loadThemeOptions() }
+      else toast.error('Не удалось сохранить')
+    } catch { toast.error('Ошибка сохранения') }
+    finally { setSavingTheme(false) }
+  }
+
+  const saveFinance = async () => {    setSavingTab('finance')
     try {
       const res = await financeApi.saveSettings(fin) as { success?: boolean }
       if (res.success !== false) { toast.success('Настройки финансов сохранены'); load() }
@@ -499,6 +529,39 @@ export default function Settings() {
     )
   }
 
+  const renderThemeGroup = (group: ThemeGroup) => (
+    <Section key={group.name} title={group.name} description={`Опций: ${Object.keys(group.options).length}`}>
+      {Object.entries(group.options).map(([key, opt]) => (
+        <div key={key} className="py-3">
+          <Label className="block text-sm text-dark-200 mb-1.5">{opt.label}</Label>
+          {opt.type === 'textarea' ? (
+            <Textarea
+              rows={opt.rows || 3}
+              value={themeValues[key] ?? ''}
+              onChange={(e) => setThemeValues({ ...themeValues, [key]: e.target.value })}
+            />
+          ) : opt.type === 'select' ? (
+            <Select value={themeValues[key] ?? ''} onValueChange={(v) => setThemeValues({ ...themeValues, [key]: v })}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {Object.entries(opt.options || {}).map(([v, label]) => (
+                  <SelectItem key={v} value={v}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <Input
+              type={opt.type === 'number' ? 'number' : 'text'}
+              value={themeValues[key] ?? ''}
+              onChange={(e) => setThemeValues({ ...themeValues, [key]: e.target.value })}
+            />
+          )}
+          {opt.hint && <p className="text-xs text-dark-200 mt-1">{opt.hint}</p>}
+        </div>
+      ))}
+    </Section>
+  )
+
   if (isPending) {
     return (
       <div className="space-y-6">
@@ -532,10 +595,11 @@ export default function Settings() {
       {error && <QueryError message={error} />}
 
       {!error && (
-        <Tabs defaultValue={initialTab}>
+        <Tabs defaultValue={initialTab} onValueChange={() => setSearch('')}>
           <TabsList>
             <TabsTrigger value="basic">Основные</TabsTrigger>
-            <TabsTrigger value="appearance">Внешний вид</TabsTrigger>
+            <TabsTrigger value="seo">SEO</TabsTrigger>
+            <TabsTrigger value="theme">Тема</TabsTrigger>
             <TabsTrigger value="security">Безопасность</TabsTrigger>
             <TabsTrigger value="finance">Финансы</TabsTrigger>
             <TabsTrigger value="logs">Логи</TabsTrigger>
@@ -550,12 +614,25 @@ export default function Settings() {
             {!search && <Legend />}
           </TabsContent>
 
-          {/* ── Внешний вид (registry-driven) ── */}
-          <TabsContent value="appearance" className="space-y-2 mt-4">
-            <SearchBar value={search} onChange={setSearch} count={countMatches(Object.entries(byTab.appearance || {}))} />
-            {Object.entries(byTab.appearance || {}).map(([cat, catItems]) =>
+          {/* ── SEO (registry-driven) ── */}
+          <TabsContent value="seo" className="space-y-2 mt-4">
+            <SearchBar value={search} onChange={setSearch} count={countMatches(Object.entries(byTab.seo || {}))} />
+            {Object.entries(byTab.seo || {}).map(([cat, catItems]) =>
               renderCategory(cat, catItems)
             )}
+          </TabsContent>
+
+          {/* ── Тема ── */}
+          <TabsContent value="theme" className="space-y-2 mt-4">
+            {Object.entries(byTab.theme || {}).map(([cat, catItems]) =>
+              renderCategory(cat, catItems)
+            )}
+            {themeGroups.map((g) => renderThemeGroup(g))}
+            <div className="flex justify-end pt-2">
+              <Button variant="default" onClick={saveTheme} disabled={savingTheme}>
+                <Save className="w-4 h-4 mr-1.5" /> {savingTheme ? 'Сохранение…' : 'Сохранить тему'}
+              </Button>
+            </div>
           </TabsContent>
 
           {/* ── Безопасность ── */}
