@@ -1,1 +1,0 @@
-# HexaVeil CMS Backend — Pydantic schemas

@@ -65,7 +65,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: web/backend/Dockerfile
     container_name: hexacms_api
     restart: unless-stopped
     env_file: .env

@@ -57,8 +57,12 @@ __pycache__/
 
 # React SPA — node_modules игнорируем, а сборку (dist) КОММИТИМ,
 # чтобы `git pull` на сервере (без Node) сразу отдавал админку.
-/admin-react/node_modules/
-# (admin-react/dist/ намеренно НЕ в .gitignore)
+/web/frontend/node_modules/
+# (web/frontend/dist/ намеренно НЕ в .gitignore)
+
+# Python
+/.pytest_cache/
+/web/backend/**/__pycache__/
 
 # Docker
 /.env

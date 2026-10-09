@@ -17,7 +17,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: web/backend/Dockerfile
     container_name: hexacms_api
     restart: unless-stopped
     env_file: .env
@@ -25,7 +25,7 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - ./backend:/app/backend
+      - ./web/backend:/app/web/backend
       - .:/var/www/html
       - uploads_data:/var/www/html/public/uploads
     networks:

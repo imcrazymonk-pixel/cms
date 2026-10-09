@@ -71,63 +71,7 @@ function createTemplate(): TemplateEngine
 }
 
 // ============================================
-// CORS middleware для API
-// ============================================
-
-/**
- * Set CORS headers for React SPA
- */
-function apiCorsHeaders(): void
-{
-    header('Access-Control-Allow-Origin: *');
-    header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
-    header('Access-Control-Allow-Headers: Content-Type, Authorization');
-    header('Access-Control-Max-Age: 86400');
-}
-
-/**
- * Send JSON response
- */
-function apiJson(mixed $data, int $code = 200): void
-{
-    http_response_code($code);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    exit;
-}
-
-/**
- * Send JSON error response
- */
-function apiError(string $message, int $code = 400): void
-{
-    apiJson(['success' => false, 'error' => $message], $code);
-}
-
-/**
- * Authenticate API request via JWT Bearer token
- * Returns decoded payload or sends 401
- */
-function apiAuth(): array
-{
-    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] 
-        ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] 
-        ?? '';
-
-    if (!preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
-        apiError('Требуется авторизация. Укажите Bearer token в заголовке Authorization.', 401);
-    }
-
-    $payload = JWTAuth::validateToken($matches[1]);
-    if (!$payload) {
-        apiError('Токен недействителен или истёк', 401);
-    }
-
-    return $payload;
-}
-
-// ============================================
-// API и PHP-админка перенесены на FastAPI + React SPA (см. docs/MIGRATION_STATUS.md).
+// API и PHP-админка перенесены на FastAPI + React SPA (см. docs/ARCHITECTURE.md).
 // nginx: /api/* и /admin/* в PHP не идут (см. .docker/nginx/default.conf).
 // Здесь — только публичный сайт (лендинг + блог).
 // ============================================
