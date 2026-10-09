@@ -236,6 +236,12 @@ function SettingItem({
             type={item.type === 'secret' ? 'password' : item.type === 'number' ? 'number' : 'text'}
             value={value}
             onChange={(e) => onChange(item.key, e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && value !== (item.value || '')) {
+                e.preventDefault()
+                onSave(item.key, value)
+              }
+            }}
             className="flex-1"
             disabled={isSaving || item.is_readonly}
             placeholder={item.default || ''}
@@ -443,6 +449,12 @@ export default function Settings() {
     finally { setSavingTheme(false) }
   }
 
+  const saveThemeKey = async (key: string, value: string) => {
+    try {
+      await themesApi.updateSettings({ [key]: value })
+    } catch { toast.error('Ошибка сохранения') }
+  }
+
   const saveFinance = async () => {    setSavingTab('finance')
     try {
       const res = await financeApi.saveSettings(fin) as { success?: boolean }
@@ -531,34 +543,47 @@ export default function Settings() {
 
   const renderThemeGroup = (group: ThemeGroup) => (
     <Section key={group.name} title={group.name} description={`Опций: ${Object.keys(group.options).length}`}>
-      {Object.entries(group.options).map(([key, opt]) => (
-        <div key={key} className="py-3">
-          <Label className="block text-sm text-dark-200 mb-1.5">{opt.label}</Label>
-          {opt.type === 'textarea' ? (
-            <Textarea
-              rows={opt.rows || 3}
-              value={themeValues[key] ?? ''}
-              onChange={(e) => setThemeValues({ ...themeValues, [key]: e.target.value })}
-            />
-          ) : opt.type === 'select' ? (
-            <Select value={themeValues[key] ?? ''} onValueChange={(v) => setThemeValues({ ...themeValues, [key]: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {Object.entries(opt.options || {}).map(([v, label]) => (
-                  <SelectItem key={v} value={v}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <Input
-              type={opt.type === 'number' ? 'number' : 'text'}
-              value={themeValues[key] ?? ''}
-              onChange={(e) => setThemeValues({ ...themeValues, [key]: e.target.value })}
-            />
-          )}
-          {opt.hint && <p className="text-xs text-dark-200 mt-1">{opt.hint}</p>}
-        </div>
-      ))}
+      {Object.entries(group.options).map(([key, opt]) => {
+        const val = themeValues[key] ?? ''
+        const saveNow = () => saveThemeKey(key, val)
+        return (
+          <div key={key} className="py-3">
+            <Label className="block text-sm text-dark-200 mb-1.5">{opt.label}</Label>
+            {opt.type === 'textarea' ? (
+              <Textarea
+                rows={opt.rows || 3}
+                value={val}
+                onChange={(e) => setThemeValues({ ...themeValues, [key]: e.target.value })}
+                onBlur={saveNow}
+              />
+            ) : opt.type === 'select' ? (
+              <Select
+                value={val}
+                onValueChange={(v) => {
+                  setThemeValues({ ...themeValues, [key]: v })
+                  saveThemeKey(key, v)
+                }}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {Object.entries(opt.options || {}).map(([v, label]) => (
+                    <SelectItem key={v} value={v}>{label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                type={opt.type === 'number' ? 'number' : 'text'}
+                value={val}
+                onChange={(e) => setThemeValues({ ...themeValues, [key]: e.target.value })}
+                onBlur={saveNow}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); saveNow() } }}
+              />
+            )}
+            {opt.hint && <p className="text-xs text-dark-200 mt-1">{opt.hint}</p>}
+          </div>
+        )
+      })}
     </Section>
   )
 
