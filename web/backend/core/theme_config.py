@@ -74,7 +74,7 @@ _HEXAVEIL: Dict[str, Any] = {
             "feature3_title": {"label": "Карточка 3: заголовок", "type": "text", "default": "10+ стран мира"},
             "feature3_text": {"label": "Карточка 3: текст", "type": "text", "default": "Серверы в Европе, Азии и Америке. Выбирайте локацию для минимальной задержки и максимальной скорости."},
             "feature4_title": {"label": "Карточка 4: заголовок", "type": "text", "default": "Стриминг без буферизации"},
-            "feature4_text": {"label": "Карточка 4: текст", "type": "text", "default": "Видео в 4K и музыку в высоком качестве - без задержек и прерываний. Выделенные каналы для медиа-трафика."},
+            "feature4_text": {"label": "Карточка 4: текст", "type": "text", "default": "Видео в 4K и музыка в высоком качестве - без задержек и прерываний. Выделенные каналы для медиа-трафика."},
         },
         "Сервисы": {
             "services_title": {"label": "Заголовок секции", "type": "text", "default": "Открой любимые сервисы"},
@@ -130,7 +130,19 @@ _THEMES: Dict[str, Dict[str, Any]] = {
 
 
 def get_theme_config(theme: str) -> Dict[str, Any]:
-    """Return theme config (mirrors PHP get_theme_config())."""
+    """Return theme config.
+
+    Prefers parsing templates/themes/<theme>/theme.php (single source of
+    truth); falls back to the static mirror below if the file is missing or
+    cannot be parsed.
+    """
+    from web.backend.core.config import get_cms_settings
+    from web.backend.core.theme_php import load_theme_options
+
+    parsed = load_theme_options(get_cms_settings().root_path, theme)
+    if parsed is not None:
+        return parsed
+
     cfg = _THEMES.get(theme)
     if cfg is None:
         return {"name": theme, "options": {}}
