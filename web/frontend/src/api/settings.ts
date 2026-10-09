@@ -6,10 +6,12 @@ export interface RegistryItem {
   description: string
   category: string
   tab: string
-  type: 'text' | 'textarea' | 'number' | 'bool' | 'select' | 'secret'
+  type: 'text' | 'textarea' | 'number' | 'bool' | 'select' | 'secret' | 'json'
   default: string
   value: string
   source: 'db' | 'env' | 'default'
+  is_set: boolean
+  store: string
   options: string[] | null
   options_source: string | null
   is_secret: boolean

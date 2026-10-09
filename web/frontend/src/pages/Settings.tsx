@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { settingsApi, type RegistryItem } from '../api/settings'
-import { financeApi } from '../api/finance'
 import { themesApi, type ThemeListItem, type ThemeGroup } from '../api/themes'
 import { authApi } from '../api/auth'
 import { useBrandingStore } from '../store/useBrandingStore'
@@ -26,6 +25,9 @@ const CATEGORY_DESC: Record<string, string> = {
   'Контент': 'Публикация и комментарии',
   'SEO': 'Мета-теги по умолчанию',
   'Внешний вид': 'Оформление публичной части',
+  'Финансы': 'Валюта, точность и расчёт средних',
+  'Platega': 'Синхронизация платежей Platega',
+  'YooKassa': 'Синхронизация платежей YooKassa',
 }
 
 /** Collapsible settings block — Remnawave-style accordion card. */
@@ -143,6 +145,9 @@ function MetaBadges({ item, isSaving, wasSaved, onReset }: {
   return (
     <span className="inline-flex items-center gap-1.5">
       <SourceBadge source={item.source} />
+      {item.is_secret && item.is_set && (
+        <span className="text-[10px] text-green-400" title="Секрет задан">●</span>
+      )}
       {isSaving && <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin" />}
       {wasSaved && !isSaving && <Check className="w-3.5 h-3.5 text-green-400" />}
       {item.source === 'db' && (
@@ -223,12 +228,12 @@ function SettingItem({
         {meta}
       </div>
       <div className="flex gap-2">
-        {item.type === 'textarea' ? (
+        {item.type === 'textarea' || item.type === 'json' ? (
           <Textarea
             value={value}
             onChange={(e) => onChange(item.key, e.target.value)}
-            rows={3}
-            className="flex-1"
+            rows={item.type === 'json' ? 4 : 3}
+            className={item.type === 'json' ? 'flex-1 font-mono text-xs' : 'flex-1'}
             disabled={isSaving || item.is_readonly}
           />
         ) : (
@@ -244,7 +249,9 @@ function SettingItem({
             }}
             className="flex-1"
             disabled={isSaving || item.is_readonly}
-            placeholder={item.default || ''}
+            placeholder={
+              item.is_secret ? (item.is_set ? '•••••••• (задано)' : '••••••••') : (item.default || '')
+            }
           />
         )}
         {changed && (
@@ -273,7 +280,6 @@ export default function Settings() {
 
   const [docker, setDocker] = useState<Values>({})
   const [loki, setLoki] = useState<Values>({})
-  const [fin, setFin] = useState<Values>({})
   const [themes, setThemes] = useState<ThemeListItem[]>([])
   const [themeGroups, setThemeGroups] = useState<ThemeGroup[]>([])
   const [themeValues, setThemeValues] = useState<Values>({})
@@ -315,24 +321,6 @@ export default function Settings() {
           loki_limit: lk.loki_limit || '100',
         })
       } catch { setLoki({ loki_url: '', loki_query: '{job="varlog"}', loki_user: '', loki_limit: '100' }) }
-
-      try {
-        const f = await financeApi.getSettings() as Record<string, string>
-        setFin({
-          currency: f.currency ?? '₽',
-          decimals: f.decimals ?? '2',
-          auto_refresh: f.auto_refresh ?? '0',
-          avg_period: f.avg_period ?? 'day',
-          platega_merchant_id: f.platega_merchant_id ?? '',
-          platega_secret: '',
-          platega_days_back: f.platega_days_back ?? '5',
-          platega_auto_sync: f.platega_auto_sync ?? '0',
-          yookassa_shop_id: f.yookassa_shop_id ?? '',
-          yookassa_secret_key: '',
-          yookassa_days_back: f.yookassa_days_back ?? '5',
-          yookassa_auto_sync: f.yookassa_auto_sync ?? '0',
-        })
-      } catch { /* finance settings optional */ }
 
       try {
         const tr = await themesApi.list()
@@ -455,25 +443,19 @@ export default function Settings() {
     } catch { toast.error('Ошибка сохранения') }
   }
 
-  const saveFinance = async () => {    setSavingTab('finance')
-    try {
-      const res = await financeApi.saveSettings(fin) as { success?: boolean }
-      if (res.success !== false) { toast.success('Настройки финансов сохранены'); load() }
-      else toast.error('Не удалось сохранить')
-    } catch { toast.error('Ошибка сохранения') }
-    finally { setSavingTab(null) }
-  }
-
   const saveAll = async () => {
     setSavingTab('all')
     try {
       const flat: Record<string, string> = {}
-      for (const it of items) flat[it.key] = effective(it)
+      for (const it of items) {
+        // Skip masked secrets on bulk save (empty = keep existing).
+        if (it.is_secret) continue
+        flat[it.key] = effective(it)
+      }
       flat.docker_config = JSON.stringify(docker)
       flat.loki_config = JSON.stringify(loki)
       const res = await settingsApi.update(flat) as { success?: boolean; error?: string }
       if (res.success === false) { toast.error(res.error || 'Не удалось сохранить'); return }
-      try { await financeApi.saveSettings(fin) } catch { /* finance optional */ }
       toast.success('Настройки сохранены')
       await load()
       useBrandingStore.getState().load()
@@ -690,93 +672,12 @@ export default function Settings() {
             </Section>
           </TabsContent>
 
-          {/* ── Финансы ── */}
+          {/* ── Финансы (registry-driven) ── */}
           <TabsContent value="finance" className="space-y-2 mt-4">
-            <Section title="Основные настройки" description="Валюта, точность и автообновление">
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Валюта</Label>
-                <Input value={fin.currency || ''} onChange={(e) => setFin({ ...fin, currency: e.target.value })} />
-              </div>
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Знаков после запятой</Label>
-                <Input type="number" value={fin.decimals || '2'} onChange={(e) => setFin({ ...fin, decimals: e.target.value })} />
-              </div>
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Автообновление, сек</Label>
-                <Input type="number" value={fin.auto_refresh || '0'} onChange={(e) => setFin({ ...fin, auto_refresh: e.target.value })} />
-                <p className="text-xs text-dark-200 mt-1">0 — выключено</p>
-              </div>
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Период средних</Label>
-                <Select value={fin.avg_period || 'day'} onValueChange={(v) => setFin({ ...fin, avg_period: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="day">День</SelectItem>
-                    <SelectItem value="week">Неделя</SelectItem>
-                    <SelectItem value="month">Месяц</SelectItem>
-                    <SelectItem value="year">Год</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </Section>
-
-            <Section title="Platega" description="Синхронизация платежей Platega">
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Merchant ID</Label>
-                <Input value={fin.platega_merchant_id || ''} onChange={(e) => setFin({ ...fin, platega_merchant_id: e.target.value })} />
-              </div>
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Секрет</Label>
-                <Input type="password" value={fin.platega_secret || ''} onChange={(e) => setFin({ ...fin, platega_secret: e.target.value })} placeholder="••••••" />
-                <p className="text-xs text-dark-200 mt-1">Оставьте пустым, чтобы не менять сохранённый ключ</p>
-              </div>
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Дней назад</Label>
-                <Input type="number" value={fin.platega_days_back || '5'} onChange={(e) => setFin({ ...fin, platega_days_back: e.target.value })} />
-              </div>
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Автоимпорт</Label>
-                <Select value={String(fin.platega_auto_sync || '0')} onValueChange={(v) => setFin({ ...fin, platega_auto_sync: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Выключен</SelectItem>
-                    <SelectItem value="1">Включён</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </Section>
-
-            <Section title="YooKassa" description="Синхронизация платежей YooKassa">
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Shop ID</Label>
-                <Input value={fin.yookassa_shop_id || ''} onChange={(e) => setFin({ ...fin, yookassa_shop_id: e.target.value })} />
-              </div>
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Секретный ключ</Label>
-                <Input type="password" value={fin.yookassa_secret_key || ''} onChange={(e) => setFin({ ...fin, yookassa_secret_key: e.target.value })} placeholder="••••••" />
-                <p className="text-xs text-dark-200 mt-1">Оставьте пустым, чтобы не менять сохранённый ключ</p>
-              </div>
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Дней назад</Label>
-                <Input type="number" value={fin.yookassa_days_back || '5'} onChange={(e) => setFin({ ...fin, yookassa_days_back: e.target.value })} />
-              </div>
-              <div className="py-3">
-                <Label className="block text-sm text-dark-200 mb-1.5">Автоимпорт</Label>
-                <Select value={String(fin.yookassa_auto_sync || '0')} onValueChange={(v) => setFin({ ...fin, yookassa_auto_sync: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Выключен</SelectItem>
-                    <SelectItem value="1">Включён</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </Section>
-
-            <div className="flex justify-end pt-2">
-              <Button variant="default" onClick={saveFinance} disabled={savingTab === 'finance'}>
-                <Save className="w-4 h-4 mr-1.5" /> {savingTab === 'finance' ? 'Сохранение…' : 'Сохранить финансы'}
-              </Button>
-            </div>
+            <SearchBar value={search} onChange={setSearch} count={countMatches(Object.entries(byTab.finance || {}))} />
+            {Object.entries(byTab.finance || {}).map(([cat, catItems]) =>
+              renderCategory(cat, catItems)
+            )}
           </TabsContent>
 
           {/* ── Логи ── */}
