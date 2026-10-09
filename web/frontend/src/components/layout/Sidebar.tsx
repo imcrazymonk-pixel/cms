@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useAppearanceStore } from '../../store/useAppearanceStore'
+import { useBrandingStore } from '../../store/useBrandingStore'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -56,6 +57,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const { clearAuth } = useAuthStore()
   const collapsed = useAppearanceStore((s) => s.sidebarCollapsed)
   const toggleSidebar = useAppearanceStore((s) => s.toggleSidebar)
+  const adminTitle = useBrandingStore((s) => s.admin_title) || 'HexaVeil CMS'
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
 
@@ -92,7 +94,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           </div>
           {!collapsed && (
             <span className="text-sm font-semibold text-white truncate max-w-[140px]">
-              HexaVeil CMS
+              {adminTitle}
             </span>
           )}
         </Link>

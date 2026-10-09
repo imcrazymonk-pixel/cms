@@ -1,5 +1,10 @@
 import { api } from './client'
 
+export interface ThemeListItem {
+  value: string
+  label: string
+}
+
 export interface ThemeSettingsResponse {
   success: boolean
   data: {
@@ -18,6 +23,8 @@ export interface ThemeSettingsResponse {
 }
 
 export const themesApi = {
+  list: () =>
+    api.get<{ success: boolean; data: ThemeListItem[] }>('/themes').then(r => r.data),
   getSettings: () =>
     api.get<ThemeSettingsResponse>('/themes/settings').then(r => r.data),
   updateSettings: (data: Record<string, string>) =>

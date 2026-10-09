@@ -1,19 +1,44 @@
 """Theme settings API — read + write endpoints.
 
+  GET  /api/themes          → { success, data: [{ value, label }] }
   GET  /api/themes/settings → { success, data: { theme, label, options } }
   POST /api/themes/settings → { success, saved: [keys] }
 """
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from web.backend.api.deps import AdminUser, get_current_admin
+from web.backend.core.config import get_cms_settings
 from web.backend.core.database import get_db
 from web.backend.core.db_helpers import upsert_setting
 from web.backend.core.request_utils import json_body
 from web.backend.core.theme_config import get_theme_config
 
 router = APIRouter()
+
+_FALLBACK_THEMES = [
+    {"value": "hexaveil", "label": "HexaVeil (лендинг)"},
+    {"value": "default", "label": "Default"},
+]
+
+
+@router.get("/themes")
+async def list_themes(admin: AdminUser = Depends(get_current_admin)):
+    """List installed themes by scanning templates/themes/*/theme.php."""
+    themes_dir = Path(get_cms_settings().root_path) / "templates" / "themes"
+    themes = []
+    if themes_dir.is_dir():
+        for child in sorted(themes_dir.iterdir()):
+            if child.is_dir() and (child / "theme.php").is_file():
+                name = child.name
+                label = get_theme_config(name).get("name") or name
+                themes.append({"value": name, "label": label})
+    if not themes:
+        themes = list(_FALLBACK_THEMES)
+    return {"success": True, "data": themes}
 
 
 async def _get_all_settings(db: AsyncSession) -> dict:

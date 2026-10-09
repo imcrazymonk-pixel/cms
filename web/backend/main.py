@@ -156,6 +156,7 @@ def create_app() -> FastAPI:
     from web.backend.api.v1 import settings as settings_api
     from web.backend.api.v1 import notifications as notifications_api
     from web.backend.api.v1 import media as media_api
+    from web.backend.api.v1 import public as public_api
     from web.backend.api.v1 import preferences as preferences_api
     from web.backend.api.v1 import diagnostics as diagnostics_api
     from web.backend.api.v1 import finance as finance_api
@@ -174,6 +175,9 @@ def create_app() -> FastAPI:
     app.include_router(settings_api.router, prefix="/api", tags=["settings"])
     app.include_router(notifications_api.router, prefix="/api", tags=["notifications"])
     app.include_router(media_api.router, prefix="/api", tags=["media"])
+
+    # Unauthenticated branding (login page + admin shell)
+    app.include_router(public_api.router, prefix="/api", tags=["public"])
 
     # Migrated PHP-bridge endpoints (React keeps calling the same /admin/* paths)
     app.include_router(preferences_api.router, prefix="/admin/settings", tags=["preferences"])

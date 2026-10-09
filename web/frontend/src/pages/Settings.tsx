@@ -2,32 +2,113 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { settingsApi } from '../api/settings'
 import { financeApi } from '../api/finance'
+import { themesApi, type ThemeListItem } from '../api/themes'
+import { authApi } from '../api/auth'
+import { useBrandingStore } from '../store/useBrandingStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { QueryError } from '@/components/QueryError'
 import { toast } from 'sonner'
-import { Settings as SettingsIcon, Save, RefreshCw, Palette, Wallet, Terminal } from 'lucide-react'
+import { ChevronDown, ChevronRight, Save, RefreshCw } from 'lucide-react'
 
 type BasicValues = Record<string, string>
 
-const THEMES = [
+const FALLBACK_THEMES: ThemeListItem[] = [
   { value: 'hexaveil', label: 'HexaVeil (лендинг + блог)' },
-  { value: 'modern', label: 'Modern (блог)' },
-  { value: 'minimal', label: 'Minimal (блог)' },
   { value: 'default', label: 'Default (блог)' },
 ]
 
-function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+const EMAIL_RE = /^[^@\s]+@[^@\s]+$/
+
+/** Collapsible settings block — Remnawave-style accordion card. */
+function Section({
+  title,
+  description,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  description?: string
+  defaultOpen?: boolean
+  children: ReactNode
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  const count = Array.isArray(children) ? children.filter(Boolean).length : 1
+
   return (
-    <div className="space-y-2">
-      <Label>{label}</Label>
+    <Card className="p-0 overflow-hidden animate-fade-in-up">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between gap-4 p-4 md:p-5 hover:bg-[var(--glass-bg)] transition-colors text-left"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          {open ? (
+            <ChevronDown className="w-5 h-5 text-dark-200 shrink-0 transition-transform duration-200" />
+          ) : (
+            <ChevronRight className="w-5 h-5 text-dark-200 shrink-0 transition-transform duration-200" />
+          )}
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-white truncate">{title}</h2>
+            {description && <p className="text-xs text-dark-300 mt-0.5">{description}</p>}
+          </div>
+        </div>
+        <span className="text-xs text-dark-300 shrink-0">{count}</span>
+      </button>
+
+      {open && (
+        <div className="px-4 md:px-5 pb-4 md:pb-5 border-t border-[var(--glass-border)]/50 animate-fade-in-down">
+          <div className="divide-y divide-dark-700/50">{children}</div>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+/** Stacked field row: label + description above the control. */
+function FieldRow({
+  label,
+  description,
+  children,
+}: {
+  label: string
+  description?: string
+  children: ReactNode
+}) {
+  return (
+    <div className="py-3">
+      <Label className="block text-sm text-dark-200 mb-1.5">{label}</Label>
       {children}
-      {hint && <p className="text-xs text-dark-300">{hint}</p>}
+      {description && <p className="text-xs text-dark-200 mt-1">{description}</p>}
+    </div>
+  )
+}
+
+/** Inline row: label left, toggle right. */
+function SwitchRow({
+  label,
+  description,
+  checked,
+  onCheckedChange,
+}: {
+  label: string
+  description?: string
+  checked: boolean
+  onCheckedChange: (v: boolean) => void
+}) {
+  return (
+    <div className="flex items-center justify-between gap-4 py-3">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-white">{label}</p>
+        {description && <p className="text-xs text-dark-200 mt-0.5">{description}</p>}
+      </div>
+      <Switch checked={checked} onCheckedChange={onCheckedChange} />
     </div>
   )
 }
@@ -43,7 +124,13 @@ export default function Settings() {
   const [docker, setDocker] = useState<BasicValues>({})
   const [loki, setLoki] = useState<BasicValues>({})
   const [fin, setFin] = useState<BasicValues>({})
-  const [useReactAdmin, setUseReactAdmin] = useState(true)
+  const [themes, setThemes] = useState<ThemeListItem[]>(FALLBACK_THEMES)
+
+  // Change password
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [savingPassword, setSavingPassword] = useState(false)
 
   const load = async () => {
     setIsPending(true)
@@ -55,9 +142,19 @@ export default function Settings() {
       setBasic({
         site_name: d.site_name || '',
         site_description: d.site_description || '',
+        site_url: d.site_url || '',
+        admin_email: d.admin_email || '',
+        admin_title: d.admin_title || '',
+        browser_title: d.browser_title || '',
+        title_separator: d.title_separator ?? '—',
+        favicon_url: d.favicon_url || '',
+        timezone: d.timezone || 'Europe/Moscow',
+        locale: d.locale || 'ru',
         meta_description: d.meta_description || '',
         meta_keywords: d.meta_keywords || '',
         posts_per_page: d.posts_per_page || '10',
+        comments_auto_approve: d.comments_auto_approve || '0',
+        maintenance_mode: d.maintenance_mode || '0',
         active_theme: d.active_theme || 'hexaveil',
       })
       try {
@@ -97,6 +194,11 @@ export default function Settings() {
           yookassa_auto_sync: f.yookassa_auto_sync ?? '0',
         })
       } catch { /* finance settings optional */ }
+
+      try {
+        const tr = await themesApi.list()
+        if (tr.success && tr.data?.length) setThemes(tr.data)
+      } catch { /* themes optional — keep fallback */ }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Ошибка')
     } finally {
@@ -106,12 +208,39 @@ export default function Settings() {
 
   useEffect(() => { load() }, [])
 
+  const validateBasic = (): string | null => {
+    const pp = (basic.posts_per_page || '').trim()
+    if (!/^\d+$/.test(pp) || parseInt(pp, 10) <= 0) {
+      return '«Постов на страницу» должно быть положительным целым числом'
+    }
+    const email = (basic.admin_email || '').trim()
+    if (email && !EMAIL_RE.test(email)) return 'Некорректный email администратора'
+    const urls: Array<[string, string]> = [
+      ['URL сайта', basic.site_url || ''],
+      ['URL favicon', basic.favicon_url || ''],
+    ]
+    for (const [label, value] of urls) {
+      const val = value.trim()
+      if (val && !/^(https?:\/\/|\/)/.test(val)) {
+        return `${label}: должен начинаться с http://, https:// или /`
+      }
+    }
+    return null
+  }
+
   const saveBasic = async (tab: string, extra: Record<string, string> = {}) => {
+    const validationError = validateBasic()
+    if (validationError) { toast.error(validationError); return }
     setSavingTab(tab)
     try {
       const res = await settingsApi.update({ ...basic, ...extra }) as { success: boolean }
-      if (res.success) { toast.success('Настройки сохранены'); load() }
-      else toast.error('Не удалось сохранить')
+      if (res.success !== false) {
+        toast.success('Настройки сохранены')
+        await load()
+        useBrandingStore.getState().load()
+      } else {
+        toast.error('Не удалось сохранить')
+      }
     } catch { toast.error('Ошибка сохранения') }
     finally { setSavingTab(null) }
   }
@@ -124,25 +253,16 @@ export default function Settings() {
   const saveFinance = async () => {
     setSavingTab('finance')
     try {
-      const res = await financeApi.saveSettings(fin) as { success: boolean }
+      const res = await financeApi.saveSettings(fin) as { success?: boolean }
       if (res.success !== false) { toast.success('Настройки финансов сохранены'); load() }
       else toast.error('Не удалось сохранить')
     } catch { toast.error('Ошибка сохранения') }
     finally { setSavingTab(null) }
   }
 
-  const toggleReactAdmin = async (enabled: boolean) => {
-    setUseReactAdmin(enabled)
-    try {
-      await fetch('/admin/settings/save-preference', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'use_react_admin', value: enabled ? '1' : '0' }),
-      })
-    } catch { /* ignore */ }
-  }
-
   const saveAll = async () => {
+    const validationError = validateBasic()
+    if (validationError) { toast.error(validationError); return }
     setSavingTab('all')
     try {
       await settingsApi.update({
@@ -152,9 +272,9 @@ export default function Settings() {
         loki_config: JSON.stringify(loki),
       })
       try { await financeApi.saveSettings(fin) } catch { /* finance optional */ }
-      await toggleReactAdmin(useReactAdmin)
       toast.success('Настройки сохранены')
-      load()
+      await load()
+      useBrandingStore.getState().load()
     } catch {
       toast.error('Ошибка сохранения')
     } finally {
@@ -162,26 +282,57 @@ export default function Settings() {
     }
   }
 
+  const changePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('Заполните все поля'); return
+    }
+    if (newPassword.length < 8) {
+      toast.error('Новый пароль должен содержать минимум 8 символов'); return
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('Пароли не совпадают'); return
+    }
+    setSavingPassword(true)
+    try {
+      const res = await authApi.changePassword(currentPassword, newPassword) as { success?: boolean; error?: string }
+      if (res.success === false) { toast.error(res.error || 'Не удалось сменить пароль'); return }
+      toast.success('Пароль изменён')
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('')
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { error?: string } } }
+      toast.error(e?.response?.data?.error || 'Ошибка смены пароля')
+    } finally {
+      setSavingPassword(false)
+    }
+  }
+
   if (isPending) {
     return (
-      <div className="p-6 space-y-4">
+      <div className="space-y-6">
         <Skeleton className="h-10 w-64 rounded-lg" />
-        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-16 rounded-2xl" />
+        <Skeleton className="h-16 rounded-2xl" />
+        <Skeleton className="h-16 rounded-2xl" />
       </div>
     )
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between mb-2">
+    <div className="space-y-6">
+      {/* Page header */}
+      <div className="page-header">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Настройки</h1>
-          <p className="text-sm text-dark-200 mt-1">Управление сайтом, темой, финансами и логами</p>
+          <h1 className="page-header-title">Настройки</h1>
+          <p className="text-dark-200 mt-1 text-sm md:text-base">
+            Управление сайтом, темой, финансами и логами
+          </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={load}><RefreshCw className="w-4 h-4" /> Обновить</Button>
-          <Button variant="default" size="sm" onClick={saveAll} disabled={savingTab !== null}>
-            <Save className="w-4 h-4" /> {savingTab === 'all' ? 'Сохранение…' : 'Сохранить всё'}
+        <div className="page-header-actions">
+          <Button variant="secondary" onClick={load} disabled={savingTab !== null}>
+            <RefreshCw className="w-4 h-4 mr-1.5" /> Обновить
+          </Button>
+          <Button variant="default" onClick={saveAll} disabled={savingTab !== null}>
+            <Save className="w-4 h-4 mr-1.5" /> {savingTab === 'all' ? 'Сохранение…' : 'Сохранить всё'}
           </Button>
         </div>
       </div>
@@ -191,214 +342,249 @@ export default function Settings() {
       {!error && (
         <Tabs defaultValue={initialTab}>
           <TabsList>
-            <TabsTrigger value="basic"><SettingsIcon className="w-4 h-4" /> Основные</TabsTrigger>
-            <TabsTrigger value="appearance"><Palette className="w-4 h-4" /> Внешний вид</TabsTrigger>
-            <TabsTrigger value="finance"><Wallet className="w-4 h-4" /> Финансы</TabsTrigger>
-            <TabsTrigger value="logs"><Terminal className="w-4 h-4" /> Логи</TabsTrigger>
+            <TabsTrigger value="basic">Основные</TabsTrigger>
+            <TabsTrigger value="appearance">Внешний вид</TabsTrigger>
+            <TabsTrigger value="security">Безопасность</TabsTrigger>
+            <TabsTrigger value="finance">Финансы</TabsTrigger>
+            <TabsTrigger value="logs">Логи</TabsTrigger>
           </TabsList>
 
           {/* ── Основные ── */}
-          <TabsContent value="basic" className="space-y-4">
-            <Card className="rounded-xl max-w-3xl">
-              <CardHeader><CardTitle><SettingsIcon className="w-4 h-4" /> Основные настройки</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <Field label="Название сайта" hint="Отображается в заголовке вкладки браузера">
-                  <Input value={basic.site_name || ''} onChange={(e) => setBasic({ ...basic, site_name: e.target.value })} />
-                </Field>
-                <Field label="Описание сайта">
-                  <Input value={basic.site_description || ''} onChange={(e) => setBasic({ ...basic, site_description: e.target.value })} />
-                </Field>
-                <Field label="Meta Description" hint="SEO-описание по умолчанию">
-                  <Input value={basic.meta_description || ''} onChange={(e) => setBasic({ ...basic, meta_description: e.target.value })} />
-                </Field>
-                <Field label="Meta Keywords" hint="Ключевые слова через запятую">
-                  <Input value={basic.meta_keywords || ''} onChange={(e) => setBasic({ ...basic, meta_keywords: e.target.value })} />
-                </Field>
-                <Field label="Постов на страницу">
-                  <Input type="number" value={basic.posts_per_page || '10'} onChange={(e) => setBasic({ ...basic, posts_per_page: e.target.value })} />
-                </Field>
-                <div className="flex justify-end pt-2">
-                  <Button variant="default" onClick={() => saveBasic('basic')} disabled={savingTab === 'basic'}>
-                    <Save className="w-4 h-4" /> {savingTab === 'basic' ? 'Сохранение…' : 'Сохранить'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="basic" className="space-y-2 mt-4">
+            <Section title="Брендинг панели" description="Название CMS, заголовок вкладки и favicon" defaultOpen>
+              <FieldRow label="Название CMS" description="Отображается в сайдбаре и на странице входа">
+                <Input value={basic.admin_title || ''} onChange={(e) => setBasic({ ...basic, admin_title: e.target.value })} placeholder="HexaVeil CMS" />
+              </FieldRow>
+              <FieldRow label="Заголовок вкладки браузера" description="Если пусто — используется название CMS">
+                <Input value={basic.browser_title || ''} onChange={(e) => setBasic({ ...basic, browser_title: e.target.value })} placeholder={basic.admin_title || 'HexaVeil CMS'} />
+              </FieldRow>
+              <FieldRow label="Разделитель заголовков" description="Например: — или |">
+                <Input value={basic.title_separator || ''} onChange={(e) => setBasic({ ...basic, title_separator: e.target.value })} placeholder="—" />
+              </FieldRow>
+              <FieldRow label="URL favicon" description="Пусто — встроенная иконка">
+                <Input value={basic.favicon_url || ''} onChange={(e) => setBasic({ ...basic, favicon_url: e.target.value })} placeholder="/favicon.svg" />
+              </FieldRow>
+            </Section>
+
+            <Section title="Сайт" description="Название, адрес и контакты проекта">
+              <FieldRow label="Название сайта" description="Заголовок публичной части">
+                <Input value={basic.site_name || ''} onChange={(e) => setBasic({ ...basic, site_name: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Описание сайта">
+                <Input value={basic.site_description || ''} onChange={(e) => setBasic({ ...basic, site_description: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="URL сайта">
+                <Input value={basic.site_url || ''} onChange={(e) => setBasic({ ...basic, site_url: e.target.value })} placeholder="https://hexaveil.xyz" />
+              </FieldRow>
+              <FieldRow label="Email администратора">
+                <Input value={basic.admin_email || ''} onChange={(e) => setBasic({ ...basic, admin_email: e.target.value })} placeholder="admin@example.com" />
+              </FieldRow>
+              <FieldRow label="Часовой пояс">
+                <Input value={basic.timezone || ''} onChange={(e) => setBasic({ ...basic, timezone: e.target.value })} placeholder="Europe/Moscow" />
+              </FieldRow>
+              <FieldRow label="Язык (locale)">
+                <Input value={basic.locale || ''} onChange={(e) => setBasic({ ...basic, locale: e.target.value })} placeholder="ru" />
+              </FieldRow>
+            </Section>
+
+            <Section title="Контент" description="Публикация и комментарии">
+              <FieldRow label="Постов на страницу">
+                <Input type="number" min={1} value={basic.posts_per_page || '10'} onChange={(e) => setBasic({ ...basic, posts_per_page: e.target.value })} />
+              </FieldRow>
+              <SwitchRow
+                label="Автоодобрение комментариев"
+                description="Новые комментарии публикуются без модерации"
+                checked={basic.comments_auto_approve === '1'}
+                onCheckedChange={(v) => setBasic({ ...basic, comments_auto_approve: v ? '1' : '0' })}
+              />
+              <SwitchRow
+                label="Режим обслуживания"
+                description="Публичная часть показывает заглушку"
+                checked={basic.maintenance_mode === '1'}
+                onCheckedChange={(v) => setBasic({ ...basic, maintenance_mode: v ? '1' : '0' })}
+              />
+            </Section>
+
+            <Section title="SEO" description="Мета-теги по умолчанию для поисковых систем">
+              <FieldRow label="Meta Description" description="SEO-описание по умолчанию">
+                <Input value={basic.meta_description || ''} onChange={(e) => setBasic({ ...basic, meta_description: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Meta Keywords" description="Ключевые слова через запятую">
+                <Input value={basic.meta_keywords || ''} onChange={(e) => setBasic({ ...basic, meta_keywords: e.target.value })} />
+              </FieldRow>
+            </Section>
+
+            <div className="flex justify-end pt-2">
+              <Button variant="default" onClick={() => saveBasic('basic')} disabled={savingTab === 'basic'}>
+                <Save className="w-4 h-4 mr-1.5" /> {savingTab === 'basic' ? 'Сохранение…' : 'Сохранить'}
+              </Button>
+            </div>
           </TabsContent>
 
           {/* ── Внешний вид ── */}
-          <TabsContent value="appearance" className="space-y-4">
-            <Card className="rounded-xl max-w-3xl">
-              <CardHeader><CardTitle><Palette className="w-4 h-4" /> Тема оформления</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <Field label="Активная тема" hint="Тема публичной части сайта">
-                  <Select value={basic.active_theme || 'hexaveil'} onValueChange={(v) => setBasic({ ...basic, active_theme: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {THEMES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <div className="flex justify-end pt-2">
-                  <Button variant="default" onClick={() => saveBasic('appearance', { active_theme: basic.active_theme || 'hexaveil' })} disabled={savingTab === 'appearance'}>
-                    <Save className="w-4 h-4" /> {savingTab === 'appearance' ? 'Сохранение…' : 'Сохранить'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="appearance" className="space-y-2 mt-4">
+            <Section title="Тема оформления" description="Оформление публичной части сайта" defaultOpen>
+              <FieldRow label="Активная тема" description="Тема, применяемая к лендингу и блогу">
+                <Select value={basic.active_theme || 'hexaveil'} onValueChange={(v) => setBasic({ ...basic, active_theme: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {themes.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </FieldRow>
+            </Section>
+            <div className="flex justify-end pt-2">
+              <Button variant="default" onClick={() => saveBasic('appearance', { active_theme: basic.active_theme || 'hexaveil' })} disabled={savingTab === 'appearance'}>
+                <Save className="w-4 h-4 mr-1.5" /> {savingTab === 'appearance' ? 'Сохранение…' : 'Сохранить'}
+              </Button>
+            </div>
+          </TabsContent>
 
-            <Card className="rounded-xl max-w-3xl">
-              <CardHeader><CardTitle><SettingsIcon className="w-4 h-4" /> Панель управления</CardTitle></CardHeader>
-              <CardContent>
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input type="checkbox" className="mt-1 w-4 h-4" checked={useReactAdmin} onChange={(e) => toggleReactAdmin(e.target.checked)} />
-                  <span>
-                    <span className="text-sm text-white">Новая панель управления (React)</span>
-                    <span className="block text-xs text-dark-300">Включено — админка в стиле Remnawave. Выключено — старая PHP-панель.</span>
-                  </span>
-                </label>
-              </CardContent>
-            </Card>
+          {/* ── Безопасность ── */}
+          <TabsContent value="security" className="space-y-2 mt-4">
+            <Section title="Смена пароля" description="Пароль текущей учётной записи" defaultOpen>
+              <FieldRow label="Текущий пароль">
+                <Input type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" />
+              </FieldRow>
+              <FieldRow label="Новый пароль" description="Минимум 8 символов">
+                <Input type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" />
+              </FieldRow>
+              <FieldRow
+                label="Повторите новый пароль"
+                description={
+                  confirmPassword.length === 0
+                    ? undefined
+                    : newPassword !== confirmPassword
+                      ? 'Пароли не совпадают'
+                      : newPassword.length >= 8
+                        ? 'Пароли совпадают'
+                        : undefined
+                }
+              >
+                <Input type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" />
+              </FieldRow>
+              <div className="pt-3">
+                <Button variant="default" onClick={changePassword} disabled={savingPassword} className="w-full">
+                  <Save className="w-4 h-4 mr-1.5" /> {savingPassword ? 'Сохранение…' : 'Сменить пароль'}
+                </Button>
+              </div>
+            </Section>
           </TabsContent>
 
           {/* ── Финансы ── */}
-          <TabsContent value="finance" className="space-y-4">
-            <Card className="rounded-xl max-w-3xl">
-              <CardHeader><CardTitle><Wallet className="w-4 h-4" /> Основные настройки финансов</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Валюта">
-                    <Input value={fin.currency || ''} onChange={(e) => setFin({ ...fin, currency: e.target.value })} />
-                  </Field>
-                  <Field label="Знаков после запятой">
-                    <Input type="number" value={fin.decimals || '2'} onChange={(e) => setFin({ ...fin, decimals: e.target.value })} />
-                  </Field>
-                  <Field label="Автообновление (сек)">
-                    <Input type="number" value={fin.auto_refresh || '0'} onChange={(e) => setFin({ ...fin, auto_refresh: e.target.value })} />
-                  </Field>
-                  <Field label="Период средних">
-                    <Select value={fin.avg_period || 'day'} onValueChange={(v) => setFin({ ...fin, avg_period: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="day">День</SelectItem>
-                        <SelectItem value="week">Неделя</SelectItem>
-                        <SelectItem value="month">Месяц</SelectItem>
-                        <SelectItem value="year">Год</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="finance" className="space-y-2 mt-4">
+            <Section title="Основные настройки" description="Валюта, точность и автообновление" defaultOpen>
+              <FieldRow label="Валюта">
+                <Input value={fin.currency || ''} onChange={(e) => setFin({ ...fin, currency: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Знаков после запятой">
+                <Input type="number" value={fin.decimals || '2'} onChange={(e) => setFin({ ...fin, decimals: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Автообновление, сек" description="0 — выключено">
+                <Input type="number" value={fin.auto_refresh || '0'} onChange={(e) => setFin({ ...fin, auto_refresh: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Период средних">
+                <Select value={fin.avg_period || 'day'} onValueChange={(v) => setFin({ ...fin, avg_period: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">День</SelectItem>
+                    <SelectItem value="week">Неделя</SelectItem>
+                    <SelectItem value="month">Месяц</SelectItem>
+                    <SelectItem value="year">Год</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FieldRow>
+            </Section>
 
-            <Card className="rounded-xl max-w-3xl">
-              <CardHeader><CardTitle>Platega</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <Field label="Merchant ID">
-                  <Input value={fin.platega_merchant_id || ''} onChange={(e) => setFin({ ...fin, platega_merchant_id: e.target.value })} />
-                </Field>
-                <Field label="Секрет" hint="Оставьте пустым, чтобы не менять сохранённый ключ">
-                  <Input type="password" value={fin.platega_secret || ''} onChange={(e) => setFin({ ...fin, platega_secret: e.target.value })} placeholder="••••••" />
-                </Field>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Дней назад">
-                    <Input type="number" value={fin.platega_days_back || '5'} onChange={(e) => setFin({ ...fin, platega_days_back: e.target.value })} />
-                  </Field>
-                  <Field label="Автоимпорт">
-                    <Select value={String(fin.platega_auto_sync || '0')} onValueChange={(v) => setFin({ ...fin, platega_auto_sync: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">Выключен</SelectItem>
-                        <SelectItem value="1">Включён</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </div>
-              </CardContent>
-            </Card>
+            <Section title="Platega" description="Синхронизация платежей Platega">
+              <FieldRow label="Merchant ID">
+                <Input value={fin.platega_merchant_id || ''} onChange={(e) => setFin({ ...fin, platega_merchant_id: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Секрет" description="Оставьте пустым, чтобы не менять сохранённый ключ">
+                <Input type="password" value={fin.platega_secret || ''} onChange={(e) => setFin({ ...fin, platega_secret: e.target.value })} placeholder="••••••" />
+              </FieldRow>
+              <FieldRow label="Дней назад">
+                <Input type="number" value={fin.platega_days_back || '5'} onChange={(e) => setFin({ ...fin, platega_days_back: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Автоимпорт">
+                <Select value={String(fin.platega_auto_sync || '0')} onValueChange={(v) => setFin({ ...fin, platega_auto_sync: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Выключен</SelectItem>
+                    <SelectItem value="1">Включён</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FieldRow>
+            </Section>
 
-            <Card className="rounded-xl max-w-3xl">
-              <CardHeader><CardTitle>YooKassa</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <Field label="Shop ID">
-                  <Input value={fin.yookassa_shop_id || ''} onChange={(e) => setFin({ ...fin, yookassa_shop_id: e.target.value })} />
-                </Field>
-                <Field label="Секретный ключ" hint="Оставьте пустым, чтобы не менять сохранённый ключ">
-                  <Input type="password" value={fin.yookassa_secret_key || ''} onChange={(e) => setFin({ ...fin, yookassa_secret_key: e.target.value })} placeholder="••••••" />
-                </Field>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Дней назад">
-                    <Input type="number" value={fin.yookassa_days_back || '5'} onChange={(e) => setFin({ ...fin, yookassa_days_back: e.target.value })} />
-                  </Field>
-                  <Field label="Автоимпорт">
-                    <Select value={String(fin.yookassa_auto_sync || '0')} onValueChange={(v) => setFin({ ...fin, yookassa_auto_sync: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="0">Выключен</SelectItem>
-                        <SelectItem value="1">Включён</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </Field>
-                </div>
-              </CardContent>
-            </Card>
+            <Section title="YooKassa" description="Синхронизация платежей YooKassa">
+              <FieldRow label="Shop ID">
+                <Input value={fin.yookassa_shop_id || ''} onChange={(e) => setFin({ ...fin, yookassa_shop_id: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Секретный ключ" description="Оставьте пустым, чтобы не менять сохранённый ключ">
+                <Input type="password" value={fin.yookassa_secret_key || ''} onChange={(e) => setFin({ ...fin, yookassa_secret_key: e.target.value })} placeholder="••••••" />
+              </FieldRow>
+              <FieldRow label="Дней назад">
+                <Input type="number" value={fin.yookassa_days_back || '5'} onChange={(e) => setFin({ ...fin, yookassa_days_back: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Автоимпорт">
+                <Select value={String(fin.yookassa_auto_sync || '0')} onValueChange={(v) => setFin({ ...fin, yookassa_auto_sync: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">Выключен</SelectItem>
+                    <SelectItem value="1">Включён</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FieldRow>
+            </Section>
 
-            <div className="flex justify-end max-w-3xl">
+            <div className="flex justify-end pt-2">
               <Button variant="default" onClick={saveFinance} disabled={savingTab === 'finance'}>
-                <Save className="w-4 h-4" /> {savingTab === 'finance' ? 'Сохранение…' : 'Сохранить финансы'}
+                <Save className="w-4 h-4 mr-1.5" /> {savingTab === 'finance' ? 'Сохранение…' : 'Сохранить финансы'}
               </Button>
             </div>
           </TabsContent>
 
           {/* ── Логи ── */}
-          <TabsContent value="logs" className="space-y-4">
-            <Card className="rounded-xl max-w-3xl">
-              <CardHeader><CardTitle><Terminal className="w-4 h-4" /> Docker (просмотр логов)</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="SSH хост">
-                    <Input value={docker.docker_ssh_host || ''} onChange={(e) => setDocker({ ...docker, docker_ssh_host: e.target.value })} />
-                  </Field>
-                  <Field label="SSH порт">
-                    <Input value={docker.docker_ssh_port || '22'} onChange={(e) => setDocker({ ...docker, docker_ssh_port: e.target.value })} />
-                  </Field>
-                  <Field label="SSH пользователь">
-                    <Input value={docker.docker_ssh_user || ''} onChange={(e) => setDocker({ ...docker, docker_ssh_user: e.target.value })} />
-                  </Field>
-                  <Field label="Строк на контейнер">
-                    <Input type="number" value={docker.docker_lines || '100'} onChange={(e) => setDocker({ ...docker, docker_lines: e.target.value })} />
-                  </Field>
-                </div>
-                <Field label="Контейнеры" hint="Список через запятую">
-                  <Input value={docker.docker_containers || ''} onChange={(e) => setDocker({ ...docker, docker_containers: e.target.value })} />
-                </Field>
-              </CardContent>
-            </Card>
+          <TabsContent value="logs" className="space-y-2 mt-4">
+            <Section title="Docker" description="Просмотр логов контейнеров по SSH" defaultOpen>
+              <FieldRow label="SSH хост">
+                <Input value={docker.docker_ssh_host || ''} onChange={(e) => setDocker({ ...docker, docker_ssh_host: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="SSH порт">
+                <Input value={docker.docker_ssh_port || '22'} onChange={(e) => setDocker({ ...docker, docker_ssh_port: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="SSH пользователь">
+                <Input value={docker.docker_ssh_user || ''} onChange={(e) => setDocker({ ...docker, docker_ssh_user: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Строк на контейнер">
+                <Input type="number" value={docker.docker_lines || '100'} onChange={(e) => setDocker({ ...docker, docker_lines: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Контейнеры" description="Список через запятую">
+                <Input value={docker.docker_containers || ''} onChange={(e) => setDocker({ ...docker, docker_containers: e.target.value })} />
+              </FieldRow>
+            </Section>
 
-            <Card className="rounded-xl max-w-3xl">
-              <CardHeader><CardTitle><Terminal className="w-4 h-4" /> Loki</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <Field label="Loki URL">
-                  <Input value={loki.loki_url || ''} onChange={(e) => setLoki({ ...loki, loki_url: e.target.value })} />
-                </Field>
-                <Field label="Query">
-                  <Input value={loki.loki_query || ''} onChange={(e) => setLoki({ ...loki, loki_query: e.target.value })} />
-                </Field>
-                <div className="grid grid-cols-2 gap-4">
-                  <Field label="Пользователь">
-                    <Input value={loki.loki_user || ''} onChange={(e) => setLoki({ ...loki, loki_user: e.target.value })} />
-                  </Field>
-                  <Field label="Лимит записей">
-                    <Input type="number" value={loki.loki_limit || '100'} onChange={(e) => setLoki({ ...loki, loki_limit: e.target.value })} />
-                  </Field>
-                </div>
-                <div className="flex justify-end pt-2">
-                  <Button variant="default" onClick={saveLogs} disabled={savingTab === 'logs'}>
-                    <Save className="w-4 h-4" /> {savingTab === 'logs' ? 'Сохранение…' : 'Сохранить'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <Section title="Loki" description="Источник логов Loki">
+              <FieldRow label="Loki URL">
+                <Input value={loki.loki_url || ''} onChange={(e) => setLoki({ ...loki, loki_url: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Query">
+                <Input value={loki.loki_query || ''} onChange={(e) => setLoki({ ...loki, loki_query: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Пользователь">
+                <Input value={loki.loki_user || ''} onChange={(e) => setLoki({ ...loki, loki_user: e.target.value })} />
+              </FieldRow>
+              <FieldRow label="Лимит записей">
+                <Input type="number" value={loki.loki_limit || '100'} onChange={(e) => setLoki({ ...loki, loki_limit: e.target.value })} />
+              </FieldRow>
+            </Section>
+
+            <div className="flex justify-end pt-2">
+              <Button variant="default" onClick={saveLogs} disabled={savingTab === 'logs'}>
+                <Save className="w-4 h-4 mr-1.5" /> {savingTab === 'logs' ? 'Сохранение…' : 'Сохранить'}
+              </Button>
+            </div>
           </TabsContent>
         </Tabs>
       )}

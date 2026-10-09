@@ -28,3 +28,9 @@ class MeResponse(BaseModel):
     """GET /api/auth/me response — matches PHP format."""
     success: bool = True
     user: UserInfo
+
+
+class ChangePasswordRequest(BaseModel):
+    """POST /api/auth/change-password — current admin changes own password."""
+    current_password: str = Field(..., min_length=1, max_length=200)
+    new_password: str = Field(..., min_length=1, max_length=200)

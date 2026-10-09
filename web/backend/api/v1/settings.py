@@ -3,6 +3,9 @@
   GET  /api/settings → { success, data: {...} }   (whitelisted keys)
   POST /api/settings → { success, saved: N }
 """
+import re
+from typing import Optional
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,16 +13,25 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from web.backend.api.deps import AdminUser, get_current_admin
 from web.backend.core.database import get_db
 from web.backend.core.db_helpers import upsert_setting
+from web.backend.core.errors import E, api_error
 from web.backend.core.request_utils import json_body
 
 router = APIRouter()
 
-# Same whitelist as PHP (GET and POST share it)
+# Same whitelist as PHP (GET and POST share it) + Phase 0 branding keys.
 ALLOWED_KEYS = [
     "site_name",
     "site_description",
+    "site_url",
+    "admin_email",
+    "admin_title",
+    "browser_title",
+    "title_separator",
+    "favicon_url",
     "meta_keywords",
     "meta_description",
+    "timezone",
+    "locale",
     "active_theme",
     "posts_per_page",
     "comments_auto_approve",
@@ -27,6 +39,23 @@ ALLOWED_KEYS = [
     "docker_config",
     "loki_config",
 ]
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+$")
+
+
+def _validate_setting(key: str, value) -> Optional[str]:
+    """Return an error message for an invalid value, or None if valid."""
+    v = str(value).strip()
+    if key == "posts_per_page":
+        if not v.isdigit() or int(v) <= 0:
+            return "«Постов на страницу» должно быть положительным целым числом"
+    elif key == "admin_email":
+        if v != "" and not _EMAIL_RE.match(v):
+            return "Некорректный email"
+    elif key in ("site_url", "favicon_url"):
+        if v != "" and not v.startswith(("http://", "https://", "/")):
+            return "URL должен начинаться с http://, https:// или /"
+    return None
 
 
 @router.get("/settings")
@@ -50,6 +79,9 @@ async def update_settings(
     saved = 0
     for key in ALLOWED_KEYS:
         if key in body:
+            error = _validate_setting(key, body[key])
+            if error:
+                return api_error(400, E.INVALID_INPUT, error)
             # PHP casts to string: (string)$body[$k]
             await upsert_setting(db, key, str(body[key]))
             saved += 1

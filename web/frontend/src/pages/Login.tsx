@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuthStore } from '../store/authStore'
+import { useBrandingStore } from '../store/useBrandingStore'
 import { authApi } from '../api/auth'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -14,6 +15,7 @@ export default function Login() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { setAuth } = useAuthStore()
+  const adminTitle = useBrandingStore((s) => s.admin_title) || 'HexaVeil CMS'
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -81,7 +83,7 @@ export default function Login() {
               </div>
               <div className="text-center">
                 <h1 className="text-2xl font-display font-bold text-white tracking-tight">
-                  HexaVeil CMS
+                  {adminTitle}
                 </h1>
                 <p className="text-sm text-dark-200 mt-1">
                   Вход в панель управления

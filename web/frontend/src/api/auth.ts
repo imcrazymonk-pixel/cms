@@ -12,4 +12,9 @@ export const authApi = {
     api.post<LoginResponse>('/auth/login', { login, password }).then(r => r.data),
   me: () =>
     api.get<{ success: boolean; user: LoginResponse['user'] }>('/auth/me').then(r => r.data),
+  changePassword: (current_password: string, new_password: string) =>
+    api.post<{ success: boolean; error?: string }>('/auth/change-password', {
+      current_password,
+      new_password,
+    }).then(r => r.data),
 }

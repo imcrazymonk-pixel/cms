@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { usePermissionStore } from './store/permissionStore'
 import { AppearanceProvider } from './components/AppearanceProvider'
+import { BrandingProvider } from './components/BrandingProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 // Layout
@@ -52,7 +53,8 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <AppearanceProvider>
-      <ErrorBoundary>
+      <BrandingProvider>
+        <ErrorBoundary>
         <BrowserRouter basename="/admin">
           <Suspense fallback={<div className="loading">Загрузка...</div>}>
             <Routes>
@@ -94,7 +96,8 @@ export default function App() {
             </Routes>
           </Suspense>
         </BrowserRouter>
-      </ErrorBoundary>
+        </ErrorBoundary>
+      </BrandingProvider>
     </AppearanceProvider>
   )
 }

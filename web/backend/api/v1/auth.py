@@ -17,8 +17,8 @@ from web.backend.api.deps import AdminUser, get_client_ip, get_current_admin, ge
 from web.backend.core.database import get_db as get_db_session
 from web.backend.core.errors import E, api_error
 from web.backend.core.rate_limit import login_guard
-from web.backend.core.security import create_access_token, verify_admin_password
-from web.backend.schemas.auth import LoginRequest, LoginResponse, MeResponse, UserInfo
+from web.backend.core.security import create_access_token, hash_password, verify_admin_password
+from web.backend.schemas.auth import ChangePasswordRequest, LoginRequest, LoginResponse, MeResponse, UserInfo
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -93,3 +93,34 @@ async def me(admin: AdminUser = Depends(get_current_admin)):
             "role": admin.role,
         },
     }
+
+
+@router.post("/auth/change-password")
+async def change_password(
+    body: ChangePasswordRequest,
+    admin: AdminUser = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db_session),
+):
+    """Change the current admin's password.
+
+    Validates the current password, requires >= 8 chars, and rejects an
+    unchanged password. Stores a fresh bcrypt hash (PHP-compatible).
+    """
+    row = (await db.execute(
+        text("SELECT password FROM users WHERE id = :id"), {"id": admin.id}
+    )).fetchone()
+    if not row or not verify_admin_password(body.current_password, row.password):
+        return api_error(400, E.INVALID_CREDENTIALS, "Неверный текущий пароль")
+
+    new_password = body.new_password
+    if len(new_password) < 8:
+        return api_error(400, E.INVALID_INPUT, "Новый пароль должен содержать минимум 8 символов")
+    if verify_admin_password(new_password, row.password):
+        return api_error(400, E.INVALID_INPUT, "Новый пароль должен отличаться от текущего")
+
+    await db.execute(
+        text("UPDATE users SET password = :p WHERE id = :id"),
+        {"p": hash_password(new_password), "id": admin.id},
+    )
+    await db.commit()
+    return {"success": True}
