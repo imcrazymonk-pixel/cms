@@ -1,30 +1,32 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { settingsApi } from '../api/settings'
+import { settingsApi, type RegistryItem } from '../api/settings'
 import { financeApi } from '../api/finance'
 import { themesApi, type ThemeListItem } from '../api/themes'
 import { authApi } from '../api/auth'
 import { useBrandingStore } from '../store/useBrandingStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { QueryError } from '@/components/QueryError'
 import { toast } from 'sonner'
-import { ChevronDown, ChevronRight, Save, RefreshCw } from 'lucide-react'
+import { ChevronDown, ChevronRight, Save, RefreshCw, Database, Zap, Check, X } from 'lucide-react'
 
-type BasicValues = Record<string, string>
+type Values = Record<string, string>
 
-const FALLBACK_THEMES: ThemeListItem[] = [
-  { value: 'hexaveil', label: 'HexaVeil (лендинг + блог)' },
-  { value: 'default', label: 'Default (блог)' },
-]
-
-const EMAIL_RE = /^[^@\s]+@[^@\s]+$/
+const CATEGORY_DESC: Record<string, string> = {
+  'Общие': 'Название, адрес и контакты проекта',
+  'Контент': 'Публикация и комментарии',
+  'SEO': 'Мета-теги по умолчанию',
+  'Внешний вид': 'Оформление публичной части',
+}
 
 /** Collapsible settings block — Remnawave-style accordion card. */
 function Section({
@@ -61,7 +63,6 @@ function Section({
         </div>
         <span className="text-xs text-dark-300 shrink-0">{count}</span>
       </button>
-
       {open && (
         <div className="px-4 md:px-5 pb-4 md:pb-5 border-t border-[var(--glass-border)]/50 animate-fade-in-down">
           <div className="divide-y divide-dark-700/50">{children}</div>
@@ -71,44 +72,138 @@ function Section({
   )
 }
 
-/** Stacked field row: label + description above the control. */
-function FieldRow({
-  label,
-  description,
-  children,
-}: {
-  label: string
-  description?: string
-  children: ReactNode
+function SourceBadge({ source }: { source: RegistryItem['source'] }) {
+  if (source === 'db') {
+    return (
+      <Badge variant="default" className="gap-1 text-[10px] px-1.5 py-0.5">
+        <Database className="w-2.5 h-2.5" /> БД
+      </Badge>
+    )
+  }
+  if (source === 'env') {
+    return (
+      <Badge variant="warning" className="gap-1 text-[10px] px-1.5 py-0.5">
+        <Zap className="w-2.5 h-2.5" /> .env
+      </Badge>
+    )
+  }
+  return <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">по умолч.</Badge>
+}
+
+function MetaBadges({ item, isSaving, wasSaved, onReset }: {
+  item: RegistryItem
+  isSaving: boolean
+  wasSaved: boolean
+  onReset: (key: string) => void
 }) {
   return (
-    <div className="py-3">
-      <Label className="block text-sm text-dark-200 mb-1.5">{label}</Label>
-      {children}
-      {description && <p className="text-xs text-dark-200 mt-1">{description}</p>}
-    </div>
+    <span className="inline-flex items-center gap-1.5">
+      <SourceBadge source={item.source} />
+      {isSaving && <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin" />}
+      {wasSaved && !isSaving && <Check className="w-3.5 h-3.5 text-green-400" />}
+      {item.source === 'db' && (
+        <button
+          type="button"
+          onClick={() => onReset(item.key)}
+          title="Сбросить к значению по умолчанию"
+          className="text-dark-300 hover:text-red-400 transition-colors"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </span>
   )
 }
 
-/** Inline row: label left, toggle right. */
-function SwitchRow({
-  label,
-  description,
-  checked,
-  onCheckedChange,
+function SettingItem({
+  item, value, isSaving, wasSaved, themes, onSave, onReset, onChange,
 }: {
-  label: string
-  description?: string
-  checked: boolean
-  onCheckedChange: (v: boolean) => void
+  item: RegistryItem
+  value: string
+  isSaving: boolean
+  wasSaved: boolean
+  themes: ThemeListItem[]
+  onSave: (key: string, value: string) => void
+  onReset: (key: string) => void
+  onChange: (key: string, value: string) => void
 }) {
-  return (
-    <div className="flex items-center justify-between gap-4 py-3">
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-white">{label}</p>
-        {description && <p className="text-xs text-dark-200 mt-0.5">{description}</p>}
+  const meta = <MetaBadges item={item} isSaving={isSaving} wasSaved={wasSaved} onReset={onReset} />
+
+  if (item.type === 'bool') {
+    return (
+      <div className="flex items-center justify-between gap-4 py-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm text-white">{item.label}</p>
+            {meta}
+          </div>
+          {item.description && <p className="text-xs text-dark-200 mt-0.5">{item.description}</p>}
+        </div>
+        <Switch
+          checked={value === '1' || value === 'true'}
+          onCheckedChange={(v) => onSave(item.key, v ? '1' : '0')}
+          disabled={isSaving || item.is_readonly}
+        />
       </div>
-      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+    )
+  }
+
+  if (item.type === 'select') {
+    const opts = item.options
+      ? item.options.map((o) => ({ value: o, label: o }))
+      : item.options_source === 'themes'
+        ? themes.map((t) => ({ value: t.value, label: t.label }))
+        : []
+    return (
+      <div className="py-3">
+        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+          <Label className="text-sm text-dark-200">{item.label}</Label>
+          {meta}
+        </div>
+        <Select value={value} onValueChange={(v) => onSave(item.key, v)} disabled={isSaving || item.is_readonly}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {opts.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {item.description && <p className="text-xs text-dark-200 mt-1">{item.description}</p>}
+      </div>
+    )
+  }
+
+  const changed = value !== (item.value || '')
+  return (
+    <div className="py-3">
+      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+        <Label className="text-sm text-dark-200">{item.label}</Label>
+        {meta}
+      </div>
+      <div className="flex gap-2">
+        {item.type === 'textarea' ? (
+          <Textarea
+            value={value}
+            onChange={(e) => onChange(item.key, e.target.value)}
+            rows={3}
+            className="flex-1"
+            disabled={isSaving || item.is_readonly}
+          />
+        ) : (
+          <Input
+            type={item.type === 'secret' ? 'password' : item.type === 'number' ? 'number' : 'text'}
+            value={value}
+            onChange={(e) => onChange(item.key, e.target.value)}
+            className="flex-1"
+            disabled={isSaving || item.is_readonly}
+            placeholder={item.default || ''}
+          />
+        )}
+        {changed && (
+          <Button size="sm" onClick={() => onSave(item.key, value)} disabled={isSaving} className="shrink-0">
+            Сохранить
+          </Button>
+        )}
+      </div>
+      {item.description && <p className="text-xs text-dark-200 mt-1">{item.description}</p>}
     </div>
   )
 }
@@ -118,13 +213,17 @@ export default function Settings() {
   const initialTab = searchParams.get('tab') || 'basic'
   const [isPending, setIsPending] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const [items, setItems] = useState<RegistryItem[]>([])
+  const [pending, setPending] = useState<Values>({})
+  const [savingKeys, setSavingKeys] = useState<Set<string>>(new Set())
+  const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set())
   const [savingTab, setSavingTab] = useState<string | null>(null)
 
-  const [basic, setBasic] = useState<BasicValues>({})
-  const [docker, setDocker] = useState<BasicValues>({})
-  const [loki, setLoki] = useState<BasicValues>({})
-  const [fin, setFin] = useState<BasicValues>({})
-  const [themes, setThemes] = useState<ThemeListItem[]>(FALLBACK_THEMES)
+  const [docker, setDocker] = useState<Values>({})
+  const [loki, setLoki] = useState<Values>({})
+  const [fin, setFin] = useState<Values>({})
+  const [themes, setThemes] = useState<ThemeListItem[]>([])
 
   // Change password
   const [currentPassword, setCurrentPassword] = useState('')
@@ -132,31 +231,17 @@ export default function Settings() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [savingPassword, setSavingPassword] = useState(false)
 
+  const effective = (it: RegistryItem) => pending[it.key] ?? it.value
+
   const load = async () => {
     setIsPending(true)
     setError(null)
     try {
-      const res = await settingsApi.getAll() as { success: boolean; data: Record<string, string> }
+      const res = await settingsApi.getAll()
       if (!res.success) { setError('Не удалось загрузить настройки'); return }
+      setItems(res.items || [])
+      setPending({})
       const d = res.data || {}
-      setBasic({
-        site_name: d.site_name || '',
-        site_description: d.site_description || '',
-        site_url: d.site_url || '',
-        admin_email: d.admin_email || '',
-        admin_title: d.admin_title || '',
-        browser_title: d.browser_title || '',
-        title_separator: d.title_separator ?? '—',
-        favicon_url: d.favicon_url || '',
-        timezone: d.timezone || 'Europe/Moscow',
-        locale: d.locale || 'ru',
-        meta_description: d.meta_description || '',
-        meta_keywords: d.meta_keywords || '',
-        posts_per_page: d.posts_per_page || '10',
-        comments_auto_approve: d.comments_auto_approve || '0',
-        maintenance_mode: d.maintenance_mode || '0',
-        active_theme: d.active_theme || 'hexaveil',
-      })
       try {
         const dc = d.docker_config ? JSON.parse(d.docker_config) : {}
         setDocker({
@@ -197,8 +282,8 @@ export default function Settings() {
 
       try {
         const tr = await themesApi.list()
-        if (tr.success && tr.data?.length) setThemes(tr.data)
-      } catch { /* themes optional — keep fallback */ }
+        setThemes(tr.success ? tr.data : [])
+      } catch { /* themes optional */ }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Ошибка')
     } finally {
@@ -208,47 +293,79 @@ export default function Settings() {
 
   useEffect(() => { load() }, [])
 
-  const validateBasic = (): string | null => {
-    const pp = (basic.posts_per_page || '').trim()
-    if (!/^\d+$/.test(pp) || parseInt(pp, 10) <= 0) {
-      return '«Постов на страницу» должно быть положительным целым числом'
+  const byTab = useMemo(() => {
+    const res: Record<string, Record<string, RegistryItem[]>> = {}
+    for (const it of items) {
+      res[it.tab] = res[it.tab] || {}
+      res[it.tab][it.category] = res[it.tab][it.category] || []
+      res[it.tab][it.category].push(it)
     }
-    const email = (basic.admin_email || '').trim()
-    if (email && !EMAIL_RE.test(email)) return 'Некорректный email администратора'
-    const urls: Array<[string, string]> = [
-      ['URL сайта', basic.site_url || ''],
-      ['URL favicon', basic.favicon_url || ''],
-    ]
-    for (const [label, value] of urls) {
-      const val = value.trim()
-      if (val && !/^(https?:\/\/|\/)/.test(val)) {
-        return `${label}: должен начинаться с http://, https:// или /`
-      }
-    }
-    return null
+    return res
+  }, [items])
+
+  const applySaved = (saved?: RegistryItem) => {
+    if (!saved) return
+    setItems((prev) => prev.map((it) => (it.key === saved.key ? saved : it)))
+    setPending((prev) => { const n = { ...prev }; delete n[saved.key]; return n })
   }
 
-  const saveBasic = async (tab: string, extra: Record<string, string> = {}) => {
-    const validationError = validateBasic()
-    if (validationError) { toast.error(validationError); return }
-    setSavingTab(tab)
+  const flashSaved = (key: string) => {
+    setSavedKeys((prev) => new Set(prev).add(key))
+    setTimeout(() => setSavedKeys((prev) => { const n = new Set(prev); n.delete(key); return n }), 2000)
+  }
+
+  const onSave = async (key: string, value: string) => {
+    setSavingKeys((prev) => new Set(prev).add(key))
     try {
-      const res = await settingsApi.update({ ...basic, ...extra }) as { success: boolean }
-      if (res.success !== false) {
-        toast.success('Настройки сохранены')
-        await load()
+      const res = await settingsApi.setKey(key, value)
+      if (res.success === false) { toast.error((res as { error?: string }).error || 'Не удалось сохранить'); return }
+      applySaved(res.data)
+      flashSaved(key)
+      // branding depends on admin_title/browser_title — refresh it silently
+      if (key === 'admin_title' || key === 'browser_title' || key === 'title_separator' || key === 'favicon_url') {
         useBrandingStore.getState().load()
-      } else {
-        toast.error('Не удалось сохранить')
       }
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { error?: string } } }
+      toast.error(e?.response?.data?.error || 'Ошибка сохранения')
+    } finally {
+      setSavingKeys((prev) => { const n = new Set(prev); n.delete(key); return n })
+    }
+  }
+
+  const onReset = async (key: string) => {
+    setSavingKeys((prev) => new Set(prev).add(key))
+    try {
+      const res = await settingsApi.resetKey(key)
+      if (res.success === false) { toast.error('Не удалось сбросить'); return }
+      applySaved(res.data)
+      flashSaved(key)
+      if (key === 'admin_title' || key === 'browser_title' || key === 'title_separator' || key === 'favicon_url') {
+        useBrandingStore.getState().load()
+      }
+    } catch {
+      toast.error('Ошибка сброса')
+    } finally {
+      setSavingKeys((prev) => { const n = new Set(prev); n.delete(key); return n })
+    }
+  }
+
+  const onChange = (key: string, value: string) => {
+    setPending((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const saveLogs = async () => {
+    setSavingTab('logs')
+    try {
+      const res = await settingsApi.update({
+        docker_config: JSON.stringify(docker),
+        loki_config: JSON.stringify(loki),
+      }) as { success?: boolean }
+      if (res.success !== false) { toast.success('Настройки сохранены'); load() }
+      else toast.error('Не удалось сохранить')
     } catch { toast.error('Ошибка сохранения') }
     finally { setSavingTab(null) }
   }
-
-  const saveLogs = () => saveBasic('logs', {
-    docker_config: JSON.stringify(docker),
-    loki_config: JSON.stringify(loki),
-  })
 
   const saveFinance = async () => {
     setSavingTab('finance')
@@ -261,22 +378,21 @@ export default function Settings() {
   }
 
   const saveAll = async () => {
-    const validationError = validateBasic()
-    if (validationError) { toast.error(validationError); return }
     setSavingTab('all')
     try {
-      await settingsApi.update({
-        ...basic,
-        active_theme: basic.active_theme || 'hexaveil',
-        docker_config: JSON.stringify(docker),
-        loki_config: JSON.stringify(loki),
-      })
+      const flat: Record<string, string> = {}
+      for (const it of items) flat[it.key] = effective(it)
+      flat.docker_config = JSON.stringify(docker)
+      flat.loki_config = JSON.stringify(loki)
+      const res = await settingsApi.update(flat) as { success?: boolean; error?: string }
+      if (res.success === false) { toast.error(res.error || 'Не удалось сохранить'); return }
       try { await financeApi.saveSettings(fin) } catch { /* finance optional */ }
       toast.success('Настройки сохранены')
       await load()
       useBrandingStore.getState().load()
-    } catch {
-      toast.error('Ошибка сохранения')
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { error?: string } } }
+      toast.error(e?.response?.data?.error || 'Ошибка сохранения')
     } finally {
       setSavingTab(null)
     }
@@ -306,6 +422,24 @@ export default function Settings() {
     }
   }
 
+  const renderCategory = (category: string, catItems: RegistryItem[]) => (
+    <Section key={category} title={category} description={CATEGORY_DESC[category]}>
+      {catItems.map((it) => (
+        <SettingItem
+          key={it.key}
+          item={it}
+          value={effective(it)}
+          isSaving={savingKeys.has(it.key)}
+          wasSaved={savedKeys.has(it.key)}
+          themes={themes}
+          onSave={onSave}
+          onReset={onReset}
+          onChange={onChange}
+        />
+      ))}
+    </Section>
+  )
+
   if (isPending) {
     return (
       <div className="space-y-6">
@@ -319,7 +453,6 @@ export default function Settings() {
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
       <div className="page-header">
         <div>
           <h1 className="page-header-title">Настройки</h1>
@@ -349,120 +482,42 @@ export default function Settings() {
             <TabsTrigger value="logs">Логи</TabsTrigger>
           </TabsList>
 
-          {/* ── Основные ── */}
+          {/* ── Основные (registry-driven) ── */}
           <TabsContent value="basic" className="space-y-2 mt-4">
-            <Section title="Брендинг панели" description="Название CMS, заголовок вкладки и favicon" defaultOpen>
-              <FieldRow label="Название CMS" description="Отображается в сайдбаре и на странице входа">
-                <Input value={basic.admin_title || ''} onChange={(e) => setBasic({ ...basic, admin_title: e.target.value })} placeholder="HexaVeil CMS" />
-              </FieldRow>
-              <FieldRow label="Заголовок вкладки браузера" description="Если пусто — используется название CMS">
-                <Input value={basic.browser_title || ''} onChange={(e) => setBasic({ ...basic, browser_title: e.target.value })} placeholder={basic.admin_title || 'HexaVeil CMS'} />
-              </FieldRow>
-              <FieldRow label="Разделитель заголовков" description="Например: — или |">
-                <Input value={basic.title_separator || ''} onChange={(e) => setBasic({ ...basic, title_separator: e.target.value })} placeholder="—" />
-              </FieldRow>
-              <FieldRow label="URL favicon" description="Пусто — встроенная иконка">
-                <Input value={basic.favicon_url || ''} onChange={(e) => setBasic({ ...basic, favicon_url: e.target.value })} placeholder="/favicon.svg" />
-              </FieldRow>
-            </Section>
-
-            <Section title="Сайт" description="Название, адрес и контакты проекта">
-              <FieldRow label="Название сайта" description="Заголовок публичной части">
-                <Input value={basic.site_name || ''} onChange={(e) => setBasic({ ...basic, site_name: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Описание сайта">
-                <Input value={basic.site_description || ''} onChange={(e) => setBasic({ ...basic, site_description: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="URL сайта">
-                <Input value={basic.site_url || ''} onChange={(e) => setBasic({ ...basic, site_url: e.target.value })} placeholder="https://hexaveil.xyz" />
-              </FieldRow>
-              <FieldRow label="Email администратора">
-                <Input value={basic.admin_email || ''} onChange={(e) => setBasic({ ...basic, admin_email: e.target.value })} placeholder="admin@example.com" />
-              </FieldRow>
-              <FieldRow label="Часовой пояс">
-                <Input value={basic.timezone || ''} onChange={(e) => setBasic({ ...basic, timezone: e.target.value })} placeholder="Europe/Moscow" />
-              </FieldRow>
-              <FieldRow label="Язык (locale)">
-                <Input value={basic.locale || ''} onChange={(e) => setBasic({ ...basic, locale: e.target.value })} placeholder="ru" />
-              </FieldRow>
-            </Section>
-
-            <Section title="Контент" description="Публикация и комментарии">
-              <FieldRow label="Постов на страницу">
-                <Input type="number" min={1} value={basic.posts_per_page || '10'} onChange={(e) => setBasic({ ...basic, posts_per_page: e.target.value })} />
-              </FieldRow>
-              <SwitchRow
-                label="Автоодобрение комментариев"
-                description="Новые комментарии публикуются без модерации"
-                checked={basic.comments_auto_approve === '1'}
-                onCheckedChange={(v) => setBasic({ ...basic, comments_auto_approve: v ? '1' : '0' })}
-              />
-              <SwitchRow
-                label="Режим обслуживания"
-                description="Публичная часть показывает заглушку"
-                checked={basic.maintenance_mode === '1'}
-                onCheckedChange={(v) => setBasic({ ...basic, maintenance_mode: v ? '1' : '0' })}
-              />
-            </Section>
-
-            <Section title="SEO" description="Мета-теги по умолчанию для поисковых систем">
-              <FieldRow label="Meta Description" description="SEO-описание по умолчанию">
-                <Input value={basic.meta_description || ''} onChange={(e) => setBasic({ ...basic, meta_description: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Meta Keywords" description="Ключевые слова через запятую">
-                <Input value={basic.meta_keywords || ''} onChange={(e) => setBasic({ ...basic, meta_keywords: e.target.value })} />
-              </FieldRow>
-            </Section>
-
-            <div className="flex justify-end pt-2">
-              <Button variant="default" onClick={() => saveBasic('basic')} disabled={savingTab === 'basic'}>
-                <Save className="w-4 h-4 mr-1.5" /> {savingTab === 'basic' ? 'Сохранение…' : 'Сохранить'}
-              </Button>
-            </div>
+            {Object.entries(byTab.basic || {}).map(([cat, catItems]) =>
+              renderCategory(cat, catItems)
+            )}
           </TabsContent>
 
-          {/* ── Внешний вид ── */}
+          {/* ── Внешний вид (registry-driven) ── */}
           <TabsContent value="appearance" className="space-y-2 mt-4">
-            <Section title="Тема оформления" description="Оформление публичной части сайта" defaultOpen>
-              <FieldRow label="Активная тема" description="Тема, применяемая к лендингу и блогу">
-                <Select value={basic.active_theme || 'hexaveil'} onValueChange={(v) => setBasic({ ...basic, active_theme: v })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {themes.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </FieldRow>
-            </Section>
-            <div className="flex justify-end pt-2">
-              <Button variant="default" onClick={() => saveBasic('appearance', { active_theme: basic.active_theme || 'hexaveil' })} disabled={savingTab === 'appearance'}>
-                <Save className="w-4 h-4 mr-1.5" /> {savingTab === 'appearance' ? 'Сохранение…' : 'Сохранить'}
-              </Button>
-            </div>
+            {Object.entries(byTab.appearance || {}).map(([cat, catItems]) =>
+              renderCategory(cat, catItems)
+            )}
           </TabsContent>
 
           {/* ── Безопасность ── */}
           <TabsContent value="security" className="space-y-2 mt-4">
-            <Section title="Смена пароля" description="Пароль текущей учётной записи" defaultOpen>
-              <FieldRow label="Текущий пароль">
+            <Section title="Смена пароля" description="Пароль текущей учётной записи">
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Текущий пароль</Label>
                 <Input type="password" autoComplete="current-password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" />
-              </FieldRow>
-              <FieldRow label="Новый пароль" description="Минимум 8 символов">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Новый пароль</Label>
                 <Input type="password" autoComplete="new-password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" />
-              </FieldRow>
-              <FieldRow
-                label="Повторите новый пароль"
-                description={
-                  confirmPassword.length === 0
-                    ? undefined
-                    : newPassword !== confirmPassword
-                      ? 'Пароли не совпадают'
-                      : newPassword.length >= 8
-                        ? 'Пароли совпадают'
-                        : undefined
-                }
-              >
+                <p className="text-xs text-dark-200 mt-1">Минимум 8 символов</p>
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Повторите новый пароль</Label>
                 <Input type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="••••••••" />
-              </FieldRow>
+                {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+                  <p className="text-xs text-red-400 mt-1">Пароли не совпадают</p>
+                )}
+                {confirmPassword.length > 0 && newPassword === confirmPassword && newPassword.length >= 8 && (
+                  <p className="text-xs text-green-400 mt-1">Пароли совпадают</p>
+                )}
+              </div>
               <div className="pt-3">
                 <Button variant="default" onClick={changePassword} disabled={savingPassword} className="w-full">
                   <Save className="w-4 h-4 mr-1.5" /> {savingPassword ? 'Сохранение…' : 'Сменить пароль'}
@@ -473,17 +528,22 @@ export default function Settings() {
 
           {/* ── Финансы ── */}
           <TabsContent value="finance" className="space-y-2 mt-4">
-            <Section title="Основные настройки" description="Валюта, точность и автообновление" defaultOpen>
-              <FieldRow label="Валюта">
+            <Section title="Основные настройки" description="Валюта, точность и автообновление">
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Валюта</Label>
                 <Input value={fin.currency || ''} onChange={(e) => setFin({ ...fin, currency: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Знаков после запятой">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Знаков после запятой</Label>
                 <Input type="number" value={fin.decimals || '2'} onChange={(e) => setFin({ ...fin, decimals: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Автообновление, сек" description="0 — выключено">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Автообновление, сек</Label>
                 <Input type="number" value={fin.auto_refresh || '0'} onChange={(e) => setFin({ ...fin, auto_refresh: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Период средних">
+                <p className="text-xs text-dark-200 mt-1">0 — выключено</p>
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Период средних</Label>
                 <Select value={fin.avg_period || 'day'} onValueChange={(v) => setFin({ ...fin, avg_period: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -493,20 +553,25 @@ export default function Settings() {
                     <SelectItem value="year">Год</SelectItem>
                   </SelectContent>
                 </Select>
-              </FieldRow>
+              </div>
             </Section>
 
             <Section title="Platega" description="Синхронизация платежей Platega">
-              <FieldRow label="Merchant ID">
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Merchant ID</Label>
                 <Input value={fin.platega_merchant_id || ''} onChange={(e) => setFin({ ...fin, platega_merchant_id: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Секрет" description="Оставьте пустым, чтобы не менять сохранённый ключ">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Секрет</Label>
                 <Input type="password" value={fin.platega_secret || ''} onChange={(e) => setFin({ ...fin, platega_secret: e.target.value })} placeholder="••••••" />
-              </FieldRow>
-              <FieldRow label="Дней назад">
+                <p className="text-xs text-dark-200 mt-1">Оставьте пустым, чтобы не менять сохранённый ключ</p>
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Дней назад</Label>
                 <Input type="number" value={fin.platega_days_back || '5'} onChange={(e) => setFin({ ...fin, platega_days_back: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Автоимпорт">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Автоимпорт</Label>
                 <Select value={String(fin.platega_auto_sync || '0')} onValueChange={(v) => setFin({ ...fin, platega_auto_sync: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -514,20 +579,25 @@ export default function Settings() {
                     <SelectItem value="1">Включён</SelectItem>
                   </SelectContent>
                 </Select>
-              </FieldRow>
+              </div>
             </Section>
 
             <Section title="YooKassa" description="Синхронизация платежей YooKassa">
-              <FieldRow label="Shop ID">
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Shop ID</Label>
                 <Input value={fin.yookassa_shop_id || ''} onChange={(e) => setFin({ ...fin, yookassa_shop_id: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Секретный ключ" description="Оставьте пустым, чтобы не менять сохранённый ключ">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Секретный ключ</Label>
                 <Input type="password" value={fin.yookassa_secret_key || ''} onChange={(e) => setFin({ ...fin, yookassa_secret_key: e.target.value })} placeholder="••••••" />
-              </FieldRow>
-              <FieldRow label="Дней назад">
+                <p className="text-xs text-dark-200 mt-1">Оставьте пустым, чтобы не менять сохранённый ключ</p>
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Дней назад</Label>
                 <Input type="number" value={fin.yookassa_days_back || '5'} onChange={(e) => setFin({ ...fin, yookassa_days_back: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Автоимпорт">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Автоимпорт</Label>
                 <Select value={String(fin.yookassa_auto_sync || '0')} onValueChange={(v) => setFin({ ...fin, yookassa_auto_sync: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -535,7 +605,7 @@ export default function Settings() {
                     <SelectItem value="1">Включён</SelectItem>
                   </SelectContent>
                 </Select>
-              </FieldRow>
+              </div>
             </Section>
 
             <div className="flex justify-end pt-2">
@@ -547,37 +617,47 @@ export default function Settings() {
 
           {/* ── Логи ── */}
           <TabsContent value="logs" className="space-y-2 mt-4">
-            <Section title="Docker" description="Просмотр логов контейнеров по SSH" defaultOpen>
-              <FieldRow label="SSH хост">
+            <Section title="Docker" description="Просмотр логов контейнеров по SSH">
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">SSH хост</Label>
                 <Input value={docker.docker_ssh_host || ''} onChange={(e) => setDocker({ ...docker, docker_ssh_host: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="SSH порт">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">SSH порт</Label>
                 <Input value={docker.docker_ssh_port || '22'} onChange={(e) => setDocker({ ...docker, docker_ssh_port: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="SSH пользователь">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">SSH пользователь</Label>
                 <Input value={docker.docker_ssh_user || ''} onChange={(e) => setDocker({ ...docker, docker_ssh_user: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Строк на контейнер">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Строк на контейнер</Label>
                 <Input type="number" value={docker.docker_lines || '100'} onChange={(e) => setDocker({ ...docker, docker_lines: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Контейнеры" description="Список через запятую">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Контейнеры</Label>
                 <Input value={docker.docker_containers || ''} onChange={(e) => setDocker({ ...docker, docker_containers: e.target.value })} />
-              </FieldRow>
+                <p className="text-xs text-dark-200 mt-1">Список через запятую</p>
+              </div>
             </Section>
 
             <Section title="Loki" description="Источник логов Loki">
-              <FieldRow label="Loki URL">
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Loki URL</Label>
                 <Input value={loki.loki_url || ''} onChange={(e) => setLoki({ ...loki, loki_url: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Query">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Query</Label>
                 <Input value={loki.loki_query || ''} onChange={(e) => setLoki({ ...loki, loki_query: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Пользователь">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Пользователь</Label>
                 <Input value={loki.loki_user || ''} onChange={(e) => setLoki({ ...loki, loki_user: e.target.value })} />
-              </FieldRow>
-              <FieldRow label="Лимит записей">
+              </div>
+              <div className="py-3">
+                <Label className="block text-sm text-dark-200 mb-1.5">Лимит записей</Label>
                 <Input type="number" value={loki.loki_limit || '100'} onChange={(e) => setLoki({ ...loki, loki_limit: e.target.value })} />
-              </FieldRow>
+              </div>
             </Section>
 
             <div className="flex justify-end pt-2">
