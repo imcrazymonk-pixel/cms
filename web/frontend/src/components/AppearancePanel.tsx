@@ -272,7 +272,8 @@ export function AppearancePanel() {
                 onCheckedChange={setAnimationsEnabled}
               />
             </div>
-          </div>
+
+            </div>
         </ScrollArea>
       </PopoverContent>
     </Popover>
