@@ -96,8 +96,8 @@ export default {
         "glass-heavy": "var(--glass-blur-heavy)",
       },
       fontFamily: {
-        sans: ['Montserrat', 'system-ui', 'sans-serif'],
-        mono: ['Fira Mono', 'JetBrains Mono', 'monospace'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
         display: ['Unbounded', 'system-ui', 'sans-serif'],
       },
       keyframes: {
