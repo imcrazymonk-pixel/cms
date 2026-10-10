@@ -12,6 +12,11 @@ import {
   Settings,
   Terminal,
   Monitor,
+  Bot,
+  BarChart3,
+  Ticket,
+  Megaphone,
+  Share2,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -52,6 +57,20 @@ const navigation: NavigationEntry[] = [
 
   { type: 'section', name: 'Финансы' },
   { name: 'Финансы', href: '/finance', icon: Wallet, permission: null },
+
+  { type: 'section', name: 'Bedolaga' },
+  {
+    type: 'group',
+    name: 'Bedolaga Bot',
+    icon: Bot,
+    items: [
+      { name: 'Дашборд', href: '/bedolaga', icon: BarChart3, permission: null },
+      { name: 'Клиенты', href: '/bedolaga/customers', icon: Users, permission: null },
+      { name: 'Промокоды', href: '/bedolaga/promo', icon: Ticket, permission: null },
+      { name: 'Маркетинг', href: '/bedolaga/marketing', icon: Megaphone, permission: null },
+      { name: 'Рефералы', href: '/bedolaga/referrals', icon: Share2, permission: null },
+    ],
+  },
 
   { type: 'section', name: 'Система' },
   { name: 'Пользователи', href: '/users', icon: Users, permission: null },

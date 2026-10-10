@@ -30,6 +30,15 @@ const UserEdit = lazy(() => import('./pages/UserEdit'))
 const Settings = lazy(() => import('./pages/Settings'))
 const LogsViewer = lazy(() => import('./pages/LogsViewer'))
 const Diagnostics = lazy(() => import('./pages/Diagnostics'))
+
+// Bedolaga pages
+const BedolagaDashboard = lazy(() => import('./pages/bedolaga/BedolagaDashboard'))
+const BedolagaCustomers = lazy(() => import('./pages/bedolaga/BedolagaCustomers'))
+const BedolagaCustomerDetail = lazy(() => import('./pages/bedolaga/BedolagaCustomerDetail'))
+const BedolagaPromo = lazy(() => import('./pages/bedolaga/BedolagaPromo'))
+const BedolagaMarketing = lazy(() => import('./pages/bedolaga/BedolagaMarketing'))
+const BedolagaReferrals = lazy(() => import('./pages/bedolaga/BedolagaReferrals'))
+
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -90,6 +99,14 @@ export default function App() {
               <Route path="/settings" element={<RequireAuth><Layout><Settings /></Layout></RequireAuth>} />
               <Route path="/logs" element={<RequireAuth><Layout><LogsViewer /></Layout></RequireAuth>} />
               <Route path="/diagnostics" element={<RequireAuth><Layout><Diagnostics /></Layout></RequireAuth>} />
+
+              {/* Bedolaga Bot Integration */}
+              <Route path="/bedolaga" element={<RequireAuth><Layout><BedolagaDashboard /></Layout></RequireAuth>} />
+              <Route path="/bedolaga/customers" element={<RequireAuth><Layout><BedolagaCustomers /></Layout></RequireAuth>} />
+              <Route path="/bedolaga/customers/:id" element={<RequireAuth><Layout><BedolagaCustomerDetail /></Layout></RequireAuth>} />
+              <Route path="/bedolaga/promo" element={<RequireAuth><Layout><BedolagaPromo /></Layout></RequireAuth>} />
+              <Route path="/bedolaga/marketing" element={<RequireAuth><Layout><BedolagaMarketing /></Layout></RequireAuth>} />
+              <Route path="/bedolaga/referrals" element={<RequireAuth><Layout><BedolagaReferrals /></Layout></RequireAuth>} />
 
               {/* 404 */}
               <Route path="*" element={<NotFound />} />

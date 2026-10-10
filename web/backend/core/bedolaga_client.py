@@ -1,0 +1,356 @@
+"""HTTP client for Bedolaga Bot REST API.
+
+Adapted from remnawave-admin-main/shared/bedolaga_client.py.
+CMS version — no shared/ package dependency, uses CmsSettings directly.
+"""
+import logging
+from typing import Optional
+
+import httpx
+
+from web.backend.core.config import get_cms_settings
+
+logger = logging.getLogger(__name__)
+
+
+class BedolagaClient:
+    """Client for Bedolaga Bot REST API."""
+
+    def __init__(self):
+        self._base_url: Optional[str] = None
+        self._api_token: Optional[str] = None
+        self._client: Optional[httpx.AsyncClient] = None
+
+    def configure(self, base_url: str, api_token: str):
+        """Configure the client with URL and token."""
+        self._base_url = base_url.rstrip("/")
+        self._api_token = api_token
+        self._client = None
+
+    @property
+    def is_configured(self) -> bool:
+        return bool(self._base_url and self._api_token)
+
+    def _get_client(self) -> httpx.AsyncClient:
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(
+                base_url=self._base_url,
+                headers={"X-API-Key": self._api_token},
+                timeout=httpx.Timeout(15.0),
+            )
+        return self._client
+
+    async def _get(self, path: str, params: dict = None) -> dict:
+        client = self._get_client()
+        response = await client.get(path, params=params)
+        response.raise_for_status()
+        return response.json()
+
+    async def _post(self, path: str, json: dict = None, params: dict = None) -> dict:
+        client = self._get_client()
+        response = await client.post(path, json=json, params=params)
+        response.raise_for_status()
+        return response.json()
+
+    async def _patch(self, path: str, json: dict = None) -> dict:
+        client = self._get_client()
+        response = await client.patch(path, json=json)
+        response.raise_for_status()
+        return response.json()
+
+    async def _delete(self, path: str, params: dict = None) -> dict:
+        client = self._get_client()
+        response = await client.delete(path, params=params)
+        response.raise_for_status()
+        return response.json()
+
+    # ── Stats ──
+
+    async def get_overview(self) -> dict:
+        return await self._get("/stats/overview")
+
+    async def get_full_stats(self) -> dict:
+        return await self._get("/stats/full")
+
+    async def get_health(self) -> dict:
+        return await self._get("/health")
+
+    async def get_maintenance(self) -> dict:
+        """Real maintenance status. Tries /maintenance/status, falls back to /admin/maintenance."""
+        client = self._get_client()
+        for path in ("/maintenance/status", "/admin/maintenance"):
+            try:
+                response = await client.get(path)
+            except httpx.HTTPError as exc:
+                logger.warning("Bedolaga maintenance probe failed on %s: %s", path, exc)
+                continue
+            if response.status_code == 404:
+                continue
+            response.raise_for_status()
+            data = response.json() if response.content else {}
+            if not isinstance(data, dict):
+                data = {}
+            data.setdefault("available", True)
+            data["enabled"] = bool(
+                data.get("enabled")
+                or data.get("is_enabled")
+                or data.get("active")
+                or data.get("mode") == "maintenance"
+                or data.get("status") == "maintenance"
+            )
+            return data
+        return {"available": False, "enabled": False}
+
+    # ── Users ──
+
+    async def list_users(self, limit: int = 20, offset: int = 0, **filters) -> dict:
+        params = {"limit": limit, "offset": offset}
+        params.update({k: v for k, v in filters.items() if v is not None})
+        return await self._get("/users", params=params)
+
+    async def get_user(self, user_id: int) -> dict:
+        return await self._get(f"/users/{user_id}")
+
+    async def get_user_by_telegram(self, telegram_id: int) -> dict:
+        return await self._get(f"/users/by-telegram-id/{telegram_id}")
+
+    async def get_user_by_email(self, email: str, page_size: int = 200, max_pages: int = 50) -> Optional[dict]:
+        """Find an email-only user using the paginated public users contract."""
+        target = email.strip().casefold()
+        if not target:
+            return None
+
+        try:
+            found = await self.list_users(limit=50, search=email.strip())
+            for user in (found.get("items", []) if isinstance(found, dict) else []):
+                if str((user or {}).get("email") or "").strip().casefold() == target:
+                    return user
+        except Exception as e:
+            logger.debug("Bedolaga email search failed, scanning pages: %s", e)
+
+        offset = 0
+        for _ in range(max_pages):
+            page = await self.list_users(limit=page_size, offset=offset)
+            items = page.get("items", []) if isinstance(page, dict) else []
+            for user in items:
+                candidate = str((user or {}).get("email") or "").strip().casefold()
+                if candidate == target:
+                    return user
+
+            offset += len(items)
+            total = int(page.get("total") or 0) if isinstance(page, dict) else 0
+            if not items or (total and offset >= total) or len(items) < page_size:
+                return None
+        logger.warning("Bedolaga email search stopped after %s pages", max_pages)
+        return None
+
+    async def notify_user(
+        self,
+        user_id: int,
+        text: str,
+        channels: list[str] | None = None,
+        email_subject: str | None = None,
+        email_html: str | None = None,
+    ) -> dict:
+        """Service message to customer via bot — Telegram and email."""
+        payload: dict = {"text": text}
+        if channels:
+            payload["channels"] = channels
+        if email_subject:
+            payload["email_subject"] = email_subject
+        if email_html:
+            payload["email_html"] = email_html
+        return await self._post(f"/users/{user_id}/notify", json=payload)
+
+    async def update_user(self, user_id: int, data: dict) -> dict:
+        return await self._patch(f"/users/{user_id}", json=data)
+
+    async def modify_balance(self, user_id: int, data: dict) -> dict:
+        return await self._post(f"/users/{user_id}/balance", json=data)
+
+    # ── Subscriptions ──
+
+    async def list_subscriptions(self, limit: int = 20, offset: int = 0, **filters) -> dict:
+        params = {"limit": limit, "offset": offset}
+        params.update({k: v for k, v in filters.items() if v is not None})
+        return await self._get("/subscriptions", params=params)
+
+    async def get_subscription(self, sub_id: int) -> dict:
+        return await self._get(f"/subscriptions/{sub_id}")
+
+    async def create_subscription(self, user_id: int, data: dict) -> dict:
+        return await self._post(f"/users/{user_id}/subscription", json=data)
+
+    async def deactivate_subscription(self, user_id: int) -> dict:
+        return await self._delete(f"/users/{user_id}/subscription")
+
+    async def extend_subscription(self, sub_id: int, data: dict) -> dict:
+        return await self._post(f"/subscriptions/{sub_id}/extend", json=data)
+
+    async def add_traffic(self, sub_id: int, data: dict) -> dict:
+        return await self._post(f"/subscriptions/{sub_id}/traffic", json=data)
+
+    async def add_devices(self, sub_id: int, data: dict) -> dict:
+        return await self._post(f"/subscriptions/{sub_id}/devices", json=data)
+
+    # ── Referrals ──
+
+    async def get_all_users(self, limit: int = 200, offset: int = 0) -> dict:
+        return await self._get("/users", params={"limit": limit, "offset": offset})
+
+    # ── Transactions ──
+
+    async def list_transactions(self, limit: int = 20, offset: int = 0, **filters) -> dict:
+        params = {"limit": limit, "offset": offset}
+        params.update({k: v for k, v in filters.items() if v is not None})
+        return await self._get("/transactions", params=params)
+
+    # ── Support tickets ──
+
+    async def list_tickets(self, limit: int = 50, offset: int = 0, **filters) -> list:
+        params = {"limit": limit, "offset": offset}
+        params.update({k: v for k, v in filters.items() if v is not None})
+        return await self._get("/tickets", params=params)
+
+    async def get_ticket(self, ticket_id: int) -> dict:
+        return await self._get(f"/tickets/{ticket_id}")
+
+    async def reply_ticket(
+        self,
+        ticket_id: int,
+        message_text: str,
+        media_type: str | None = None,
+        media_file_id: str | None = None,
+    ) -> dict:
+        payload: dict = {"message_text": message_text}
+        if media_file_id:
+            payload.update({"media_type": media_type or "document", "media_file_id": media_file_id})
+        return await self._post(f"/tickets/{ticket_id}/reply", json=payload)
+
+    async def upload_media(self, content: bytes, filename: str, media_type: str = "document") -> dict:
+        client = self._get_client()
+        response = await client.post(
+            "/upload",
+            files={"file": (filename, content)},
+            data={"media_type": media_type},
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def set_ticket_status(self, ticket_id: int, status: str) -> dict:
+        return await self._post(f"/tickets/{ticket_id}/status", json={"status": status})
+
+    async def set_ticket_priority(self, ticket_id: int, priority: str) -> dict:
+        return await self._post(f"/tickets/{ticket_id}/priority", json={"priority": priority})
+
+    async def download_media(self, file_id: str) -> bytes:
+        client = self._get_client()
+        response = await client.get(f"/media/{file_id}")
+        response.raise_for_status()
+        return response.content
+
+    async def get_ticket_message_media(self, ticket_id: int, message_id: int) -> dict:
+        return await self._get(f"/tickets/{ticket_id}/messages/{message_id}/media")
+
+    # ── Activity ──
+
+    async def get_user_activity(self, user_id: int, limit: int = 50, offset: int = 0, types: str | None = None) -> dict:
+        params: dict = {"limit": limit, "offset": offset}
+        if types:
+            params["types"] = types
+        return await self._get(f"/users/{user_id}/activity", params=params)
+
+    # ── Subscription Events ──
+
+    async def list_subscription_events(
+        self, limit: int = 20, offset: int = 0, event_types: Optional[list] = None,
+    ) -> dict:
+        params: dict = {"limit": limit, "offset": offset}
+        if event_types:
+            params["event_type"] = list(event_types)
+        return await self._get("/notifications/subscriptions", params=params)
+
+    # ── Promo codes ──
+
+    async def list_promos(self, limit: int = 20, offset: int = 0, **filters) -> dict:
+        params = {"limit": limit, "offset": offset}
+        params.update({k: v for k, v in filters.items() if v is not None})
+        return await self._get("/promo-codes", params=params)
+
+    async def get_promo(self, promo_id: int) -> dict:
+        return await self._get(f"/promo-codes/{promo_id}")
+
+    async def create_promo(self, data: dict) -> dict:
+        return await self._post("/promo-codes", json=data)
+
+    async def update_promo(self, promo_id: int, data: dict) -> dict:
+        return await self._patch(f"/promo-codes/{promo_id}", json=data)
+
+    async def delete_promo(self, promo_id: int) -> dict:
+        return await self._delete(f"/promo-codes/{promo_id}")
+
+    async def get_promo_stats(self, promo_id: int) -> dict:
+        return await self._get(f"/promo-codes/{promo_id}")
+
+    # ── Marketing campaigns ──
+
+    async def list_campaigns(self, limit: int = 20, offset: int = 0, **filters) -> dict:
+        params = {"limit": limit, "offset": offset}
+        params.update({k: v for k, v in filters.items() if v is not None})
+        return await self._get("/campaigns", params=params)
+
+    async def create_campaign(self, data: dict) -> dict:
+        return await self._post("/campaigns", json=data)
+
+    async def update_campaign(self, campaign_id: int, data: dict) -> dict:
+        return await self._patch(f"/campaigns/{campaign_id}", json=data)
+
+    async def delete_campaign(self, campaign_id: int) -> dict:
+        return await self._delete(f"/campaigns/{campaign_id}")
+
+    # ── Partners ──
+
+    async def list_partners(self, limit: int = 20, offset: int = 0, **filters) -> dict:
+        params = {"limit": limit, "offset": offset}
+        params.update({k: v for k, v in filters.items() if v is not None})
+        return await self._get("/partners/referrers", params=params)
+
+    async def get_partner(self, user_id: int) -> dict:
+        return await self._get(f"/partners/referrers/{user_id}")
+
+    async def update_partner_commission(self, user_id: int, data: dict) -> dict:
+        return await self._patch(f"/partners/referrers/{user_id}/commission", json=data)
+
+    async def get_partner_global_stats(self) -> dict:
+        return await self._get("/partners/stats")
+
+    async def get_partner_top_referrers(self) -> dict:
+        return await self._get("/partners/stats/top-referrers")
+
+    # ── Broadcasts ──
+
+    async def list_broadcasts(self, limit: int = 20, offset: int = 0, **filters) -> dict:
+        params = {"limit": limit, "offset": offset}
+        params.update({k: v for k, v in filters.items() if v is not None})
+        return await self._get("/broadcasts", params=params)
+
+    async def create_broadcast(self, data: dict) -> dict:
+        return await self._post("/broadcasts", json=data)
+
+    async def stop_broadcast(self, broadcast_id: int) -> dict:
+        return await self._post(f"/broadcasts/{broadcast_id}/stop")
+
+
+# Singleton — same pattern as remnawave
+bedolaga_client = BedolagaClient()
+
+
+def ensure_configured() -> bool:
+    """Configure client from BEDOLAGA_API_URL / BEDOLAGA_API_TOKEN. Returns False if not set."""
+    if bedolaga_client.is_configured:
+        return True
+    settings = get_cms_settings()
+    if not settings.bedolaga_api_url or not settings.bedolaga_api_token:
+        return False
+    bedolaga_client.configure(settings.bedolaga_api_url, settings.bedolaga_api_token)
+    return True

@@ -51,6 +51,10 @@ class CmsSettings(BaseSettings):
     jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
     jwt_ttl: int = Field(default=86400, alias="JWT_TTL")  # 24h, matches PHP
 
+    # Bedolaga Bot API
+    bedolaga_api_url: str = Field(default="", alias="BEDOLAGA_API_URL")
+    bedolaga_api_token: str = Field(default="", alias="BEDOLAGA_API_TOKEN")
+
     # Crypto (for finance secrets, compatible with PHP Crypto.php)
     app_encryption_key: str = Field(default="", alias="APP_ENCRYPTION_KEY")
 
