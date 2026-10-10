@@ -1,0 +1,2 @@
+import{j as t}from"./vendor-react-D8SJ_EkC.js";import{c as a}from"./index-DyHgbAYa.js";function s({className:r,...e}){return t.jsx("div",{className:a("relative overflow-hidden rounded-md bg-[var(--glass-bg-hover)]","after:absolute after:inset-0 after:bg-gradient-to-r after:from-transparent after:via-primary-500/[0.04] after:to-transparent after:animate-shimmer",r),...e})}export{s as S};
+//# sourceMappingURL=skeleton-yyy5UyXP.js.map
