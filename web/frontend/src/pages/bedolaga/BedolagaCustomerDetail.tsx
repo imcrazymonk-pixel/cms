@@ -562,6 +562,14 @@ export default function BedolagaCustomerDetail() {
                     )}
                   </div>
 
+                  {/* Tariff */}
+                  {(user.tariff_id || user.tariff_name) && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-dark-300 flex items-center gap-1.5"><Star className="w-3.5 h-3.5" />{t('bedolaga.customerDetail.tariff')}</span>
+                      <span className="font-medium text-primary-400">{user.tariff_name || `#${user.tariff_id}`}</span>
+                    </div>
+                  )}
+
                   {/* Valid until with countdown */}
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-dark-300 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{t('bedolaga.customerDetail.validUntil')}</span>

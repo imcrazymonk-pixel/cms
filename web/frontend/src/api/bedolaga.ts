@@ -42,6 +42,8 @@ export interface BedolagaUser {
   referral_code?: string
   referred_by_id?: number
   promo_group?: { id?: number; name?: string }
+  tariff_id?: number
+  tariff_name?: string
   subscription?: {
     id?: number
     status?: string
@@ -64,6 +66,9 @@ export const bedolagaApi = {
   getHealth: () => api.get('/bedolaga/health').then(r => r.data),
   getCapabilities: () => api.get('/bedolaga/capabilities').then(r => r.data),
   getMaintenance: () => api.get('/bedolaga/maintenance').then(r => r.data),
+
+  // Tariffs (from bot DB)
+  getTariffs: () => api.get('/bedolaga/tariffs').then(r => r.data),
 
   // Customers
   listUsers: (params: Record<string, string>) =>

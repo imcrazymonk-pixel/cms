@@ -4026,6 +4026,7 @@
       "subscription": "Subscription",
       "noSubscription": "No subscription",
       "status": "Status",
+      "tariff": "Tariff",
       "validUntil": "Valid until",
       "traffic": "Traffic",
       "devices": "Devices",
@@ -4098,6 +4099,20 @@
         "trial": "Trial",
         "expired": "Expired"
       }
+    },
+    "tariffs": {
+      "title": "Tariffs",
+      "subtitle": "Bedolaga Bot tariff catalog",
+      "searchPlaceholder": "Search by name, tag...",
+      "showInactive": "Show inactive",
+      "active": "Active",
+      "inactive": "Inactive",
+      "devices": "dev",
+      "trial": "Trial",
+      "gift": "Gift",
+      "topup": "Traffic topup",
+      "externalSquad": "External squad",
+      "noResults": "No tariffs found"
     },
     "promo": {
       "title": "Promo Codes",

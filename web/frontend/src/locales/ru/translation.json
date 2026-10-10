@@ -4026,6 +4026,7 @@
       "subscription": "Подписка",
       "noSubscription": "Нет подписки",
       "status": "Статус",
+      "tariff": "Тариф",
       "validUntil": "Действует до",
       "traffic": "Трафик",
       "devices": "Устройства",
@@ -4098,6 +4099,20 @@
         "trial": "Триал",
         "expired": "Истекла"
       }
+    },
+    "tariffs": {
+      "title": "Тарифы",
+      "subtitle": "Каталог тарифов Bedolaga Bot",
+      "searchPlaceholder": "Поиск по названию, тегу...",
+      "showInactive": "Показать неактивные",
+      "active": "Активен",
+      "inactive": "Неактивен",
+      "devices": "устр.",
+      "trial": "Триал",
+      "gift": "Подарок",
+      "topup": "Докупка трафика",
+      "externalSquad": "Внешний сквад",
+      "noResults": "Тарифы не найдены"
     },
     "promo": {
       "title": "Промокоды",

@@ -17,6 +17,7 @@ import {
   Ticket,
   Megaphone,
   Share2,
+  BadgeCheck,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -66,6 +67,7 @@ const navigation: NavigationEntry[] = [
     items: [
       { name: 'Дашборд', href: '/bedolaga', icon: BarChart3, permission: null },
       { name: 'Клиенты', href: '/bedolaga/customers', icon: Users, permission: null },
+      { name: 'Тарифы', href: '/bedolaga/tariffs', icon: BadgeCheck, permission: null },
       { name: 'Промокоды', href: '/bedolaga/promo', icon: Ticket, permission: null },
       { name: 'Маркетинг', href: '/bedolaga/marketing', icon: Megaphone, permission: null },
       { name: 'Рефералы', href: '/bedolaga/referrals', icon: Share2, permission: null },

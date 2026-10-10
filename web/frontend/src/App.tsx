@@ -38,6 +38,7 @@ const BedolagaCustomerDetail = lazy(() => import('./pages/bedolaga/BedolagaCusto
 const BedolagaPromo = lazy(() => import('./pages/bedolaga/BedolagaPromo'))
 const BedolagaMarketing = lazy(() => import('./pages/bedolaga/BedolagaMarketing'))
 const BedolagaReferrals = lazy(() => import('./pages/bedolaga/BedolagaReferrals'))
+const BedolagaTariffs = lazy(() => import('./pages/bedolaga/BedolagaTariffs'))
 
 const NotFound = lazy(() => import('./pages/NotFound'))
 
@@ -107,6 +108,7 @@ export default function App() {
               <Route path="/bedolaga/promo" element={<RequireAuth><Layout><BedolagaPromo /></Layout></RequireAuth>} />
               <Route path="/bedolaga/marketing" element={<RequireAuth><Layout><BedolagaMarketing /></Layout></RequireAuth>} />
               <Route path="/bedolaga/referrals" element={<RequireAuth><Layout><BedolagaReferrals /></Layout></RequireAuth>} />
+              <Route path="/bedolaga/tariffs" element={<RequireAuth><Layout><BedolagaTariffs /></Layout></RequireAuth>} />
 
               {/* 404 */}
               <Route path="*" element={<NotFound />} />
