@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from web.backend.core.auto_sync import auto_sync_loop
 from web.backend.core.config import get_cms_settings
 from web.backend.core.database import check_connection, close_engine
+from web.backend.core.bot_db import close_engine as close_bot_db_engine
 from web.backend.core.errors import E
 from web.backend.core.logging_config import setup_logging
 from web.backend.schemas.common import HealthResponse
@@ -51,6 +52,7 @@ async def lifespan(app: FastAPI):
     except asyncio.CancelledError:
         pass
     await close_engine()
+    await close_bot_db_engine()
     logger.info("👋 CMS API stopped")
 
 

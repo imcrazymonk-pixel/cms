@@ -55,6 +55,19 @@ class CmsSettings(BaseSettings):
     bedolaga_api_url: str = Field(default="", alias="BEDOLAGA_API_URL")
     bedolaga_api_token: str = Field(default="", alias="BEDOLAGA_API_TOKEN")
 
+    # Bot Database (read-only — tariffs catalog)
+    bot_db_host: str = Field(default="", alias="BOT_DB_HOST")
+    bot_db_port: int = Field(default=5434, alias="BOT_DB_PORT")
+    bot_db_name: str = Field(default="remnawave_bot", alias="BOT_DB_NAME")
+    bot_db_user: str = Field(default="cms_ro", alias="BOT_DB_USER")
+    bot_db_pass: str = Field(default="cms_ro_pass_2026", alias="BOT_DB_PASS")
+
+    @property
+    def bot_database_url(self) -> str:
+        if not self.bot_db_host:
+            return ""
+        return f"postgresql+asyncpg://{self.bot_db_user}:{self.bot_db_pass}@{self.bot_db_host}:{self.bot_db_port}/{self.bot_db_name}"
+
     # Crypto (for finance secrets, compatible with PHP Crypto.php)
     app_encryption_key: str = Field(default="", alias="APP_ENCRYPTION_KEY")
 

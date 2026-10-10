@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends
 from web.backend.api.deps import get_current_admin, AdminUser
 from web.backend.core.config import get_cms_settings
 from web.backend.core.bedolaga_client import bedolaga_client
+from web.backend.core.bot_db import get_tariffs as _get_tariffs_from_db
 
 from . import proxy_request
 
@@ -71,3 +72,10 @@ async def get_status(admin: AdminUser = Depends(get_current_admin)):
     """Проверить настроен ли Bedolaga API."""
     settings = get_cms_settings()
     return {"configured": bool(settings.bedolaga_api_url and settings.bedolaga_api_token)}
+
+
+@router.get("/tariffs")
+async def list_tariffs(admin: AdminUser = Depends(get_current_admin)):
+    """Список тарифов из БД Bedolaga Bot."""
+    tariffs = await _get_tariffs_from_db()
+    return {"items": tariffs, "total": len(tariffs)}
