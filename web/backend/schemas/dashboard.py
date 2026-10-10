@@ -7,3 +7,8 @@ class DashboardStats(BaseModel):
     comments: int
     users: int
     categories: int
+    posts_published: int
+    posts_draft: int
+    comments_total: int
+    comments_approved: int
+    users_active: int

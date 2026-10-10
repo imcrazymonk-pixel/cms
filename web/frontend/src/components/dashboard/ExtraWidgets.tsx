@@ -3,21 +3,21 @@
  * (финансы, логи). Компактные, переиспользуют существующие API.
  * Видимость/порядок — на стороне Dashboard.
  */
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { financeApi } from '@/api/finance'
+import { financeApi, type ChartPoint } from '@/api/finance'
 import { logsApi } from '@/api/logs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Wallet, Terminal, AlertCircle, AlertTriangle, Info } from 'lucide-react'
+import {
+  Wallet, Terminal, AlertCircle, AlertTriangle, Info, BarChart3, Maximize2,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-function money(v: number, cur = 'RUB'): string {
-  return (
-    new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Math.round(v)) +
-    (cur ? ` ${cur}` : '')
-  )
-}
+import {
+  Bar, Line, ComposedChart, LineChart, XAxis, YAxis, CartesianGrid,
+  Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
+} from 'recharts'
 
 /** Окраска плитки: тонирует рамку/свечение через переменную glass-card. */
 type ShellTone = 'default' | 'warning' | 'danger'
@@ -27,14 +27,18 @@ const SHELL_TONE: Record<ShellTone, string> = {
   danger: 'border-red-500/45 hover:border-red-500/60 [--card-accent-rgb:239,68,68]',
 }
 
+/** Пропсы виджета: onResize — кнопка изменения ширины (цикл sm/md/lg). */
+export interface WidgetSizeProps { onResize?: () => void }
+
 /** Общий каркас виджета: карточка с иконкой, заголовком и ссылкой на раздел. */
 function WidgetShell({
-  title, subtitle, icon, to, tone = 'default', children,
+  title, subtitle, icon, to, onResize, tone = 'default', children,
 }: {
   title: string
   subtitle?: string
   icon: React.ReactNode
   to?: string
+  onResize?: () => void
   tone?: ShellTone
   children: React.ReactNode
 }) {
@@ -52,6 +56,16 @@ function WidgetShell({
           {to ? (
             <Link to={to} className="hover:opacity-80 transition-opacity min-w-0">{head}</Link>
           ) : head}
+          {onResize && (
+            <button
+              type="button"
+              onClick={onResize}
+              className="shrink-0 p-1 rounded-md text-muted-foreground hover:text-white hover:bg-white/5 transition-colors"
+              title="Изменить размер"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </CardHeader>
       <CardContent>{children}</CardContent>
@@ -84,37 +98,6 @@ function Kpi({
         {unit && <span className="shrink-0 text-[11px] font-medium text-muted-foreground">{unit}</span>}
       </p>
     </div>
-  )
-}
-
-// ── Финансы: итоги (доходы / расходы / баланс) ───────────────────
-export function FinanceWidget() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['finance-widget-summary'],
-    queryFn: () => financeApi.getData({ page: 1, per_page: 1 }),
-    staleTime: 60_000,
-  })
-  const s = data?.summary
-  const net = s?.balance ?? 0
-
-  return (
-    <WidgetShell
-      title="Финансы"
-      subtitle="Итоги"
-      to="/finance"
-      icon={<Wallet className="w-5 h-5 text-primary-400" />}
-      tone={net >= 0 ? 'default' : 'danger'}
-    >
-      {isLoading ? (
-        <Skeleton className="h-20 w-full" />
-      ) : (
-        <div className="grid grid-cols-3 gap-2">
-          <Kpi label="Доходы" value={money(s?.income ?? 0, '')} unit="₽" tone="green" />
-          <Kpi label="Расходы" value={money(s?.expense ?? 0, '')} unit="₽" tone="red" />
-          <Kpi label="Баланс" value={money(net, '')} unit="₽" tone={net >= 0 ? 'green' : 'red'} />
-        </div>
-      )}
-    </WidgetShell>
   )
 }
 
@@ -171,6 +154,135 @@ export function LogsWidget() {
             )}
           </div>
         </>
+      )}
+    </WidgetShell>
+  )
+}
+
+// ── Финансы: график доходов/расходов/баланса ─────────────────────
+const FIN_PERIODS: { value: 'daily' | 'weekly' | 'monthly' | 'yearly'; label: string }[] = [
+  { value: 'daily', label: 'День' },
+  { value: 'weekly', label: 'Неделя' },
+  { value: 'monthly', label: 'Месяц' },
+  { value: 'yearly', label: 'Год' },
+]
+
+function finMoney(v: number): string {
+  return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Math.round(v)) + ' ₽'
+}
+
+export function FinanceChartWidget({ onResize }: WidgetSizeProps) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['finance-widget-chart'],
+    queryFn: () => financeApi.getData({ page: 1, per_page: 1 }),
+    staleTime: 60_000,
+  })
+
+  const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('monthly')
+  const [type, setType] = useState<'bar' | 'line'>('bar')
+
+  const rows = useMemo(() => {
+    const src: ChartPoint[] = (data?.chart?.[period] ?? []) as ChartPoint[]
+    return src.map((r) => ({
+      name: r.label ?? r.key,
+      income: r.income ?? 0,
+      expense: r.expense ?? 0,
+      balance: r.balance ?? 0,
+    }))
+  }, [data, period])
+
+  const periodLabel = FIN_PERIODS.find((p) => p.value === period)?.label ?? period
+
+  const tooltipStyle: React.CSSProperties = {
+    background: 'rgba(0,0,0,0.85)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    borderRadius: '8px',
+    color: '#fff',
+    fontSize: '12px',
+    padding: '6px 10px',
+  }
+
+  return (
+    <WidgetShell
+      title="Финансы — график"
+      subtitle={periodLabel}
+      to="/finance"
+      onResize={onResize}
+      icon={<BarChart3 className="w-5 h-5 text-primary-400" />}
+    >
+      {isLoading ? (
+        <Skeleton className="h-44 w-full" />
+      ) : rows.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-6 text-center">
+          Недостаточно данных для графика
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {/* Period + type controls */}
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-0.5">
+              {FIN_PERIODS.map((p) => (
+                <button
+                  key={p.value}
+                  type="button"
+                  onClick={() => setPeriod(p.value)}
+                  className={cn(
+                    'px-2 py-1 rounded-md text-xs font-medium transition-colors',
+                    period === p.value
+                      ? 'bg-primary/15 text-primary-400'
+                      : 'text-muted-foreground hover:text-white hover:bg-[var(--glass-bg)]',
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-0.5">
+              {(['bar', 'line'] as const).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => setType(t)}
+                  className={cn(
+                    'px-2 py-1 rounded-md text-xs font-medium transition-colors',
+                    type === t
+                      ? 'bg-primary/15 text-primary-400'
+                      : 'text-muted-foreground hover:text-white hover:bg-[var(--glass-bg)]',
+                  )}
+                >
+                  {t === 'bar' ? 'Столбцы' : 'Линия'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Chart */}
+          <ResponsiveContainer width="100%" height={220}>
+            {type === 'bar' ? (
+              <ComposedChart data={rows}>
+                <CartesianGrid stroke="rgba(148,163,184,0.08)" strokeDasharray="3 3" />
+                <XAxis dataKey="name" stroke="rgba(148,163,184,0.3)" fontSize={11} />
+                <YAxis stroke="rgba(148,163,184,0.3)" fontSize={10} tick={{ fill: 'rgba(148,163,184,0.5)' }} />
+                <RechartsTooltip contentStyle={tooltipStyle} formatter={(value) => finMoney(Number(value))} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="income" name="Доход" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="expense" name="Расход" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                <Line type="monotone" dataKey="balance" name="Баланс" stroke="#2dd4bf" strokeWidth={2} dot={false} />
+              </ComposedChart>
+            ) : (
+              <LineChart data={rows}>
+                <CartesianGrid stroke="rgba(148,163,184,0.08)" strokeDasharray="3 3" />
+                <XAxis dataKey="name" stroke="rgba(148,163,184,0.3)" fontSize={11} />
+                <YAxis stroke="rgba(148,163,184,0.3)" fontSize={10} tick={{ fill: 'rgba(148,163,184,0.5)' }} />
+                <RechartsTooltip contentStyle={tooltipStyle} formatter={(value) => finMoney(Number(value))} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Line type="monotone" dataKey="income" name="Доход" stroke="#22c55e" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="expense" name="Расход" stroke="#ef4444" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="balance" name="Баланс" stroke="#2dd4bf" strokeWidth={2} dot={false} />
+              </LineChart>
+            )}
+          </ResponsiveContainer>
+        </div>
       )}
     </WidgetShell>
   )
