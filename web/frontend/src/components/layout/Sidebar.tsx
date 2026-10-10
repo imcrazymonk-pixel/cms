@@ -7,15 +7,33 @@ import {
   ChevronsRight,
   LogOut,
   X,
+  Github,
+  MessageCircle,
+  Heart,
+  Link as LinkIcon,
+  Globe,
 } from 'lucide-react'
 import { useAuthStore } from '../../store/authStore'
 import { useAppearanceStore } from '../../store/useAppearanceStore'
 import { useBrandingStore } from '../../store/useBrandingStore'
+import { useSidebarLinksStore } from '../../store/useSidebarLinksStore'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+
+// Map icon names from sidebar links store to Lucide components
+function resolveSidebarIcon(iconName: string): React.ElementType {
+  const iconMap: Record<string, React.ElementType> = {
+    Github,
+    MessageCircle,
+    Heart,
+    Globe,
+    Link: LinkIcon,
+  }
+  return iconMap[iconName] || LinkIcon
+}
 
 interface NavItem {
   type?: 'item'
@@ -60,6 +78,8 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
   const adminTitle = useBrandingStore((s) => s.admin_title) || 'HexaVeil CMS'
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
+  const sidebarLinks = useSidebarLinksStore((s) => s.links)
+  const enabledLinks = sidebarLinks.filter((l) => l.enabled)
 
   const handleNavClick = () => {
     if (onClose) onClose()
@@ -272,6 +292,44 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
           </TooltipContent>
         </Tooltip>
       </div>
+
+      {/* Dynamic external links from store */}
+      {enabledLinks.length > 0 && (
+        <div className="px-4 py-2 space-y-0.5">
+          {enabledLinks.map((link) => {
+            const Icon = resolveSidebarIcon(link.icon)
+            if (collapsed) {
+              return (
+                <Tooltip key={link.id} delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center py-1.5 text-dark-300 hover:text-white transition-colors"
+                    >
+                      <Icon className="w-4 h-4" />
+                    </a>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">{link.label}</TooltipContent>
+                </Tooltip>
+              )
+            }
+            return (
+              <a
+                key={link.id}
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-2 py-1.5 text-xs text-dark-300 hover:text-white transition-colors rounded-md hover:bg-[var(--glass-bg)]"
+              >
+                <Icon className="w-3.5 h-3.5 shrink-0" />
+                <span>{link.label}</span>
+              </a>
+            )
+          })}
+        </div>
+      )}
 
       {/* User info */}
       <div className="mx-4 h-px bg-gradient-to-r from-transparent via-[rgba(var(--glow-rgb),0.12)] to-transparent" />

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { AppearancePanel } from '../AppearancePanel'
+import { SidebarLinksPanel } from '../SidebarLinksPanel'
 import { useTranslation } from 'react-i18next'
 import { notificationsApi, type Notification } from '@/api/notifications'
 import { cn } from '@/lib/utils'
@@ -128,6 +129,9 @@ export default function Header({ onMenuToggle, onSearchClick }: HeaderProps) {
 
       {/* Right side */}
       <div className="flex items-center gap-2 md:gap-4">
+        {/* Sidebar links settings */}
+        <SidebarLinksPanel />
+
         {/* Appearance settings */}
         <AppearancePanel />
 
