@@ -172,7 +172,7 @@ def create_app() -> FastAPI:
     from web.backend.api.v1 import diagnostics as diagnostics_api
     from web.backend.api.v1 import finance as finance_api
     from web.backend.api.v1 import finance_payments as finance_payments_api
-from web.backend.api.v1.bedolaga import router as bedolaga_router
+    from web.backend.api.v1.bedolaga import router as bedolaga_router
 
     app.include_router(auth_api.router, prefix="/api", tags=["auth"])
     app.include_router(dashboard_api.router, prefix="/api", tags=["dashboard"])
