@@ -32,7 +32,6 @@ def _get_engine() -> Optional[AsyncEngine]:
         max_overflow=0,
         pool_recycle=300,
         pool_pre_ping=True,
-        connect_args={"statement_cache_size": 0, "prepare_threshold": 0},
     )
     return _engine
 
