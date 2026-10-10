@@ -1,18 +1,17 @@
 /**
  * Дополнительные виджеты дашборда — данные из других модулей админки
  * (финансы, логи). Компактные, переиспользуют существующие API.
- * Видимость/порядок — на стороне Dashboard.
+ * Видимость/порядок/ширина — на стороне Dashboard.
  */
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { financeApi, type ChartPoint } from '@/api/finance'
-import { logsApi } from '@/api/logs'
+import { logsApi, type LogEntry } from '@/api/logs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Wallet, Terminal, AlertCircle, AlertTriangle, Info, BarChart3, Maximize2,
-} from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Terminal, BarChart3, Maximize2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Bar, Line, ComposedChart, LineChart, XAxis, YAxis, CartesianGrid,
@@ -73,93 +72,7 @@ function WidgetShell({
   )
 }
 
-/** Компактный KPI-блок: подпись сверху, значение + единица снизу. */
-function Kpi({
-  label, value, unit, tone,
-}: {
-  label: string
-  value: string
-  unit?: string
-  tone?: 'green' | 'red' | 'amber' | 'white'
-}) {
-  return (
-    <div className="min-w-0 bg-[var(--glass-bg)] rounded-lg px-3 py-2.5 border border-[var(--glass-border)]">
-      <p className="text-xs text-muted-foreground truncate" title={label}>{label}</p>
-      <p
-        className={cn(
-          'flex items-baseline gap-1 whitespace-nowrap font-bold tabular-nums leading-tight',
-          tone === 'green' ? 'text-green-400'
-            : tone === 'red' ? 'text-red-400'
-              : tone === 'amber' ? 'text-amber-400'
-                : 'text-white',
-        )}
-      >
-        <span className="min-w-0 text-lg truncate">{value}</span>
-        {unit && <span className="shrink-0 text-[11px] font-medium text-muted-foreground">{unit}</span>}
-      </p>
-    </div>
-  )
-}
-
-// ── Логи: количество записей по уровням ──────────────────────────
-function useLogCount(level: string) {
-  return useQuery({
-    queryKey: ['logs-widget-count', level],
-    queryFn: () => logsApi.list({ level, per_page: 1 }),
-    staleTime: 60_000,
-  })
-}
-
-export function LogsWidget() {
-  const errors = useLogCount('error')
-  const warnings = useLogCount('warning')
-  const info = useLogCount('info')
-  const loading = errors.isLoading || warnings.isLoading || info.isLoading
-
-  const errCount = errors.data?.total ?? 0
-  const warnCount = warnings.data?.total ?? 0
-  const infoCount = info.data?.total ?? 0
-  const tone: ShellTone = errCount > 0 ? 'danger' : warnCount > 0 ? 'warning' : 'default'
-
-  return (
-    <WidgetShell
-      title="Логи"
-      subtitle="Записи"
-      to="/logs"
-      icon={<Terminal className="w-5 h-5 text-primary-400" />}
-      tone={tone}
-    >
-      {loading ? (
-        <Skeleton className="h-20 w-full" />
-      ) : (
-        <>
-          <div className="grid grid-cols-3 gap-2">
-            <Kpi label="Ошибки" value={String(errCount)} tone="red" />
-            <Kpi label="Предупреждения" value={String(warnCount)} tone="amber" />
-            <Kpi label="Инфо" value={String(infoCount)} tone="white" />
-          </div>
-          <div className="mt-2 flex items-center gap-3 text-xs">
-            {errCount > 0 ? (
-              <span className="inline-flex items-center gap-1 text-red-400">
-                <AlertCircle className="w-3.5 h-3.5" /> Есть ошибки
-              </span>
-            ) : warnCount > 0 ? (
-              <span className="inline-flex items-center gap-1 text-amber-400">
-                <AlertTriangle className="w-3.5 h-3.5" /> Есть предупреждения
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 text-green-400">
-                <Info className="w-3.5 h-3.5" /> Проблем не найдено
-              </span>
-            )}
-          </div>
-        </>
-      )}
-    </WidgetShell>
-  )
-}
-
-// ── Финансы: график доходов/расходов/баланса ─────────────────────
+// ── Финансы: график доходов/расходов/баланса (яркий, как в каноне) ──
 const FIN_PERIODS: { value: 'daily' | 'weekly' | 'monthly' | 'yearly'; label: string }[] = [
   { value: 'daily', label: 'День' },
   { value: 'weekly', label: 'Неделя' },
@@ -260,28 +173,111 @@ export function FinanceChartWidget({ onResize }: WidgetSizeProps) {
           <ResponsiveContainer width="100%" height={220}>
             {type === 'bar' ? (
               <ComposedChart data={rows}>
-                <CartesianGrid stroke="rgba(148,163,184,0.08)" strokeDasharray="3 3" />
-                <XAxis dataKey="name" stroke="rgba(148,163,184,0.3)" fontSize={11} />
-                <YAxis stroke="rgba(148,163,184,0.3)" fontSize={10} tick={{ fill: 'rgba(148,163,184,0.5)' }} />
+                <defs>
+                  <linearGradient id="finIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#4ade80" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="#16a34a" stopOpacity={0.45} />
+                  </linearGradient>
+                  <linearGradient id="finExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#f87171" stopOpacity={0.95} />
+                    <stop offset="100%" stopColor="#dc2626" stopOpacity={0.45} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(148,163,184,0.1)" strokeDasharray="3 3" />
+                <XAxis dataKey="name" stroke="rgba(148,163,184,0.4)" fontSize={11} />
+                <YAxis stroke="rgba(148,163,184,0.4)" fontSize={10} tick={{ fill: 'rgba(148,163,184,0.6)' }} />
                 <RechartsTooltip contentStyle={tooltipStyle} formatter={(value) => finMoney(Number(value))} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="income" name="Доход" fill="#22c55e" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                <Bar dataKey="expense" name="Расход" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={28} />
-                <Line type="monotone" dataKey="balance" name="Баланс" stroke="#2dd4bf" strokeWidth={2} dot={false} />
+                <Bar dataKey="income" name="Доход" fill="url(#finIncome)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                <Bar dataKey="expense" name="Расход" fill="url(#finExpense)" radius={[4, 4, 0, 0]} maxBarSize={28} />
+                <Line
+                  type="monotone" dataKey="balance" name="Баланс"
+                  stroke="#2dd4bf" strokeWidth={2.5} dot={{ r: 3, fill: '#2dd4bf', strokeWidth: 0 }}
+                />
               </ComposedChart>
             ) : (
               <LineChart data={rows}>
-                <CartesianGrid stroke="rgba(148,163,184,0.08)" strokeDasharray="3 3" />
-                <XAxis dataKey="name" stroke="rgba(148,163,184,0.3)" fontSize={11} />
-                <YAxis stroke="rgba(148,163,184,0.3)" fontSize={10} tick={{ fill: 'rgba(148,163,184,0.5)' }} />
+                <CartesianGrid stroke="rgba(148,163,184,0.1)" strokeDasharray="3 3" />
+                <XAxis dataKey="name" stroke="rgba(148,163,184,0.4)" fontSize={11} />
+                <YAxis stroke="rgba(148,163,184,0.4)" fontSize={10} tick={{ fill: 'rgba(148,163,184,0.6)' }} />
                 <RechartsTooltip contentStyle={tooltipStyle} formatter={(value) => finMoney(Number(value))} />
                 <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Line type="monotone" dataKey="income" name="Доход" stroke="#22c55e" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="expense" name="Расход" stroke="#ef4444" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="balance" name="Баланс" stroke="#2dd4bf" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="income" name="Доход" stroke="#4ade80" strokeWidth={2.5} dot={{ r: 2.5, fill: '#4ade80', strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="expense" name="Расход" stroke="#f87171" strokeWidth={2.5} dot={{ r: 2.5, fill: '#f87171', strokeWidth: 0 }} />
+                <Line type="monotone" dataKey="balance" name="Баланс" stroke="#2dd4bf" strokeWidth={2.5} dot={{ r: 2.5, fill: '#2dd4bf', strokeWidth: 0 }} />
               </LineChart>
             )}
           </ResponsiveContainer>
+        </div>
+      )}
+    </WidgetShell>
+  )
+}
+
+// ── Последние логи: список записей ───────────────────────────────
+function formatLogTime(raw: string): string {
+  if (!raw) return '—'
+  try {
+    const d = new Date(raw)
+    const pad = (n: number) => String(n).padStart(2, '0')
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  } catch {
+    return '—'
+  }
+}
+
+function levelBadgeClass(lvl: string): string {
+  return cn(
+    'px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase shrink-0',
+    lvl === 'error' ? 'bg-red-500/20 text-red-400'
+      : lvl === 'warning' ? 'bg-amber-500/20 text-amber-400'
+        : 'bg-blue-500/20 text-blue-400',
+  )
+}
+
+export function LogsRecentWidget({ onResize }: WidgetSizeProps) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['logs-widget-recent'],
+    queryFn: () => logsApi.list({ per_page: 8 }),
+    staleTime: 30_000,
+  })
+
+  const entries = (data as { data?: LogEntry[] } | null)?.data ?? []
+  const hasErrors = entries.some((l) => l.level === 'error')
+  const hasWarnings = entries.some((l) => l.level === 'warning')
+  const tone: ShellTone = hasErrors ? 'danger' : hasWarnings ? 'warning' : 'default'
+
+  return (
+    <WidgetShell
+      title="Последние логи"
+      subtitle={entries.length ? `Показано: ${entries.length}` : undefined}
+      to="/logs"
+      onResize={onResize}
+      tone={tone}
+      icon={<Terminal className="w-5 h-5 text-primary-400" />}
+    >
+      {isLoading ? (
+        <Skeleton className="h-44 w-full" />
+      ) : entries.length === 0 ? (
+        <p className="text-sm text-muted-foreground py-6 text-center">Записей пока нет</p>
+      ) : (
+        <div className="space-y-0.5">
+          {entries.map((l) => (
+            <div
+              key={l.id}
+              className="flex items-center gap-2 py-1.5 border-b border-[var(--glass-border)] last:border-0 min-w-0"
+            >
+              <Badge variant="secondary" className={levelBadgeClass(l.level)}>
+                {l.level}
+              </Badge>
+              <span className="shrink-0 font-mono text-[10px] text-muted-foreground tabular-nums">
+                {formatLogTime(l.created_at)}
+              </span>
+              <span className="min-w-0 flex-1 truncate text-xs text-white/85" title={l.message}>
+                {l.message}
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </WidgetShell>

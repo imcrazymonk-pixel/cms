@@ -22,6 +22,7 @@ async def list_logs(
     channel: str = "",
     source: str = "",
     q: str = "",
+    days: int = 0,
     page: int = 1,
     per_page: int = 50,
     admin: AdminUser = Depends(get_current_admin),
@@ -47,6 +48,11 @@ async def list_logs(
     if q != "":
         where.append("message LIKE :q")
         params["q"] = f"%{q}%"
+    if days > 0:
+        # created_at — timestamp без TZ, по времени записи (Москва). Окно считаем
+        # в SQL в тех же «часах», чтобы не зависеть от TZ контейнера API.
+        where.append("created_at >= (now() AT TIME ZONE 'Europe/Moscow') - make_interval(days => :days)")
+        params["days"] = days
 
     where_sql = (" WHERE " + " AND ".join(where)) if where else ""
 
