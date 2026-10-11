@@ -1,6 +1,7 @@
 """Preferences API — migrates PHP inline routes:
   POST /admin/settings/save-preference       (legacy, whitelisted keys)
   POST /admin/settings/save-all-preferences  (panel_ui_state JSON blob)
+  GET  /api/v1/preferences                   (load panel_ui_state for current user)
 
 Both write to `user_preferences(user_id, pref_key, pref_value)` and return
 `{"ok": true}` — matching PHP.
@@ -30,6 +31,33 @@ async def _upsert_pref(db: AsyncSession, user_id: int, key: str, value: str) -> 
         ),
         {"uid": user_id, "k": key, "v": value},
     )
+
+
+@router.get("/preferences")
+async def get_preferences(
+    admin: AdminUser = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Load panel_ui_state JSON blob for the current admin user.
+
+    Returns the stored preferences object, or an empty dict if none saved.
+    """
+    result = await db.execute(
+        text(
+            "SELECT pref_value FROM user_preferences "
+            "WHERE user_id = :uid AND pref_key = 'panel_ui_state'"
+        ),
+        {"uid": admin.id},
+    )
+    row = result.fetchone()
+    if row and row.pref_value:
+        try:
+            data = json.loads(row.pref_value)
+        except (json.JSONDecodeError, TypeError):
+            data = {}
+    else:
+        data = {}
+    return {"ok": True, "data": data}
 
 
 @router.post("/save-all-preferences")

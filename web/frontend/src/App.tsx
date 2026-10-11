@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './store/authStore'
 import { usePermissionStore } from './store/permissionStore'
+import { useSidebarLinksStore } from './store/useSidebarLinksStore'
+import { useAppearanceStore } from './store/useAppearanceStore'
 import { AppearanceProvider } from './components/AppearanceProvider'
 import { BrandingProvider } from './components/BrandingProvider'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -46,6 +48,10 @@ const NotFound = lazy(() => import('./pages/NotFound'))
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore()
   const { isLoaded, loadPermissions, clearPermissions } = usePermissionStore()
+  const loadSidebarLinks = useSidebarLinksStore((s) => s.loadFromServer)
+  const loadAppearance = useAppearanceStore((s) => s.loadFromServer)
+  const sidebarLoaded = useSidebarLinksStore((s) => s.loaded)
+  const appearanceLoaded = useAppearanceStore((s) => s.loaded)
 
   useEffect(() => {
     if (token && !isLoaded) loadPermissions()
@@ -54,6 +60,15 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!token) clearPermissions()
   }, [token, clearPermissions])
+
+  // Load user preferences (sidebar links + appearance) from server once on login
+  useEffect(() => {
+    if (token && !sidebarLoaded) loadSidebarLinks()
+  }, [token, sidebarLoaded, loadSidebarLinks])
+
+  useEffect(() => {
+    if (token && !appearanceLoaded) loadAppearance()
+  }, [token, appearanceLoaded, loadAppearance])
 
   if (!token) {
     return <Navigate to="/login" replace />
