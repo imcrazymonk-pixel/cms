@@ -21,7 +21,8 @@ export interface AppearanceSettings {
 
 interface AppearanceState extends AppearanceSettings {
   // Status
-  loaded: boolean
+  hydrated: boolean
+  _fetchPromise: Promise<void> | null
 
   // Actions
   setTheme: (theme: ThemePreset) => void
@@ -110,7 +111,8 @@ export const useAppearanceStore = create<AppearanceState>()(
 
       return {
         ...defaults,
-        loaded: false,
+        hydrated: false,
+        _fetchPromise: null,
 
         setTheme: (theme) => syncSet({ theme }),
         setColorMode: (colorMode) => syncSet({ colorMode }),
@@ -128,35 +130,44 @@ export const useAppearanceStore = create<AppearanceState>()(
         resetToDefaults: () => syncSet({ ...defaults }),
 
         loadFromServer: async () => {
-          try {
-            _isLoadingFromServer = true
-            const res = await preferencesApi.getPreferences()
-            const serverAppearance = res?.data?.appearance as Record<string, unknown> | null
-            if (serverAppearance && typeof serverAppearance === 'object') {
-              const patch: Partial<AppearanceSettings> = {}
-              if (isThemePreset(serverAppearance.theme)) patch.theme = serverAppearance.theme
-              if (isColorMode(serverAppearance.colorMode)) patch.colorMode = serverAppearance.colorMode
-              if (isUIDensity(serverAppearance.density)) patch.density = serverAppearance.density
-              if (isBorderRadius(serverAppearance.borderRadius)) patch.borderRadius = serverAppearance.borderRadius
-              if (isFontSize(serverAppearance.fontSize)) patch.fontSize = serverAppearance.fontSize
-              if (typeof serverAppearance.animationsEnabled === 'boolean') patch.animationsEnabled = serverAppearance.animationsEnabled
-              if (typeof serverAppearance.sidebarCollapsed === 'boolean') patch.sidebarCollapsed = serverAppearance.sidebarCollapsed
+          // Deduplicate concurrent calls
+          const existing = get()._fetchPromise
+          if (existing) return existing
 
-              if (Object.keys(patch).length > 0) {
-                set(patch)
+          const promise = (async () => {
+            try {
+              _isLoadingFromServer = true
+              const res = await preferencesApi.getPreferences()
+              const serverAppearance = res?.data?.appearance as Record<string, unknown> | null
+              if (serverAppearance && typeof serverAppearance === 'object') {
+                const patch: Partial<AppearanceSettings> = {}
+                if (isThemePreset(serverAppearance.theme)) patch.theme = serverAppearance.theme
+                if (isColorMode(serverAppearance.colorMode)) patch.colorMode = serverAppearance.colorMode
+                if (isUIDensity(serverAppearance.density)) patch.density = serverAppearance.density
+                if (isBorderRadius(serverAppearance.borderRadius)) patch.borderRadius = serverAppearance.borderRadius
+                if (isFontSize(serverAppearance.fontSize)) patch.fontSize = serverAppearance.fontSize
+                if (typeof serverAppearance.animationsEnabled === 'boolean') patch.animationsEnabled = serverAppearance.animationsEnabled
+                if (typeof serverAppearance.sidebarCollapsed === 'boolean') patch.sidebarCollapsed = serverAppearance.sidebarCollapsed
+
+                if (Object.keys(patch).length > 0) {
+                  set(patch)
+                }
+              } else {
+                // Server has no appearance saved — push current state up once
+                preferencesApi.savePreferences({
+                  appearance: toAppearanceBlob(get()),
+                }).catch(() => { /* silent */ })
               }
-            } else {
-              // Server has no appearance saved — push current state up once
-              preferencesApi.savePreferences({
-                appearance: toAppearanceBlob(get()),
-              }).catch(() => { /* silent */ })
+            } catch (err) {
+              console.warn('[AppearanceStore] Failed to load from server, using cache:', err)
+            } finally {
+              _isLoadingFromServer = false
             }
-          } catch {
-            /* offline or not authenticated — keep localStorage state */
-          } finally {
-            _isLoadingFromServer = false
-            set({ loaded: true })
-          }
+          })()
+
+          set({ _fetchPromise: promise })
+          await promise
+          set({ _fetchPromise: null })
         },
       }
     },
@@ -172,6 +183,9 @@ export const useAppearanceStore = create<AppearanceState>()(
         animationsEnabled: state.animationsEnabled,
         sidebarCollapsed: state.sidebarCollapsed,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) state.hydrated = true
+      },
     }
   )
 )

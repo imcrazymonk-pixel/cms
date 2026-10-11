@@ -50,8 +50,6 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
   const { isLoaded, loadPermissions, clearPermissions } = usePermissionStore()
   const loadSidebarLinks = useSidebarLinksStore((s) => s.loadFromServer)
   const loadAppearance = useAppearanceStore((s) => s.loadFromServer)
-  const sidebarLoaded = useSidebarLinksStore((s) => s.loaded)
-  const appearanceLoaded = useAppearanceStore((s) => s.loaded)
 
   useEffect(() => {
     if (token && !isLoaded) loadPermissions()
@@ -61,14 +59,15 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     if (!token) clearPermissions()
   }, [token, clearPermissions])
 
-  // Load user preferences (sidebar links + appearance) from server once on login
+  // Load user preferences from server on EVERY mount when authenticated.
+  // The store deduplicates concurrent calls via _fetchPromise internally.
   useEffect(() => {
-    if (token && !sidebarLoaded) loadSidebarLinks()
-  }, [token, sidebarLoaded, loadSidebarLinks])
+    if (token) loadSidebarLinks()
+  }, [token, loadSidebarLinks])
 
   useEffect(() => {
-    if (token && !appearanceLoaded) loadAppearance()
-  }, [token, appearanceLoaded, loadAppearance])
+    if (token) loadAppearance()
+  }, [token, loadAppearance])
 
   if (!token) {
     return <Navigate to="/login" replace />

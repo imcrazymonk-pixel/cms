@@ -12,7 +12,8 @@ export interface SidebarLink {
 
 interface SidebarLinksState {
   links: SidebarLink[]
-  loaded: boolean
+  hydrated: boolean
+  _fetchPromise: Promise<void> | null
   setLinks: (links: SidebarLink[]) => void
   resetToDefaults: () => void
   loadFromServer: () => Promise<void>
@@ -60,7 +61,8 @@ export const useSidebarLinksStore = create<SidebarLinksState>()(
   persist(
     (set, get) => ({
       links: [...defaultLinks],
-      loaded: false,
+      hydrated: false,
+      _fetchPromise: null,
 
       setLinks: (links) => {
         set({ links })
@@ -79,24 +81,34 @@ export const useSidebarLinksStore = create<SidebarLinksState>()(
       },
 
       loadFromServer: async () => {
-        try {
-          const res = await preferencesApi.getPreferences()
-          const serverLinks = res?.data?.sidebarLinks ?? null
-          if (isSidebarLinkArray(serverLinks) && serverLinks.length > 0) {
-            set({ links: serverLinks, loaded: true })
-            return
+        // Deduplicate concurrent calls
+        const existing = get()._fetchPromise
+        if (existing) return existing
+
+        const promise = (async () => {
+          try {
+            const res = await preferencesApi.getPreferences()
+            const serverLinks = res?.data?.sidebarLinks ?? null
+            if (isSidebarLinkArray(serverLinks) && serverLinks.length > 0) {
+              // Server data ALWAYS wins — overwrite localStorage cache
+              set({ links: serverLinks })
+              return
+            }
+            // Server has no links saved — push current (localStorage) state up once
+            const current = get().links
+            if (current.length > 0) {
+              preferencesApi.savePreferences({ sidebarLinks: current }).catch(() => {
+                /* silent */
+              })
+            }
+          } catch (err) {
+            console.warn('[SidebarLinksStore] Failed to load from server, using cache:', err)
           }
-          // Server has no links saved — push current (localStorage) state up once
-          const current = get().links
-          if (current.length > 0) {
-            preferencesApi.savePreferences({ sidebarLinks: current }).catch(() => {
-              /* silent */
-            })
-          }
-        } catch {
-          /* offline or not authenticated — keep localStorage state */
-        }
-        set({ loaded: true })
+        })()
+
+        set({ _fetchPromise: promise })
+        await promise
+        set({ _fetchPromise: null })
       },
     }),
     {
@@ -105,6 +117,9 @@ export const useSidebarLinksStore = create<SidebarLinksState>()(
       partialize: (state) => ({
         links: state.links,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (state) state.hydrated = true
+      },
     }
   )
 )
