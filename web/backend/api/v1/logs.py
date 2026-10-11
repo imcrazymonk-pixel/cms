@@ -19,6 +19,7 @@ router = APIRouter()
 async def list_logs(
     level: str = "",
     category: str = "",
+    categories: str = "",
     channel: str = "",
     source: str = "",
     q: str = "",
@@ -39,6 +40,16 @@ async def list_logs(
     if category != "":
         where.append("category = :category")
         params["category"] = category
+    # Multi-select: `categories=finance,system` (comma-separated).
+    if categories != "":
+        cats = [c.strip() for c in categories.split(",") if c.strip()]
+        if cats:
+            keys = []
+            for i, c in enumerate(cats):
+                key = f"cat{i}"
+                keys.append(f":{key}")
+                params[key] = c
+            where.append(f"category IN ({', '.join(keys)})")
     if channel != "":
         where.append("channel = :channel")
         params["channel"] = channel
@@ -86,11 +97,21 @@ async def clear_logs(
 ):
     body = await json_body(request)
     category = body.get("category") or ""
+    categories = body.get("categories") or []
     channel = body.get("channel") or ""
 
     if channel != "":
         res = await db.execute(
             text("DELETE FROM app_logs WHERE channel = :channel"), {"channel": channel}
+        )
+    elif isinstance(categories, list) and categories:
+        keys, params = [], {}
+        for i, c in enumerate(categories):
+            key = f"cat{i}"
+            keys.append(f":{key}")
+            params[key] = c
+        res = await db.execute(
+            text(f"DELETE FROM app_logs WHERE category IN ({', '.join(keys)})"), params
         )
     elif category != "" and category != "all":
         res = await db.execute(

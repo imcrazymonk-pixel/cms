@@ -71,6 +71,9 @@ services:
       POSTGRES_DB: ${DB_NAME:-cms}
       POSTGRES_USER: ${DB_USER:-cms}
       POSTGRES_PASSWORD: ${DB_PASS:-cms_secret}
+    # Тихие служебные логи (checkpoint и т.п. на уровне LOG) — оставляем только
+    # WARNING и выше, чтобы docker compose logs был читаемым.
+    command: ["postgres", "-c", "log_min_messages=warning"]
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/postgres/init:/docker-entrypoint-initdb.d

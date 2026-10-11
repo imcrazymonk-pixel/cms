@@ -11,7 +11,7 @@ import { logsApi, type LogEntry } from '@/api/logs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
-import { Terminal, BarChart3, Maximize2 } from 'lucide-react'
+import { Terminal, BarChart3, Maximize2, Check } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
   Bar, Line, ComposedChart, LineChart, XAxis, YAxis, CartesianGrid,
@@ -235,17 +235,37 @@ function levelBadgeClass(lvl: string): string {
   )
 }
 
+const WIDGET_LEVELS: Array<{ key: string; label: string; on: string }> = [
+  { key: 'info', label: 'Info', on: 'bg-blue-500/20 text-blue-400' },
+  { key: 'warning', label: 'Warning', on: 'bg-amber-500/20 text-amber-400' },
+  { key: 'error', label: 'Error', on: 'bg-red-500/20 text-red-400' },
+]
+
 export function LogsRecentWidget({ onResize }: WidgetSizeProps) {
+  const [levels, setLevels] = useState<Set<string>>(() => new Set(['info', 'warning', 'error']))
   const { data, isLoading } = useQuery({
     queryKey: ['logs-widget-recent'],
-    queryFn: () => logsApi.list({ per_page: 8 }),
+    queryFn: () => logsApi.list({ per_page: 50 }),
     staleTime: 30_000,
   })
 
-  const entries = (data as { data?: LogEntry[] } | null)?.data ?? []
+  const all = (data as { data?: LogEntry[] } | null)?.data ?? []
+  const entries = useMemo(
+    () => all.filter((l) => levels.has(l.level)).slice(0, 8),
+    [all, levels],
+  )
   const hasErrors = entries.some((l) => l.level === 'error')
   const hasWarnings = entries.some((l) => l.level === 'warning')
   const tone: ShellTone = hasErrors ? 'danger' : hasWarnings ? 'warning' : 'default'
+
+  const toggleLevel = (key: string) => {
+    setLevels((prev) => {
+      const n = new Set(prev)
+      if (n.has(key)) n.delete(key)
+      else n.add(key)
+      return n
+    })
+  }
 
   return (
     <WidgetShell
@@ -256,10 +276,38 @@ export function LogsRecentWidget({ onResize }: WidgetSizeProps) {
       tone={tone}
       icon={<Terminal className="w-5 h-5 text-primary-400" />}
     >
+      {/* Level toggles (info / warning / error) */}
+      <div className="flex items-center gap-1.5 mb-2">
+        {WIDGET_LEVELS.map((l) => {
+          const active = levels.has(l.key)
+          return (
+            <button
+              key={l.key}
+              type="button"
+              onClick={() => toggleLevel(l.key)}
+              role="checkbox"
+              aria-checked={active}
+              className={cn(
+                'inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold uppercase border transition-colors',
+                active ? `${l.on} border-transparent` : 'text-muted-foreground border-[var(--glass-border)] hover:bg-white/5',
+              )}
+            >
+              <span className={cn('w-3 h-3 rounded-sm border flex items-center justify-center',
+                active ? 'border-transparent' : 'border-current')}>
+                {active && <Check className="w-2.5 h-2.5" />}
+              </span>
+              {l.label}
+            </button>
+          )
+        })}
+      </div>
+
       {isLoading ? (
         <Skeleton className="h-44 w-full" />
       ) : entries.length === 0 ? (
-        <p className="text-sm text-muted-foreground py-6 text-center">Записей пока нет</p>
+        <p className="text-sm text-muted-foreground py-6 text-center">
+          {all.length === 0 ? 'Записей пока нет' : 'Нет записей выбранных уровней'}
+        </p>
       ) : (
         <div className="space-y-0.5">
           {entries.map((l) => (

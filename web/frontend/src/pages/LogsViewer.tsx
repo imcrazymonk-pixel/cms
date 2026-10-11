@@ -8,7 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { QueryError } from '@/components/QueryError'
 import {
   Terminal, Info, AlertTriangle, AlertCircle,
-  Search, X, Trash2, ChevronRight, RefreshCw,
+  Search, X, Trash2, ChevronRight, RefreshCw, Check,
   Settings, Globe, Package2, Server, Container, BarChart3, Wallet, Users,
   CreditCard, Shield, BarChart2,
 } from 'lucide-react'
@@ -36,6 +36,9 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   finance: <Wallet className="w-4 h-4" />,
   users: <Users className="w-4 h-4" />,
 }
+
+/** Все категории без агрегата «Все». */
+const ALL_CATEGORIES = Object.keys(CATEGORIES).filter((k) => k !== 'all')
 
 const LEVELS: Record<string, string> = {
   '': 'Все уровни',
@@ -101,13 +104,49 @@ function levelBadgeColor(lvl: string): string {
   }
 }
 
+/** Чип-переключатель категории с квадратиком-галочкой. */
+function CategoryChip({
+  label, icon, active, onClick,
+}: {
+  label: string
+  icon: React.ReactNode
+  active: boolean
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      role="checkbox"
+      aria-checked={active}
+      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors border ${
+        active
+          ? 'bg-primary/20 text-primary border-primary/40'
+          : 'text-dark-300 hover:text-dark-100 hover:bg-white/5 border-transparent'
+      }`}
+    >
+      <span className="flex items-center gap-2">
+        <span
+          className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+            active ? 'bg-primary/80 border-primary' : 'border-dark-400'
+          }`}
+        >
+          {active && <Check className="w-3 h-3 text-white" />}
+        </span>
+        {icon}
+        {label}
+      </span>
+    </button>
+  )
+}
+
 export default function LogsViewer() {
   const [data, setData] = useState<LogListResponse | null>(null)
   const [isPending, setIsPending] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Filters
-  const [activeCategory, setActiveCategory] = useState('all')
+  // Filters — categories are multi-select (default: all on).
+  const [enabledCats, setEnabledCats] = useState<Set<string>>(() => new Set(ALL_CATEGORIES))
   const [activeLevel, setActiveLevel] = useState('')
   const [searchQ, setSearchQ] = useState('')
   const [page, setPage] = useState(1)
@@ -116,12 +155,20 @@ export default function LogsViewer() {
   // Expanded context rows
   const [expandedContexts, setExpandedContexts] = useState<Set<number>>(new Set())
 
+  const allSelected = enabledCats.size === ALL_CATEGORIES.length
+
   const loadLogs = async () => {
+    if (enabledCats.size === 0) {
+      setData({ success: true, data: [], total: 0, page: 1, per_page: perPage })
+      setIsPending(false)
+      setError(null)
+      return
+    }
     setIsPending(true)
     setError(null)
     try {
       const params: Record<string, unknown> = { page, per_page: perPage }
-      if (activeCategory !== 'all') params.category = activeCategory
+      if (!allSelected) params.categories = Array.from(enabledCats).join(',')
       if (activeLevel !== '') params.level = activeLevel
       if (searchQ) params.q = searchQ
 
@@ -140,20 +187,23 @@ export default function LogsViewer() {
 
   useEffect(() => {
     loadLogs()
-  }, [activeCategory, activeLevel, page, perPage])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabledCats, activeLevel, page, perPage])
 
   const clearLogs = async () => {
-    const category = activeCategory !== 'all' ? activeCategory : ''
-    const msg = category
-      ? `Очистить все логи категории "${CATEGORIES[category] || category}"? Это действие необратимо.`
-      : 'Очистить все логи? Это действие необратимо.'
+    if (enabledCats.size === 0) return
+    const msg = allSelected
+      ? 'Очистить все логи? Это действие необратимо.'
+      : `Очистить логи выбранных категорий (${enabledCats.size})? Это действие необратимо.`
     if (!confirm(msg)) return
 
     try {
-      const res = await logsApi.clear(category ? { category } : {})
-      if ((res as Record<string, unknown>).success) {
-        loadLogs()
+      if (allSelected) {
+        await logsApi.clear({})
+      } else {
+        await logsApi.clear({ categories: Array.from(enabledCats) })
       }
+      loadLogs()
     } catch { /* ignore */ }
   }
 
@@ -180,10 +230,21 @@ export default function LogsViewer() {
     }
   }
 
-  const isExternal = EXTERNAL_CATEGORIES.includes(activeCategory)
+  const isExternal = enabledCats.size === 1 && EXTERNAL_CATEGORIES.includes(Array.from(enabledCats)[0])
 
-  const setCategory = (cat: string) => {
-    setActiveCategory(cat)
+  const toggleCategory = (cat: string) => {
+    setEnabledCats((prev) => {
+      const n = new Set(prev)
+      if (n.has(cat)) n.delete(cat)
+      else n.add(cat)
+      return n
+    })
+    setPage(1)
+    setExpandedContexts(new Set())
+  }
+
+  const toggleAll = () => {
+    setEnabledCats(allSelected ? new Set() : new Set(ALL_CATEGORIES))
     setPage(1)
     setExpandedContexts(new Set())
   }
@@ -214,24 +275,39 @@ export default function LogsViewer() {
         <h1 className="text-xl font-bold text-white tracking-tight">Логи</h1>
       </div>
 
-      {/* Row 1: Category Tabs */}
-      <div className="flex items-center gap-1 flex-wrap" role="tablist">
-        {Object.entries(CATEGORIES).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setCategory(key)}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
-              activeCategory === key
-                ? 'bg-primary/20 text-primary shadow-sm'
-                : 'text-dark-300 hover:text-dark-100 hover:bg-white/5'
-            }`}
-            role="tab"
-          >
-            <span className="flex items-center gap-1.5">
-              {CATEGORY_ICONS[key]}
-              {label}
+      {/* Row 1: Category toggles (multi-select) */}
+      <div className="flex items-center gap-1 flex-wrap" role="group" aria-label="Категории логов">
+        <button
+          type="button"
+          onClick={toggleAll}
+          role="checkbox"
+          aria-checked={allSelected}
+          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors border ${
+            allSelected
+              ? 'bg-primary/20 text-primary border-primary/40'
+              : 'text-dark-300 hover:text-dark-100 hover:bg-white/5 border-transparent'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <span
+              className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                allSelected ? 'bg-primary/80 border-primary' : 'border-dark-400'
+              }`}
+            >
+              {allSelected && <Check className="w-3 h-3 text-white" />}
             </span>
-          </button>
+            {CATEGORY_ICONS.all}
+            Все
+          </span>
+        </button>
+        {ALL_CATEGORIES.map((key) => (
+          <CategoryChip
+            key={key}
+            label={CATEGORIES[key]}
+            icon={CATEGORY_ICONS[key]}
+            active={enabledCats.has(key)}
+            onClick={() => toggleCategory(key)}
+          />
         ))}
       </div>
 
@@ -276,9 +352,9 @@ export default function LogsViewer() {
           </div>
         </div>
 
-        {!isExternal && (
+        {!isExternal && enabledCats.size > 0 && (
           <Button variant="destructive" size="sm" onClick={clearLogs}>
-            <Trash2 className="w-4 h-4" /> Очистить{activeCategory !== 'all' ? ` ${CATEGORIES[activeCategory]}` : ' все'}
+            <Trash2 className="w-4 h-4" /> Очистить{allSelected ? ' всё' : ' выбранные'}
           </Button>
         )}
 
@@ -297,6 +373,17 @@ export default function LogsViewer() {
       {/* Error */}
       {error && <QueryError message={error} />}
 
+      {/* No categories selected */}
+      {!isPending && !error && enabledCats.size === 0 && (
+        <Card className="rounded-xl">
+          <CardContent className="p-10 text-center">
+            <Terminal className="w-10 h-10 text-dark-300 mx-auto mb-3" />
+            <p className="text-base font-semibold mb-2">Категории не выбраны</p>
+            <p className="text-sm text-dark-300">Отметьте галочками хотя бы одну категорию выше</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* External source not configured */}
       {isExternal && data && data.data && data.data.length === 0 && (
         <Card className="rounded-xl">
@@ -311,7 +398,7 @@ export default function LogsViewer() {
       )}
 
       {/* Logs Table */}
-      {!isPending && !error && data && (
+      {!isPending && !error && data && enabledCats.size > 0 && (
         <>
           {data.data.length === 0 ? (
             <Card className="rounded-xl">

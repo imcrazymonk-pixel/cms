@@ -95,6 +95,8 @@ services:
       POSTGRES_USER: ${DB_USER:-cms}
       POSTGRES_PASSWORD: ${DB_PASS:-cms_secret_2026}
       POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+    # Тихие служебные логи (checkpoint и т.п.) — только WARNING и выше.
+    command: ["postgres", "-c", "log_min_messages=warning"]
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # Авто-инициализация схемы при первом запуске

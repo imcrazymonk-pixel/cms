@@ -29,6 +29,10 @@ WORKDIR /var/www/html
 
 COPY . .
 
+# PHP config (uploads/opcache/timezone) + тихий access-log php-fpm
+COPY .docker/php/php.ini /usr/local/etc/php/conf.d/zz-hexaveil.ini
+COPY .docker/php/zz-logging.conf /usr/local/etc/php-fpm.d/zz-logging.conf
+
 RUN chown -R www-data:www-data /var/www/html/public/uploads 2>/dev/null || true
 
 COPY docker-entrypoint.sh /usr/local/bin/

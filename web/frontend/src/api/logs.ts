@@ -12,8 +12,8 @@ export interface LogEntry {
 }
 
 export const logsApi = {
-  list: (params?: { level?: string; category?: string; channel?: string; source?: string; q?: string; days?: number; page?: number; per_page?: number }) =>
+  list: (params?: { level?: string; category?: string; categories?: string; channel?: string; source?: string; q?: string; days?: number; page?: number; per_page?: number }) =>
     api.get('/logs', { params }).then(r => r.data),
-  clear: (data?: { category?: string; channel?: string }) =>
+  clear: (data?: { category?: string; categories?: string[]; channel?: string }) =>
     api.post('/logs/clear', data ?? {}).then(r => r.data),
 }
