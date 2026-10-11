@@ -102,6 +102,11 @@ def setup_logging(level: str | None = None) -> None:
     logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.getLogger("asyncpg").setLevel(logging.WARNING)
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    # SQLAlchemy emits every SQL statement (BEGIN/INSERT/COMMIT/SELECT) at INFO
+    # under `sqlalchemy.engine`; keep it quiet so it can't pollute app_logs.
+    for noisy in ("sqlalchemy", "sqlalchemy.engine", "sqlalchemy.pool",
+                  "sqlalchemy.orm", "sqlalchemy.dialects"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
 
     structlog.configure(
         processors=[

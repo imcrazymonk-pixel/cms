@@ -1,6 +1,7 @@
 """Database — async SQLAlchemy engine + session factory.
 Maps existing CMS schema (read-only). No migrations, no schema changes."""
 import logging
+import os
 from typing import AsyncGenerator, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -28,7 +29,9 @@ async def get_engine():
             settings.database_url,
             pool_pre_ping=True,
             pool_recycle=3600,
-            echo=settings.debug,
+            # SQL echo off by default: it floods app_logs / docker logs with
+            # every BEGIN/INSERT/COMMIT. Enable only explicitly via SQL_ECHO=1.
+            echo=os.environ.get("SQL_ECHO", "0") == "1",
         )
     return _engine
 

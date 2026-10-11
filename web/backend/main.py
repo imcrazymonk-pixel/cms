@@ -5,6 +5,7 @@ CORS, middleware, health endpoint, router registration.
 """
 import asyncio
 import logging
+import os
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -39,6 +40,21 @@ async def lifespan(app: FastAPI):
                      settings.db_user, settings.db_host, settings.db_port, settings.db_name)
     else:
         logger.warning("Database connection failed — API will run with limited functionality")
+
+    # Startup summary: which integrations are configured (readable one-liner).
+    try:
+        from web.backend.core.auto_sync import _enabled_flags as _sync_enabled
+        auto_sync_flags = ",".join(await _sync_enabled()) or "выключен"
+    except Exception:  # noqa: BLE001
+        auto_sync_flags = "неизвестно"
+    logger.info(
+        "Интеграции: bedolaga=%s, bot_db=%s, автосинк=%s, интервал=%sс, tz=%s",
+        "вкл" if settings.bedolaga_api_url else "выкл",
+        "вкл" if settings.bot_db_host else "выкл",
+        auto_sync_flags,
+        os.environ.get("AUTO_SYNC_INTERVAL", "300"),
+        os.environ.get("TZ", "UTC"),
+    )
 
     # Start the in-app auto-sync loop (acts only when a provider has
     # `*_auto_sync` enabled in fin_settings).

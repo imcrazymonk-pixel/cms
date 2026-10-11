@@ -8,6 +8,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
+    tzdata \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements first for better caching
@@ -23,6 +24,9 @@ COPY .env /app/.env
 # Set Python path
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
+# Часовой пояс по умолчанию (переопределяется TZ из .env). Нужен tzdata выше,
+# иначе TZ игнорируется и время логов остаётся UTC.
+ENV TZ=Europe/Moscow
 
 # Expose port
 EXPOSE 8000

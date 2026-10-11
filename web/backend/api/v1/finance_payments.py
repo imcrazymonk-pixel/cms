@@ -120,10 +120,18 @@ def _log_sync_event(provider: str, source: str, ok: bool, added: int,
         "added": added, "skipped": skipped, "new": new,
         "error": error, "duration_ms": duration_ms,
     }
+    label = {"platega": "Platega", "yookassa": "ЮKassa"}.get(provider, provider)
+    src = {"auto": "авто", "manual": "вручную", "cron": "cron"}.get(source, source)
     if ok:
-        logger.info("sync-run", extra=extra)
+        logger.info(
+            "Синхронизация %s: добавлено %s, пропущено %s, новых %s (источник: %s, %s мс)",
+            label, added, skipped, new, src, duration_ms, extra=extra,
+        )
     else:
-        logger.warning("sync-run", extra=extra)
+        logger.warning(
+            "Синхронизация %s не удалась (источник: %s): %s",
+            label, src, error or "неизвестная ошибка", extra=extra,
+        )
 
 
 # ── dedup helpers ─────────────────────────────────────────────────────

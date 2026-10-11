@@ -5,14 +5,14 @@ fin_settings and, when a provider's `*_auto_sync` flag is "1", runs its sync.
 This replaces the need for an external cron and makes the auto_sync toggle
 actually work.
 
-Every run produces a structured log event {provider, source:'auto', ok,
-added, skipped, new, error, duration_ms} — the DB logger processor mirrors it
-into app_logs, so the admin panel can show a sync history.
+Every run makes the sync function itself emit a structured log event
+{provider, source:'auto', ok, added, skipped, new, error, duration_ms} — the
+DB logger handler mirrors it into app_logs, so the admin panel shows a sync
+history. This module does not log the event again (that would duplicate rows).
 """
 import asyncio
 import logging
 import os
-import time
 
 from web.backend.api.v1.finance_payments import _get_all, _run_platega_sync, _run_yk_sync
 
@@ -63,23 +63,12 @@ async def run_once() -> None:
         for name, key, runner in _PROVIDERS:
             if settings.get(key) != "1":
                 continue
-            started = time.monotonic()
+            # The sync function itself emits the structured event (source='auto')
+            # via _log_sync_event — logging here too would duplicate the row.
             try:
-                res, _ = await runner(session)
-                logger.info(
-                    "sync-run",
-                    extra={"provider": name, "source": "auto", "ok": bool(res.get("success")),
-                           "added": res.get("added", 0), "skipped": res.get("skipped", 0),
-                           "new": res.get("new", 0), "error": res.get("error", ""),
-                           "duration_ms": round((time.monotonic() - started) * 1000, 1)},
-                )
+                await runner(session)
             except Exception as e:  # noqa: BLE001 — never kill the loop
-                logger.error(
-                    "sync-run",
-                    extra={"provider": name, "source": "auto", "ok": False,
-                           "added": 0, "skipped": 0, "new": 0, "error": str(e),
-                           "duration_ms": round((time.monotonic() - started) * 1000, 1)},
-                )
+                logger.error("auto-sync %s failed: %s", name, e)
 
 
 async def auto_sync_loop() -> None:

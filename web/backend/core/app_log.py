@@ -24,6 +24,7 @@ import asyncio
 import json
 import logging
 import sys
+from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import text
@@ -52,8 +53,15 @@ _EXCLUDED = {
 }
 
 _INSERT_SQL = (
-    "INSERT INTO app_logs (level, channel, message, context, category, source) "
-    "VALUES (:level, :channel, :message, :context, :category, :source)"
+    "INSERT INTO app_logs (created_at, level, channel, message, context, category, source) "
+    "VALUES (:created_at, :level, :channel, :message, :context, :category, :source)"
+)
+
+# Logger prefixes whose records must NOT be mirrored into app_logs: infrastructure
+# noise (SQL, HTTP, DB driver) and our own writer (would recurse on its INSERT).
+_SKIP_LOGGERS = (
+    "sqlalchemy", "asyncpg", "httpx", "httpcore", "uvicorn.access",
+    "asyncio", "multipart", "web.backend.core.app_log",
 )
 
 
@@ -133,6 +141,7 @@ def _build_record(event_dict: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     context_json = json.dumps(ctx, ensure_ascii=False, default=str) if ctx else None
 
     return {
+        "created_at": datetime.now(),
         "level": level,
         "channel": channel,
         "message": message[:_MESSAGE_CAP] or "",
@@ -292,8 +301,8 @@ class AppLogHandler(logging.Handler):
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
-            if record.name == _OWN_LOGGER:
-                return  # don't echo our own warnings back into the DB
+            if record.name == _OWN_LOGGER or record.name.startswith(_SKIP_LOGGERS):
+                return  # infrastructure noise / self — never mirror
             event_dict = _record_to_event_dict(record)
             row = _build_record(event_dict)
             if row is not None:
