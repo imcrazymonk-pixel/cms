@@ -248,7 +248,7 @@ CREATE INDEX IF NOT EXISTS idx_app_logs_level_channel ON app_logs(level, channel
 CREATE TABLE IF NOT EXISTS user_preferences (
     user_id INTEGER NOT NULL,
     pref_key VARCHAR(50) NOT NULL,
-    pref_value VARCHAR(100) NOT NULL,
+    pref_value TEXT NOT NULL,
     PRIMARY KEY (user_id, pref_key),
     UNIQUE (user_id, pref_key)
 );
