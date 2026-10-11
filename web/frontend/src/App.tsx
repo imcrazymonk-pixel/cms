@@ -39,6 +39,8 @@ const BedolagaMarketing = lazy(() => import('./pages/bedolaga/BedolagaMarketing'
 const BedolagaReferrals = lazy(() => import('./pages/bedolaga/BedolagaReferrals'))
 const BedolagaTariffs = lazy(() => import('./pages/bedolaga/BedolagaTariffs'))
 
+const ChangelogViewer = lazy(() => import('./pages/ChangelogViewer'))
+
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -109,6 +111,9 @@ export default function App() {
               <Route path="/bedolaga/tariffs" element={<RequireAuth><Layout><BedolagaTariffs /></Layout></RequireAuth>} />
 
               {/* 404 */}
+              {/* Docs / Changelog */}
+              <Route path="/changelog" element={<RequireAuth><Layout><ChangelogViewer /></Layout></RequireAuth>} />
+
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

@@ -18,6 +18,7 @@ import {
   Megaphone,
   Share2,
   BadgeCheck,
+  ScrollText,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -79,6 +80,9 @@ const navigation: NavigationEntry[] = [
   { name: 'Настройки', href: '/settings', icon: Settings, permission: null },
   { name: 'Логи', href: '/logs', icon: Terminal, permission: null },
   { name: 'Диагностика', href: '/diagnostics', icon: Monitor, permission: null },
+
+  { type: 'section', name: 'Документация' },
+  { name: 'Ченжлог', href: '/changelog', icon: ScrollText, permission: null },
 ]
 
 export default navigation

@@ -65,6 +65,28 @@ async def ensure_user_columns() -> None:
         logger.warning("ensure_user_columns failed: %s", e)
 
 
+@router.get("/users/names")
+async def list_user_names(
+    admin: AdminUser = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return minimal user list for author dropdown (id, login, display_name)."""
+    rows = (await db.execute(
+        text("SELECT id, login, display_name FROM users ORDER BY COALESCE(NULLIF(display_name, ''), login)")
+    )).fetchall()
+    return {
+        "success": True,
+        "data": [
+            {
+                "id": r.id,
+                "username": r.login,
+                "display_name": r.display_name or r.login,
+            }
+            for r in rows
+        ],
+    }
+
+
 @router.get("/users")
 async def list_users(
     admin: AdminUser = Depends(get_current_admin),

@@ -41,10 +41,18 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("Database connection failed — API will run with limited functionality")
 
-    # Ensure optional profile columns exist on `users` (idempotent, best-effort).
+    # Ensure user profile columns exist (idempotent, best-effort).
     try:
         from web.backend.api.v1.users import ensure_user_columns
         await ensure_user_columns()
+    except Exception:  # noqa: BLE001
+        pass
+
+    # Ensure changelog table exists + migrate from file if first run.
+    try:
+        from web.backend.api.v1.docs import ensure_changelog_table, migrate_file_to_db
+        await ensure_changelog_table()
+        await migrate_file_to_db()
     except Exception:  # noqa: BLE001
         pass
 
@@ -203,6 +211,7 @@ def create_app() -> FastAPI:
     from web.backend.api.v1 import finance as finance_api
     from web.backend.api.v1 import finance_payments as finance_payments_api
     from web.backend.api.v1.bedolaga import router as bedolaga_router
+    from web.backend.api.v1 import docs as docs_api
 
     app.include_router(auth_api.router, prefix="/api", tags=["auth"])
     app.include_router(dashboard_api.router, prefix="/api", tags=["dashboard"])
@@ -229,6 +238,9 @@ def create_app() -> FastAPI:
 
     # Bedolaga Bot API proxy
     app.include_router(bedolaga_router, prefix="/api/bedolaga", tags=["bedolaga"])
+
+    # Docs / Changelog
+    app.include_router(docs_api.router, prefix="/api", tags=["docs"])
 
     # ── Health check ────────────────────────────────────────────
     @app.get("/api/health", tags=["health"])
