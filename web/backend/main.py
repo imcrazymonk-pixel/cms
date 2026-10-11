@@ -41,6 +41,13 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("Database connection failed — API will run with limited functionality")
 
+    # Ensure optional profile columns exist on `users` (idempotent, best-effort).
+    try:
+        from web.backend.api.v1.users import ensure_user_columns
+        await ensure_user_columns()
+    except Exception:  # noqa: BLE001
+        pass
+
     # Startup summary: which integrations are configured (readable one-liner).
     try:
         from web.backend.core.auto_sync import _enabled_flags as _sync_enabled

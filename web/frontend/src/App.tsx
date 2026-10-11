@@ -26,7 +26,6 @@ const WidgetsList = lazy(() => import('./pages/WidgetsList'))
 const ThemeManager = lazy(() => import('./pages/ThemeManager'))
 const Finance = lazy(() => import('./pages/Finance'))
 const UsersList = lazy(() => import('./pages/UsersList'))
-const UserEdit = lazy(() => import('./pages/UserEdit'))
 const Settings = lazy(() => import('./pages/Settings'))
 const LogsViewer = lazy(() => import('./pages/LogsViewer'))
 const Diagnostics = lazy(() => import('./pages/Diagnostics'))
@@ -96,7 +95,6 @@ export default function App() {
 
               {/* System */}
               <Route path="/users" element={<RequireAuth><Layout><UsersList /></Layout></RequireAuth>} />
-              <Route path="/users/:id" element={<RequireAuth><Layout><UserEdit /></Layout></RequireAuth>} />
               <Route path="/settings" element={<RequireAuth><Layout><Settings /></Layout></RequireAuth>} />
               <Route path="/logs" element={<RequireAuth><Layout><LogsViewer /></Layout></RequireAuth>} />
               <Route path="/diagnostics" element={<RequireAuth><Layout><Diagnostics /></Layout></RequireAuth>} />

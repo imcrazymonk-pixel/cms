@@ -18,11 +18,17 @@ $$ language 'plpgsql';
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     login VARCHAR(50) UNIQUE NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
+    email VARCHAR(100) UNIQUE DEFAULT NULL,
     password VARCHAR(255) NOT NULL,
     role VARCHAR(50) CHECK (role IN ('admin', 'editor', 'author')) DEFAULT 'author',
     display_name VARCHAR(100) DEFAULT NULL,
     status VARCHAR(20) CHECK (status IN ('active', 'inactive', 'banned')) DEFAULT 'active',
+    avatar_url TEXT DEFAULT NULL,
+    bio TEXT DEFAULT NULL,
+    phone VARCHAR(50) DEFAULT NULL,
+    telegram VARCHAR(100) DEFAULT NULL,
+    website VARCHAR(255) DEFAULT NULL,
+    location VARCHAR(120) DEFAULT NULL,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
