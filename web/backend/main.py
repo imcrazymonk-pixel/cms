@@ -17,6 +17,7 @@ from web.backend.core.auto_sync import auto_sync_loop
 from web.backend.core.config import get_cms_settings
 from web.backend.core.database import check_connection, close_engine
 from web.backend.core.bot_db import close_engine as close_bot_db_engine
+from web.backend.core import app_log
 from web.backend.core.errors import E
 from web.backend.core.logging_config import setup_logging
 from web.backend.schemas.common import HealthResponse
@@ -42,6 +43,8 @@ async def lifespan(app: FastAPI):
     # Start the in-app auto-sync loop (acts only when a provider has
     # `*_auto_sync` enabled in fin_settings).
     auto_sync_task = asyncio.create_task(auto_sync_loop())
+    # Start the DB log writer (structlog/stdlib → app_logs batched inserts).
+    app_log.start()
 
     yield
 
@@ -51,6 +54,8 @@ async def lifespan(app: FastAPI):
         await auto_sync_task
     except asyncio.CancelledError:
         pass
+    # Final flush of the log queue before the engine is disposed.
+    await app_log.stop()
     await close_engine()
     await close_bot_db_engine()
     logger.info("👋 CMS API stopped")

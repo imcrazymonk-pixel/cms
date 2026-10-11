@@ -13,6 +13,8 @@ from pathlib import Path
 
 import structlog
 
+from web.backend.core.app_log import create_handler as create_app_log_handler
+
 _MAX_BYTES = 10 * 1024 * 1024  # 10 MB
 _BACKUP_COUNT = 5
 _LOG_DIR = Path(os.environ.get("LOG_DIR", "/app/logs"))
@@ -90,6 +92,11 @@ def setup_logging(level: str | None = None) -> None:
         root.addHandler(file_h)
     except OSError:
         pass
+
+    # DB mirror → app_logs. A single root handler sees every LogRecord exactly
+    # once (structlog-wrapped and plain stdlib alike); unlike a structlog
+    # processor it does not run once per formatter, so no duplicate rows.
+    root.addHandler(create_app_log_handler(logging.INFO))
 
     logging.getLogger("httpx").setLevel(logging.WARNING)
     logging.getLogger("httpcore").setLevel(logging.WARNING)

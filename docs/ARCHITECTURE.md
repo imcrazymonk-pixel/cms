@@ -86,7 +86,7 @@ NewWeb/
 ## 4. Потоки запросов (прод)
 
 ```
-браузер → hexaveil.xyz (85.198.99.102)
+браузер → hexaveil.xyz (85.198.99.102 — входящий IP CMS)
   │
   ├── /, /blog, /*           → PHP (core/ + templates/) — публичный сайт
   │
@@ -107,6 +107,9 @@ NewWeb/
         ├── /api/logs/*       — Системные логи
         ├── /api/dashboard/*  — Статистика
         ├── /api/notifications/* — Уведомления
+        ├── /api/bedolaga/*    — Прокси Bedolaga Bot Web API (overview, customers,
+        │                         promo, marketing, referrals, support)
+        ├── /api/bedolaga/tariffs — Каталог тарифов из БД бота (read-only)
         └── bridge:
             /admin/finance/api/*     → PHP (Finance)
             /admin/diagnostics/api/* → PHP
@@ -203,6 +206,9 @@ NewWeb/
 |------|-----------|
 | `web/backend/main.py` | FastAPI app + CORS + middleware |
 | `web/backend/api/v1/*.py` | 15 роутеров (все API-эндпоинты) |
+| `web/backend/api/v1/bedolaga/` | Прокси Bedolaga Bot Web API (dashboard, customers, promo, marketing, referrals) |
+| `web/backend/core/bedolaga_client.py` | HTTP-клиент Bedolaga Bot API |
+| `web/backend/core/bot_db.py` | Read-only доступ к БД бота (тарифы) |
 | `web/backend/core/config.py` | Pydantic-настройки (.env) |
 | `web/backend/core/security.py` | JWT (совместим с PHP) |
 | `web/backend/schemas/*.py` | 13 per-domain Pydantic-схем |
@@ -224,9 +230,10 @@ NewWeb/
 
 ---
 
-## 10. Прод (85.198.99.102)
+## 10. Прод (85.198.99.102 / 159.194.221.84)
 
 **Важные особенности:**
+- У сервера два IP: `85.198.99.102` — входящий (CMS/сайт), `159.194.221.84` — исходящий (тот же сервер, RU-нода/selfsteal)
 - Порт 80/443 заняты `nginx-selfsteal` (host network, для Xray Reality)
 - CMS слушает на порту 3000, доступна через reverse proxy от selfsteal
 - Деплой через `git pull` + `docker compose up -d --build`

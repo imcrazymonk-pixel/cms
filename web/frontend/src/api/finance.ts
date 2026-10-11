@@ -113,6 +113,39 @@ export interface PaymentImportResult {
   error?: string
 }
 
+export interface SyncHistoryEntry {
+  id: number
+  created_at: string
+  level: string
+  channel: string
+  message: string
+  category: string
+  source: string
+  context: {
+    provider?: string
+    source?: string
+    ok?: boolean
+    added?: number
+    skipped?: number
+    new?: number
+    error?: string
+    duration_ms?: number
+    [key: string]: unknown
+  } | null
+}
+
+export interface SyncProviderStatus {
+  provider: string
+  configured: boolean
+  auto_sync: number
+  interval: number
+  last_sync: string
+  last_sync_ok: number
+  last_error: string
+  next_run: string | null
+  lock_active: boolean
+}
+
 function paymentsProvider(base: string) {
   return {
     preview: (body: Record<string, unknown> = {}) =>
@@ -126,6 +159,12 @@ function paymentsProvider(base: string) {
       adminApi.get<PaymentSettings>(`/admin/finance/api/${base}/settings`).then(r => r.data),
     saveSettings: (body: Record<string, unknown>) =>
       adminApi.post(`/admin/finance/api/${base}/settings`, body).then(r => r.data),
+    history: (limit = 10) =>
+      adminApi.get<{ success: boolean; data: SyncHistoryEntry[] }>(`/admin/finance/api/sync/history`, {
+        params: { provider: base, limit },
+      }).then(r => r.data),
+    status: () =>
+      adminApi.get<{ success: boolean; providers: SyncProviderStatus[] }>(`/admin/finance/api/sync/status`).then(r => r.data),
   }
 }
 

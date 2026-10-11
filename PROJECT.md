@@ -111,12 +111,41 @@ nginx-selfsteal (`network_mode: host`, порты 80/443) → reverse proxy на
 - **Кабинет:** `cabinet.fortf.ru`, v1.71.0, статика `/srv/cabinet`, источник `ghcr.io/bedolaga-dev/bedolaga-cabinet:latest`
 - **Связка аккаунтов** — полностью реализована (Telegram, email, Google OAuth). Не хватает заметности: нужно добавить баннер-напоминание на главной кабинета.
 
+### Интеграция в админку CMS (2026-10-10)
+
+CMS проксирует Bedolaga Bot Web API (`/api/bedolaga/*`) и читает каталог тарифов из БД бота:
+
+| Возможность | Путь в CMS | Источник |
+|------------|-----------|----------|
+| Дашборд бота (статистика, здоровье, тех. работы) | `/admin/#/bedolaga` | Bot Web API |
+| Клиенты (CRUD, баланс, подписки, активность) | `/admin/#/bedolaga/customers` | Bot Web API |
+| **Тарифы (каталог, цены, периоды, лимиты)** | `/admin/#/bedolaga/tariffs` | **БД бота (read-only)** |
+| Промокоды | `/admin/#/bedolaga/promo` | Bot Web API |
+| Маркетинг (кампании, рассылки, партнёры) | `/admin/#/bedolaga/marketing` | Bot Web API |
+| Реферальная сеть | `/admin/#/bedolaga/referrals` | Bot Web API |
+
+**Тарифы из БД:** у Bot Web API нет эндпоинта каталога тарифов (он живёт только в Cabinet API с админским JWT). Поэтому CMS читает таблицу `tariffs` из PostgreSQL бота напрямую — через **read-only** пользователя `cms_ro` (только SELECT, без записи). Соединение идёт через socat-мост `bot-db-cms-bridge` (systemd на панельном сервере, порт 5434, UFW разрешает только IP CMS-сервера).
+
+**Что отдаёт `GET /api/bedolaga/tariffs`:**
+- `name`, `description`, `panel_tag` — название, описание, тег панели
+- `period_prices_list` — `[{days, price_kopeks, price_rubles}]` — цены за периоды
+- `traffic_limit_gb`, `device_limit` — лимиты трафика и устройств
+- `is_trial_available`, `trial_duration_days` — триал
+- `is_daily`, `daily_price_kopeks` — дневной тариф
+- `custom_days_enabled`, `price_per_day_kopeks` — произвольный период
+- `is_active`, `is_highlighted`, `show_in_gift`, `allow_traffic_topup`
+- `allowed_squads`, `external_squad_uuid` — серверы/сквады
+
+**В карточке клиента** (`/admin/#/bedolaga/customers/:id`) — строка «Тариф» в блоке «Подписка» (имя тарифа из Web API бота: поля `tariff_id`/`tariff_name` в `GET /users/{id}`).
+
 ### Правила работы
 
 - На живом сервере — только чтение (без явного одобрения владельца)
 - Не поднимать второй бот на том же `BOT_TOKEN`
 - Не давать локальному боту `REMNAWAVE_API_URL` прода
 - Не коммитить секреты
+- Пользователь БД `cms_ro` — **только SELECT**, без прав записи; не расширять без необходимости
+- socat-мост `bot-db-cms-bridge` — только с UFW-ограничением на IP CMS-сервера
 
 ---
 

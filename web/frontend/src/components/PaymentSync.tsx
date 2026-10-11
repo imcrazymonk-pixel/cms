@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { RefreshCw, Download, Search, AlertTriangle, CheckCircle2 } from 'lucide-react'
-import { financeApi, type PaymentPreviewRow, type PaymentSettings } from '../api/finance'
+import { RefreshCw, Download, Search, AlertTriangle, CheckCircle2, History, Zap } from 'lucide-react'
+import { financeApi, type PaymentPreviewRow, type PaymentSettings, type SyncHistoryEntry, type SyncProviderStatus } from '../api/finance'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
@@ -49,6 +49,11 @@ function ProviderPanel({ provider }: { provider: Provider }) {
 
   const reloadSettings = () => qc.invalidateQueries({ queryKey: ['payments', provider, 'settings'] })
 
+  const reloadSyncMeta = () => {
+    qc.invalidateQueries({ queryKey: ['payments', provider, 'status'] })
+    qc.invalidateQueries({ queryKey: ['payments', provider, 'history'] })
+  }
+
   const doPreview = async () => {
     setBusy('preview')
     try {
@@ -71,6 +76,7 @@ function ProviderPanel({ provider }: { provider: Provider }) {
       toast.success(`Синхронизация: добавлено ${res.added ?? 0}, пропущено ${res.skipped ?? 0}`)
       qc.invalidateQueries({ queryKey: ['finance'] })
       reloadSettings()
+      reloadSyncMeta()
     } catch (e) {
       toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Ошибка синхронизации')
     } finally { setBusy(null) }
@@ -87,6 +93,7 @@ function ProviderPanel({ provider }: { provider: Provider }) {
       setRows([]); setSelected(new Set())
       qc.invalidateQueries({ queryKey: ['finance'] })
       reloadSettings()
+      reloadSyncMeta()
     } catch (e) {
       toast.error((e as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Ошибка импорта')
     } finally { setBusy(null) }
@@ -136,6 +143,10 @@ function ProviderPanel({ provider }: { provider: Provider }) {
         </div>
       )}
 
+      <LiveSyncStatus provider={provider} />
+
+      <SyncHistory provider={provider} />
+
       {rows.length > 0 && (
         <div className="space-y-3">
           <div className="rounded-lg border border-[var(--glass-border)]/50 overflow-hidden">
@@ -180,6 +191,138 @@ function ProviderPanel({ provider }: { provider: Provider }) {
         </div>
       )}
     </Card>
+  )
+}
+
+/** Живой статус автосинка (Вариант D): включён ли, интервал, next_run, lock. */
+function LiveSyncStatus({ provider }: { provider: Provider }) {
+  const api = financeApi.payments[provider]
+  const { data, isFetching, refetch } = useQuery<SyncProviderStatus | null>({
+    queryKey: ['payments', provider, 'status'],
+    queryFn: async () => {
+      const res = await api.status()
+      return res.providers?.find(p => p.provider === provider) ?? null
+    },
+  })
+
+  const nextRun = data?.next_run ? fmtDate(data.next_run) : null
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-dark-200" data-sync-status>
+      <span className="inline-flex items-center gap-1.5">
+        <Zap className="w-3.5 h-3.5 text-dark-300" />
+        Автосинк:
+        {data?.auto_sync ? (
+          <Badge variant="secondary" className="text-[10px] bg-green-500/20 text-green-400">вкл</Badge>
+        ) : (
+          <Badge variant="outline" className="text-[10px]">выкл</Badge>
+        )}
+      </span>
+      {data?.auto_sync ? (
+        <span>Интервал: <span className="text-dark-100">{data.interval} с</span></span>
+      ) : null}
+      {data?.auto_sync && nextRun ? (
+        <span>Следующий запуск: <span className="text-dark-100">{nextRun}</span></span>
+      ) : null}
+      {data?.lock_active ? (
+        <span className="inline-flex items-center gap-1 text-amber-400">
+          <AlertTriangle className="w-3.5 h-3.5" /> идёт синхронизация…
+        </span>
+      ) : null}
+      {data && !data.configured ? (
+        <span className="inline-flex items-center gap-1 text-amber-400">
+          <AlertTriangle className="w-3.5 h-3.5" /> не настроен (нет ключей)
+        </span>
+      ) : null}
+      <Button variant="ghost" size="sm" className="h-6" onClick={() => refetch()} disabled={isFetching}>
+        <RefreshCw className={`w-3 h-3 mr-1 ${isFetching ? 'animate-spin' : ''}`} /> Обновить статус
+      </Button>
+    </div>
+  )
+}
+
+/** История синхронизаций (Вариант C): последние события из app_logs. */
+function SyncHistory({ provider }: { provider: Provider }) {
+  const api = financeApi.payments[provider]
+  const { data, isLoading, refetch, isFetching } = useQuery<SyncHistoryEntry[]>({
+    queryKey: ['payments', provider, 'history'],
+    queryFn: async () => {
+      const res = await api.history(10)
+      return res.data || []
+    },
+  })
+
+  const entries = data || []
+
+  return (
+    <div className="space-y-2" data-sync-history>
+      <div className="flex items-center justify-between">
+        <h4 className="text-xs font-medium text-dark-300 uppercase tracking-wider inline-flex items-center gap-1.5">
+          <History className="w-3.5 h-3.5" /> История синхронизаций
+        </h4>
+        <Button variant="ghost" size="sm" className="h-6" onClick={() => refetch()} disabled={isLoading || isFetching}>
+          <RefreshCw className={`w-3 h-3 mr-1 ${isFetching ? 'animate-spin' : ''}`} /> Обновить
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <Skeleton className="h-16 w-full" />
+      ) : entries.length === 0 ? (
+        <p className="text-xs text-dark-400">Логов синхронизации пока нет — они появятся после первого запуска.</p>
+      ) : (
+        <div className="rounded-lg border border-[var(--glass-border)]/50 overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-32">Время</TableHead>
+                <TableHead className="w-16">Уровень</TableHead>
+                <TableHead>Результат</TableHead>
+                <TableHead className="w-28">Источник</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {entries.map(e => {
+                const ok = e.context?.ok
+                const sourceLabel =
+                  e.context?.source === 'auto' ? 'авто' :
+                  e.context?.source === 'manual' ? 'ручной' :
+                  e.context?.source === 'cron' ? 'cron' :
+                  (e.source === 'autosync' ? 'авто' : (e.source || '—'))
+                return (
+                  <TableRow key={e.id}>
+                    <TableCell className="text-xs whitespace-nowrap text-dark-300">{fmtDate(e.created_at)}</TableCell>
+                    <TableCell>
+                      <Badge className={
+                        e.level === 'error' ? 'bg-red-500/20 text-red-400' :
+                        e.level === 'warning' ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-blue-500/20 text-blue-400'
+                      }>{e.level}</Badge>
+                    </TableCell>
+                    <TableCell className="text-xs max-w-[380px]">
+                      {ok === false ? (
+                        <span className="text-red-400 inline-flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          {(e.context?.error as string) || e.message}
+                        </span>
+                      ) : (
+                        <span className="text-dark-200">
+                          Добавлено{' '}
+                          <strong className="text-green-400">{e.context?.added ?? 0}</strong>, пропущено{' '}
+                          <strong className="text-dark-100">{e.context?.skipped ?? 0}</strong>
+                          {typeof e.context?.new === 'number' ? <> (новых: {e.context.new})</> : null}
+                          {typeof e.context?.duration_ms === 'number' ? <> · {e.context.duration_ms} мс</> : null}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-dark-300">{sourceLabel}</TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
   )
 }
 

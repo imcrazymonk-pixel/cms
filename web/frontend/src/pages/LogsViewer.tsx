@@ -17,7 +17,7 @@ const CATEGORIES: Record<string, string> = {
   all: 'Все',
   system: 'Система',
   site: 'Сайт',
-  modules: 'Модули',
+  modules: 'Интеграции',
   infrastructure: 'Инфраструктура',
   docker: 'Docker',
   loki: 'Loki',

@@ -10,13 +10,15 @@ import csv as _csv
 import hmac
 import io
 import json
+import logging
+import os
 import time
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -26,8 +28,10 @@ from web.backend.core.crypto import decrypt, encrypt
 from web.backend.core.database import get_db
 from web.backend.core.errors import E, api_error
 from web.backend.core.request_utils import json_body
+from web.backend.core.settings_registry import REGISTRY_BY_KEY
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 PLATEGA_PARTICIPANT = "Platega пополнение"
 YOOKASSA_PARTICIPANT = "YooKassa"
@@ -59,6 +63,67 @@ async def _set(db: AsyncSession, key: str, value: str) -> None:
 def _g(settings: dict, key: str, default: str = "") -> str:
     v = settings.get(key)
     return default if v is None else v
+
+
+# ── env-override helpers (Part 3: env > БД > default) ─────────────────────
+
+# Known finance keys that can be overridden from the environment. Values in
+# `.env` win over the DB; DB wins over the registry default.
+_FIN_ENV_MAP = {
+    "platega_merchant_id": "PLATEGA_MERCHANT_ID",
+    "platega_secret": "PLATEGA_SECRET",
+    "platega_days_back": "PLATEGA_DAYS_BACK",
+    "platega_auto_sync": "PLATEGA_AUTO_SYNC",
+    "platega_cron_token": "PLATEGA_CRON_TOKEN",
+    "yookassa_shop_id": "YOOKASSA_SHOP_ID",
+    "yookassa_secret_key": "YOOKASSA_SECRET_KEY",
+    "yookassa_days_back": "YOOKASSA_DAYS_BACK",
+    "yookassa_auto_sync": "YOOKASSA_AUTO_SYNC",
+    "yookassa_commissions": "YOOKASSA_COMMISSIONS",
+    "yookassa_cron_token": "YOOKASSA_CRON_TOKEN",
+}
+
+
+async def _get_fin_config(db: AsyncSession) -> Dict[str, str]:
+    """Finance settings resolved as env > db > registry default.
+
+    Secret values are kept as-is (DB rows stay encrypted, env values plaintext);
+    callers decrypt() them — decrypt() passes plaintext through unchanged.
+    Non-mapped keys (last_sync, locks, …) come straight from the DB.
+    """
+    stored = await _get_all(db)
+    out = dict(stored)
+    for key, env_name in _FIN_ENV_MAP.items():
+        env = os.environ.get(env_name, "") or ""
+        if env:
+            out[key] = env
+        elif out.get(key) is None:
+            defn = REGISTRY_BY_KEY.get(key)
+            if defn is not None:
+                out[key] = defn.default
+    return out
+
+
+def _auto_sync_interval() -> int:
+    """AUTO_SYNC_INTERVAL from env (default 300, min 30) — mirrors auto_sync."""
+    try:
+        return max(30, int(os.environ.get("AUTO_SYNC_INTERVAL", "300")))
+    except (TypeError, ValueError):
+        return 300
+
+
+def _log_sync_event(provider: str, source: str, ok: bool, added: int,
+                    skipped: int, new: int, error: str, duration_ms: float) -> None:
+    """Structured sync event — the DB logger mirrors it into app_logs."""
+    extra = {
+        "provider": provider, "source": source, "ok": ok,
+        "added": added, "skipped": skipped, "new": new,
+        "error": error, "duration_ms": duration_ms,
+    }
+    if ok:
+        logger.info("sync-run", extra=extra)
+    else:
+        logger.warning("sync-run", extra=extra)
 
 
 # ── dedup helpers ─────────────────────────────────────────────────────
@@ -290,8 +355,16 @@ async def _stitch_platega(db: AsyncSession, preview_rows: List[dict]) -> int:
     return stitched
 
 
-async def _run_platega_sync(db: AsyncSession) -> tuple[dict, int]:
-    settings = await _get_all(db)
+async def _run_platega_sync(db: AsyncSession, source: str = "auto") -> Tuple[dict, int]:
+    started = time.monotonic()
+
+    def done(ok: bool, res: dict, code: int) -> Tuple[dict, int]:
+        _log_sync_event("platega", source, ok, int(res.get("added", 0) or 0),
+                        int(res.get("skipped", 0) or 0), int(res.get("new", 0) or 0),
+                        str(res.get("error") or ""), round((time.monotonic() - started) * 1000, 1))
+        return res, code
+
+    settings = await _get_fin_config(db)
     merchant_id = _g(settings, "platega_merchant_id").strip()
     secret = decrypt(_g(settings, "platega_secret")).strip()
     days_back = int(_g(settings, "platega_days_back", "150") or 150)
@@ -302,10 +375,10 @@ async def _run_platega_sync(db: AsyncSession) -> tuple[dict, int]:
         await _set(db, "platega_last_error", "Platega не настроен (merchant_id/secret пусты)")
         await _set(db, "platega_last_sync_ok", "0")
         await db.commit()
-        return {"success": False, "error": "Platega не настроен (merchant_id/secret пусты)"}, 400
+        return done(False, {"success": False, "error": "Platega не настроен (merchant_id/secret пусты)"}, 400)
 
     if not _sync_lock_ok(settings, "platega_sync_lock"):
-        return {"success": True, "added": 0, "skipped": 0, "new": 0, "skipped_lock": True}, 200
+        return done(True, {"success": True, "added": 0, "skipped": 0, "new": 0, "skipped_lock": True}, 200)
     await _set(db, "platega_sync_lock", str(int(time.time())))
     await db.commit()
 
@@ -322,13 +395,13 @@ async def _run_platega_sync(db: AsyncSession) -> tuple[dict, int]:
         await _set(db, "platega_last_sync_ok", "1")
         await _set(db, "platega_sync_lock", "")
         await db.commit()
-        return {"success": True, "added": added, "skipped": skipped, "new": len(new_rows)}, 200
+        return done(True, {"success": True, "added": added, "skipped": skipped, "new": len(new_rows)}, 200)
     except Exception as e:
         await _set(db, "platega_sync_lock", "")
         await _set(db, "platega_last_error", str(e))
         await _set(db, "platega_last_sync_ok", "0")
         await db.commit()
-        return {"success": False, "error": str(e)}, 500
+        return done(False, {"success": False, "error": str(e)}, 500)
 
 
 @router.post("/platega/preview")
@@ -340,7 +413,7 @@ async def platega_preview(request: Request, admin: AdminUser = Depends(get_curre
     days_back = int(body.get("days_back") or 150)
     if days_back < 1 or days_back > 730:
         days_back = 150
-    settings = await _get_all(db)
+    settings = await _get_fin_config(db)
     if merchant_id == "":
         merchant_id = _g(settings, "platega_merchant_id").strip()
     if secret == "":
@@ -374,25 +447,25 @@ async def platega_import(request: Request, admin: AdminUser = Depends(get_curren
 
 @router.post("/platega/sync")
 async def platega_sync(admin: AdminUser = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
-    res, _code = await _run_platega_sync(db)
+    res, _code = await _run_platega_sync(db, source="manual")
     return res
 
 
 @router.get("/platega/cron-sync")
 async def platega_cron_sync(request: Request, db: AsyncSession = Depends(get_db)):
-    settings = await _get_all(db)
-    stored = _g(settings, "platega_cron_token")
+    settings = await _get_fin_config(db)
+    stored = decrypt(_g(settings, "platega_cron_token")).strip()
     token = request.query_params.get("token", "")
     if stored == "" or not hmac.compare_digest(stored, token):
         return JSONResponse(status_code=403, content={"success": False, "error": "forbidden"})
-    res, code = await _run_platega_sync(db)
+    res, code = await _run_platega_sync(db, source="cron")
     res["cron"] = True
     return JSONResponse(status_code=(200 if res.get("success") else code), content=res)
 
 
 @router.get("/platega/settings")
 async def platega_settings(admin: AdminUser = Depends(get_current_admin), db: AsyncSession = Depends(get_db)):
-    s = await _get_all(db)
+    s = await _get_fin_config(db)
     secret = decrypt(_g(s, "platega_secret"))
     return {
         "merchant_id": _g(s, "platega_merchant_id"),
@@ -606,8 +679,16 @@ async def _stitch_yk(db: AsyncSession, preview_rows: List[dict]) -> int:
     return stitched
 
 
-async def _run_yk_sync(db: AsyncSession) -> tuple[dict, int]:
-    settings = await _get_all(db)
+async def _run_yk_sync(db: AsyncSession, source: str = "auto") -> Tuple[dict, int]:
+    started = time.monotonic()
+
+    def done(ok: bool, res: dict, code: int) -> Tuple[dict, int]:
+        _log_sync_event("yookassa", source, ok, int(res.get("added", 0) or 0),
+                        int(res.get("skipped", 0) or 0), int(res.get("new", 0) or 0),
+                        str(res.get("error") or ""), round((time.monotonic() - started) * 1000, 1))
+        return res, code
+
+    settings = await _get_fin_config(db)
     shop_id = _g(settings, "yookassa_shop_id").strip()
     secret = decrypt(_g(settings, "yookassa_secret_key")).strip()
     days_back = int(_g(settings, "yookassa_days_back", "30") or 30)
@@ -618,10 +699,10 @@ async def _run_yk_sync(db: AsyncSession) -> tuple[dict, int]:
         await _set(db, "yookassa_last_error", "YooKassa не настроена (shop_id/secret пусты)")
         await _set(db, "yookassa_last_sync_ok", "0")
         await db.commit()
-        return {"success": False, "error": "YooKassa не настроена (shop_id/secret пусты)"}, 400
+        return done(False, {"success": False, "error": "YooKassa не настроена (shop_id/secret пусты)"}, 400)
 
     if not _sync_lock_ok(settings, "yookassa_sync_lock"):
-        return {"success": True, "added": 0, "skipped": 0, "new": 0, "skipped_lock": True}, 200
+        return done(True, {"success": True, "added": 0, "skipped": 0, "new": 0, "skipped_lock": True}, 200)
     await _set(db, "yookassa_sync_lock", str(int(time.time())))
     await db.commit()
 
@@ -638,13 +719,13 @@ async def _run_yk_sync(db: AsyncSession) -> tuple[dict, int]:
         await _set(db, "yookassa_last_sync_ok", "1")
         await _set(db, "yookassa_sync_lock", "")
         await db.commit()
-        return {"success": True, "added": added, "skipped": skipped, "new": len(new_rows)}, 200
+        return done(True, {"success": True, "added": added, "skipped": skipped, "new": len(new_rows)}, 200)
     except Exception as e:
         await _set(db, "yookassa_sync_lock", "")
         await _set(db, "yookassa_last_error", str(e))
         await _set(db, "yookassa_last_sync_ok", "0")
         await db.commit()
-        return {"success": False, "error": str(e)}, 500
+        return done(False, {"success": False, "error": str(e)}, 500)
 
 
 @router.post("/yookassa/preview")
@@ -656,7 +737,7 @@ async def yk_preview(request: Request, admin: AdminUser = Depends(get_current_ad
     days_back = int(body.get("days_back") or 30)
     if days_back < 1 or days_back > 730:
         days_back = 30
-    settings = await _get_all(db)
+    settings = await _get_fin_config(db)
     if shop_id == "":
         shop_id = _g(settings, "yookassa_shop_id").strip()
     if secret == "":
@@ -696,12 +777,12 @@ async def yk_sync(admin: AdminUser = Depends(get_current_admin), db: AsyncSessio
 
 @router.get("/yookassa/cron-sync")
 async def yk_cron_sync(request: Request, db: AsyncSession = Depends(get_db)):
-    settings = await _get_all(db)
-    stored = _g(settings, "yookassa_cron_token")
+    settings = await _get_fin_config(db)
+    stored = decrypt(_g(settings, "yookassa_cron_token")).strip()
     token = request.query_params.get("token", "")
     if stored == "" or not hmac.compare_digest(stored, token):
         return JSONResponse(status_code=403, content={"success": False, "error": "forbidden"})
-    res, code = await _run_yk_sync(db)
+    res, code = await _run_yk_sync(db, source="cron")
     res["cron"] = True
     return JSONResponse(status_code=(200 if res.get("success") else code), content=res)
 
@@ -748,3 +829,87 @@ async def yk_settings_save(request: Request, admin: AdminUser = Depends(get_curr
         await _set(db, "yookassa_commissions", json.dumps(comm, ensure_ascii=False))
     await db.commit()
     return {"success": True}
+
+
+# ── sync history + live status (Варианты C и D) ─────────────────────
+
+_SYNC_PROVIDERS = (
+    ("platega", "platega_merchant_id", "platega_secret", "platega_auto_sync",
+     "platega_last_sync", "platega_last_sync_ok", "platega_last_error", "platega_sync_lock"),
+    ("yookassa", "yookassa_shop_id", "yookassa_secret_key", "yookassa_auto_sync",
+     "yookassa_last_sync", "yookassa_last_sync_ok", "yookassa_last_error", "yookassa_sync_lock"),
+)
+
+
+@router.get("/sync/history")
+async def sync_history(admin: AdminUser = Depends(get_current_admin),
+                       db: AsyncSession = Depends(get_db),
+                       provider: str = Query(...),
+                       limit: int = Query(20, ge=1, le=100)):
+    """Последние события синхронизации из app_logs (category='finance')."""
+    if provider not in ("platega", "yookassa"):
+        return api_error(400, E.INVALID_INPUT, "provider должен быть platega или yookassa")
+    rows = (await db.execute(text(
+        "SELECT id, created_at, level, channel, message, category, source, context "
+        "FROM app_logs WHERE category = 'finance' AND channel = :p "
+        "ORDER BY id DESC LIMIT :limit"), {"p": provider, "limit": limit})).fetchall()
+    data = []
+    for r in rows:
+        ctx = r.context
+        if ctx:
+            try:
+                ctx = json.loads(ctx)
+            except Exception:
+                ctx = None
+        data.append({
+            "id": r.id, "created_at": str(r.created_at), "level": r.level,
+            "channel": r.channel, "message": r.message, "category": r.category,
+            "source": r.source, "context": ctx,
+        })
+    return {"success": True, "data": data}
+
+
+@router.get("/sync/status")
+async def sync_status(admin: AdminUser = Depends(get_current_admin),
+                      db: AsyncSession = Depends(get_db)):
+    """Живой статус автосинка: включён ли, интервал, next_run, lock."""
+    settings = await _get_fin_config(db)
+    interval = _auto_sync_interval()
+    now = time.time()
+    providers = []
+    for name, cfg_key, secret_key, flag_key, last_key, ok_key, err_key, lock_key in _SYNC_PROVIDERS:
+        cfg = _g(settings, cfg_key).strip()
+        secret = decrypt(_g(settings, secret_key)).strip()
+        configured = bool(cfg and secret)
+        auto_sync = _g(settings, flag_key) == "1"
+        last_sync = _g(settings, last_key)
+        last_ok = _g(settings, ok_key) == "1"
+        last_error = _g(settings, err_key)
+        lock_raw = _g(settings, lock_key, "0") or "0"
+        lock_active = False
+        try:
+            lock_active = bool(int(lock_raw)) and (now - int(lock_raw)) < 30
+        except (TypeError, ValueError):
+            lock_active = False
+        next_run = None
+        if auto_sync and last_sync:
+            try:
+                import datetime as _dt
+                last_dt = _dt.datetime.fromisoformat(str(last_sync))
+                if last_dt.tzinfo is None:
+                    last_dt = last_dt.replace(tzinfo=_dt.timezone.utc)
+                next_run = (last_dt + _dt.timedelta(seconds=interval)).isoformat()
+            except Exception:
+                next_run = None
+        providers.append({
+            "provider": name,
+            "configured": configured,
+            "auto_sync": 1 if auto_sync else 0,
+            "interval": interval,
+            "last_sync": last_sync,
+            "last_sync_ok": 1 if last_ok else 0,
+            "last_error": last_error,
+            "next_run": next_run,
+            "lock_active": lock_active,
+        })
+    return {"success": True, "providers": providers}
