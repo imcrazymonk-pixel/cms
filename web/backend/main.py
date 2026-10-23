@@ -56,6 +56,21 @@ async def lifespan(app: FastAPI):
     except Exception:  # noqa: BLE001
         pass
 
+    # Support module (phase 0): idempotent schema + service + background workers.
+    # Best-effort: a failure disables only the support API, not the whole app.
+    support_workers: list = []
+    try:
+        from web.backend.core.support import init_support
+        from web.backend.core.support.schema import ensure_support_schema
+        from web.backend.core.support.workers import start_support_workers
+        await ensure_support_schema()
+        app.state.support = await init_support()
+        support_workers = start_support_workers(app.state.support)
+        logger.info("Support module initialized")
+    except Exception as e:  # noqa: BLE001
+        app.state.support = None
+        logger.warning("Support module failed to initialize — support API disabled: %s", e)
+
     # Startup summary: which integrations are configured (readable one-liner).
     try:
         from web.backend.core.auto_sync import _enabled_flags as _sync_enabled
@@ -85,6 +100,9 @@ async def lifespan(app: FastAPI):
         await auto_sync_task
     except asyncio.CancelledError:
         pass
+    if support_workers:
+        from web.backend.core.support.workers import stop_support_workers
+        await stop_support_workers(support_workers)
     # Final flush of the log queue before the engine is disposed.
     await app_log.stop()
     await close_engine()
@@ -212,6 +230,7 @@ def create_app() -> FastAPI:
     from web.backend.api.v1 import finance_payments as finance_payments_api
     from web.backend.api.v1.bedolaga import router as bedolaga_router
     from web.backend.api.v1 import docs as docs_api
+    from web.backend.api.v1.support import router as support_router
 
     app.include_router(auth_api.router, prefix="/api", tags=["auth"])
     app.include_router(dashboard_api.router, prefix="/api", tags=["dashboard"])
@@ -241,6 +260,9 @@ def create_app() -> FastAPI:
 
     # Docs / Changelog
     app.include_router(docs_api.router, prefix="/api", tags=["docs"])
+
+    # Support module (phase 0)
+    app.include_router(support_router, prefix="/api/support", tags=["support"])
 
     # ── Health check ────────────────────────────────────────────
     @app.get("/api/health", tags=["health"])
