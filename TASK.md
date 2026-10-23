@@ -223,3 +223,46 @@ Monтируется: `ws` — отдельный `router` (WebSocketRoute) ил�
 ## НЕ ДЕЛАТЬ
 - Не трогать бэкенд (поллер/API — готов), ИИ/КБ/SLA наполнение, db/postgres, PHP.
 - Не добавлять новые npm-зависимости (только shadcn-компоненты — можно скопировать из `components/ui/`, они есть).
+
+---
+
+# ФАЗА 2 — Telegram-канал «личка» (бэкенд+тесты). Статус: ⬜ в работе
+
+> Дизайн (thinker) готов. Детали в отчёте: пакет `core/support/tg/` (types, api, poller),
+> канал channels/telegram.py, медиа через support_attachment, эндпоинты attachments, окно 24ч не для лички.
+
+## Фактические колонки `support_attachment` (из 004 — сверять с ними!)
+`id, message_id (FK support_message, NOT NULL), media_type, file_ref (NOT NULL), local_path, bytes,
+downloaded_at, created_at, attempts int default 0, width, height, original_name, mime_type, sha256,
+next_attempt_at, last_error`. ОБРАТИ внимание: НЕТ колонки conversation_id — привязка только через message_id.
+
+## Объём (см. полный дизайн в отчёте thinker):
+1. `core/support/tg/` (`__init__.py`, `types.py` датаклассы+parse_update, `api.py` TelegramClient на httpx:
+   get_updates/send_message/send_photo/send_document/get_file/download_file; ошибки TelegramAPIError/TelegramRateLimited(429,
+   retry_after); без ретраев; `poller.py` — long-poll (timeout 30), offset в `support_poll_state` ключ `tg:<bot>:offset`,
+   локальный last_update_id гард, только private chat, только message; media: getFile+downloadFile → сохранить в
+   `{upload_dir}/support/{token_hex(8)}.{ext}` (allowlist: jpg jpeg png webp gif ogg mp3 mp4 pdf doc docx txt, БЕЗ svg/html;
+   лимит MAX_UPLOAD_SIZE) → insert support_attachment (с message_id из record_inbound/record_outbound) → POLLER_STATUS;
+   ошибки не двигают offset, цикл жив; 429 → sleep retry_after).
+2. `channels/telegram.py` — заменить стаб: `TelegramChannelSender` (send_text → send_message, send_media →
+   send_photo для image/* (caption≤1024, длинный текст отдельным sendMessage) / send_document иначе); регистрация в
+   `__init__.py` как у Bedolaga; `channels/base.py` — опциональный `send_media` (runtime_checkable); `outbox.py` —
+   `no_window_channels: set` («telegram»), в send() пропускать reply_window для них.
+3. `settings.py` — `tg_token` (env SUPPORT_TG_TOKEN), `tg_bot_name` (env SUPPORT_TG_BOT_NAME); `.env.example` —
+   закомментированные дефолты. `init_support()`: канал включается при `tg.main.enabled` или наличии токена; регистрация
+   поллера в service.pollers.
+4. `store/attachments.py` (raw SQL, стиль conversations.py): insert_attachment, get_attachment, claim_for_message;
+   проброс в SupportStore.
+5. Эндпоинты `api/v1/support/attachments.py`: GET /attachments/{id} (JWT, FileResponse, ?download=1), POST /attachments
+   (multipart, allowlist, лимит, {success,data}); в `conversations.py` ReplyIn + attachment_ids (max 10), reply: send_media
+   если есть (иначе 501), record_outbound с media_* + claim_for_message.
+6. Тесты: `test_support_tg.py` (поллер: текст/фото/повтор/ошибки/группа-игнор; сендер: send_message/send_media;
+   outbox без окна для telegram) + `test_support_tg_endpoints.py` (attachments 404/200/download, POST лимит/тип,
+   reply с attachment_ids).
+
+ПРОВЕРКА: `cd web/backend && python -m pytest -q` — весь набор зелёный (база 147 + новые), без регрессий;
+`docker compose exec -T db psql -U cms -d cms -c "\d support_attachment"` для сверки колонок (при необходимости).
+
+## НЕ ДЕЛАТЬ
+- Форум-темы/бизнес-режим/голос-расшифровку/MiniShop (ф2b/ф3+); React (меню/композер — отдельно); db/postgres (deny);
+  но `schema.py`/lifespan best-effort НЕ ломать.
