@@ -43,6 +43,10 @@ const BedolagaTariffs = lazy(() => import('./pages/bedolaga/BedolagaTariffs'))
 
 const ChangelogViewer = lazy(() => import('./pages/ChangelogViewer'))
 
+// Support pages
+const SupportQueue = lazy(() => import('./pages/support/Queue'))
+const SupportPlaceholder = lazy(() => import('./pages/support/Placeholder'))
+
 const NotFound = lazy(() => import('./pages/NotFound'))
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -123,6 +127,15 @@ export default function App() {
               <Route path="/bedolaga/marketing" element={<RequireAuth><Layout><BedolagaMarketing /></Layout></RequireAuth>} />
               <Route path="/bedolaga/referrals" element={<RequireAuth><Layout><BedolagaReferrals /></Layout></RequireAuth>} />
               <Route path="/bedolaga/tariffs" element={<RequireAuth><Layout><BedolagaTariffs /></Layout></RequireAuth>} />
+
+              {/* Support */}
+              <Route path="/support" element={<RequireAuth><Layout><SupportQueue /></Layout></RequireAuth>} />
+              <Route path="/support/sla" element={<RequireAuth><Layout><SupportPlaceholder title="Контроль SLA" description="Политики SLA, просрочки первого ответа и времени решения появятся в фазе 4" /></Layout></RequireAuth>} />
+              <Route path="/support/kb" element={<RequireAuth><Layout><SupportPlaceholder title="База знаний" description="Статьи КБ, полнотекстовый поиск и дообучение из диалогов — фаза 3" /></Layout></RequireAuth>} />
+              <Route path="/support/ai" element={<RequireAuth><Layout><SupportPlaceholder title="ИИ-ассистент" description="Черновики ответов, ворота и настройки модели — фаза 3" /></Layout></RequireAuth>} />
+              <Route path="/support/templates" element={<RequireAuth><Layout><SupportPlaceholder title="Шаблоны ответов" description="Быстрые заготовки ответов операторов — фаза 4" /></Layout></RequireAuth>} />
+              <Route path="/support/analytics" element={<RequireAuth><Layout><SupportPlaceholder title="Аналитика" description="Метрики очереди, SLA и операторов — фаза 4" /></Layout></RequireAuth>} />
+              <Route path="/support/team" element={<RequireAuth><Layout><SupportPlaceholder title="Команда" description="Присутствие операторов и аудит действий — фаза 4" /></Layout></RequireAuth>} />
 
               {/* 404 */}
               {/* Docs / Changelog */}

@@ -19,29 +19,7 @@ interface SidebarLinksState {
   loadFromServer: () => Promise<void>
 }
 
-const defaultLinks: SidebarLink[] = [
-  {
-    id: 'github',
-    label: 'GitHub',
-    url: 'https://github.com/',
-    icon: 'Github',
-    enabled: true,
-  },
-  {
-    id: 'telegram',
-    label: 'Telegram',
-    url: 'https://t.me/',
-    icon: 'MessageCircle',
-    enabled: true,
-  },
-  {
-    id: 'support',
-    label: 'Support',
-    url: 'https://github.com/',
-    icon: 'Heart',
-    enabled: true,
-  },
-]
+const defaultLinks: SidebarLink[] = []
 
 function isSidebarLinkArray(val: unknown): val is SidebarLink[] {
   if (!Array.isArray(val)) return false

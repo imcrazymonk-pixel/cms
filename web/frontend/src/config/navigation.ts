@@ -19,6 +19,13 @@ import {
   Share2,
   BadgeCheck,
   ScrollText,
+  LifeBuoy,
+  Inbox,
+  Gauge,
+  BookOpen,
+  Sparkles,
+  FileStack,
+  UserCog,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -72,6 +79,22 @@ const navigation: NavigationEntry[] = [
       { name: 'Промокоды', href: '/bedolaga/promo', icon: Ticket, permission: null },
       { name: 'Маркетинг', href: '/bedolaga/marketing', icon: Megaphone, permission: null },
       { name: 'Рефералы', href: '/bedolaga/referrals', icon: Share2, permission: null },
+    ],
+  },
+
+  { type: 'section', name: 'Саппорт' },
+  {
+    type: 'group',
+    name: 'Саппорт',
+    icon: LifeBuoy,
+    items: [
+      { name: 'Очередь', href: '/support', icon: Inbox, permission: null },
+      { name: 'Контроль SLA', href: '/support/sla', icon: Gauge, permission: null },
+      { name: 'База знаний', href: '/support/kb', icon: BookOpen, permission: null },
+      { name: 'ИИ-ассистент', href: '/support/ai', icon: Sparkles, permission: null },
+      { name: 'Шаблоны', href: '/support/templates', icon: FileStack, permission: null },
+      { name: 'Аналитика', href: '/support/analytics', icon: BarChart3, permission: null },
+      { name: 'Команда', href: '/support/team', icon: UserCog, permission: null },
     ],
   },
 

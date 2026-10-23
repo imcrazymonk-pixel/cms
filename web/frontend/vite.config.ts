@@ -20,7 +20,7 @@ export default defineConfig({
     host: true,
     // Прокси‑запросы к backend (PHP API)
     proxy: {
-      '/api': { target: 'http://localhost', changeOrigin: true },
+      '/api': { target: 'http://localhost', changeOrigin: true, ws: true },
       // Проксируем все admin/finance/api запросы к PHP (через nginx)
       '/admin/finance/api': {
         target: 'http://localhost',
