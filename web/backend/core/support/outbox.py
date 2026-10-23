@@ -1,8 +1,9 @@
 """Outbox — the single egress point for support replies.
 
-Phase 0: the reply-window policy is a pure function (reply_window) plus an
-Outbox that routes sends to a registered ChannelSender. Real senders arrive
-with the channels in phases 1–2; until then send() raises NotImplementedError.
+Phase 2: reply-window policy (pure reply_window) + routing to a registered
+ChannelSender. Channels in `no_window_channels` (e.g. Telegram личка) skip the
+24h window — операторы отвечают когда угодно. send_media routes attachments
+through optional ChannelSender.send_media capability.
 """
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
@@ -21,8 +22,13 @@ class WindowClosedError(Exception):
         self.conversation_id = conversation_id
 
 
-def _as_utc(value: datetime) -> datetime:
-    """Normalize datetime to UTC-aware (naive values are assumed UTC)."""
+def _as_utc(value: datetime | str) -> datetime:
+    """Normalize datetime to UTC-aware (ISO-строка или naive → UTC)."""
+    if isinstance(value, str):
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return datetime.now(timezone.utc)
     if value.tzinfo is None:
         return value.replace(tzinfo=timezone.utc)
     return value
@@ -56,14 +62,22 @@ def reply_window(conversation: Mapping[str, Any], now: datetime, window_hours: i
 
 
 class Outbox:
-    """Routes outbound texts through the sender registered for the conversation channel.
+    """Routes outbound texts/media through the sender of the conversation channel.
 
-    Every send is gated by the reply window — outside it, WindowClosedError.
+    Every send is gated by the reply window (except no_window_channels) —
+    outside it, WindowClosedError.
     """
 
-    def __init__(self, registry: ChannelRegistry | None = None, window_hours: int = 24) -> None:
+    def __init__(
+        self,
+        registry: ChannelRegistry | None = None,
+        window_hours: int = 24,
+        *,
+        no_window_channels: set[str] | None = None,
+    ) -> None:
         self.registry = registry if registry is not None else ChannelRegistry()
         self.window_hours = window_hours
+        self.no_window_channels: set[str] = set(no_window_channels or ())
 
     def register_sender(self, channel: str, sender: ChannelSender) -> None:
         """Register the outbound sender for a channel."""
@@ -77,6 +91,14 @@ class Outbox:
         """True when a sender is registered for the channel."""
         return self.registry.get(channel) is not None
 
+    def check_window(self, conversation: Mapping[str, Any], *, now: datetime | None = None) -> None:
+        """Open-window gate; no-op for no_window_channels. Raises WindowClosedError."""
+        if str(conversation.get("channel") or "") in self.no_window_channels:
+            return
+        current = _as_utc(now) if now is not None else datetime.now(timezone.utc)
+        if not reply_window(conversation, current, self.window_hours):
+            raise WindowClosedError(conversation_id=conversation.get("id"))
+
     async def send(
         self,
         conversation: Mapping[str, Any],
@@ -87,15 +109,37 @@ class Outbox:
         """Send a reply; returns the transport-side message id (None when unknown).
 
         Raises:
-            WindowClosedError — outside the reply window.
+            WindowClosedError — outside the reply window (unless channel is window-free).
             NotImplementedError — no sender registered for the conversation channel.
         """
-        current = _as_utc(now) if now is not None else datetime.now(timezone.utc)
-        if not reply_window(conversation, current, self.window_hours):
-            raise WindowClosedError(conversation_id=conversation.get("id"))
+        self.check_window(conversation, now=now)
 
         channel = str(conversation.get("channel") or "")
         sender = self.registry.get(channel)
         if sender is None:
             raise NotImplementedError(f"No support sender registered for channel: {channel or '<empty>'}")
         return await sender.send_text(conversation, text)
+
+    async def send_media(
+        self,
+        conversation: Mapping[str, Any],
+        text: str | None,
+        attachment: Mapping[str, Any],
+        *,
+        now: datetime | None = None,
+    ) -> str | None:
+        """Send one attachment (photo/document) with optional caption.
+
+        Raises:
+            WindowClosedError — outside the reply window.
+            NotImplementedError — no sender, or sender lacks the send_media capability.
+        """
+        self.check_window(conversation, now=now)
+
+        channel = str(conversation.get("channel") or "")
+        sender = self.registry.get(channel)
+        if sender is None:
+            raise NotImplementedError(f"No support sender registered for channel: {channel or '<empty>'}")
+        if not hasattr(sender, "send_media"):
+            raise NotImplementedError(f"Канал «{channel or '<empty>'}» не поддерживает отправку вложений")
+        return await sender.send_media(conversation, text, attachment)

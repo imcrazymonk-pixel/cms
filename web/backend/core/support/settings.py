@@ -31,6 +31,9 @@ class SupportSettings(BaseSettings):
     poll_interval_seconds: int = Field(default=60, ge=5, description="Период опроса каналов, сек")
     # Окно ответа на входящее (outbox)
     window_hours: int = Field(default=24, ge=1, description="Окно ответа на входящее, ч")
+    # Telegram-канал «личка» (фаза 2) — env SUPPORT_TG_TOKEN / SUPPORT_TG_BOT_NAME
+    tg_token: str | None = Field(default=None, description="Токен Telegram-бота (личка)")
+    tg_bot_name: str | None = Field(default=None, description="Короткое имя бота для ключей состояния поллера")
 
 
 def get_support_settings() -> SupportSettings:

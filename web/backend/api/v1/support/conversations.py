@@ -11,6 +11,7 @@ from httpx import HTTPStatusError
 from pydantic import BaseModel, Field
 
 from web.backend.api.deps import AdminUser, get_current_admin
+from web.backend.api.v1.support.attachments import resolve_upload_token
 from web.backend.core.errors import E
 from web.backend.core.support import SupportService
 from web.backend.core.support.deps import get_support_service
@@ -23,12 +24,18 @@ router = APIRouter()
 
 _STATUS_RE = "^(open|pending|resolved|closed)$"
 _PRIORITY_RE = "^(low|normal|high|urgent)$"
+_MAX_ATTACHMENTS = 10
 
 
 class ReplyIn(BaseModel):
-    """Text of an outbound reply."""
+    """Text of an outbound reply + опциональные загруженные вложения (токены)."""
 
     text: str = Field(..., min_length=1, max_length=4000)
+    attachment_ids: list[str] = Field(
+        default_factory=list,
+        max_length=_MAX_ATTACHMENTS,
+        description="Токены файлов из POST /attachments",
+    )
 
 
 class StateIn(BaseModel):
@@ -101,10 +108,14 @@ async def reply_to_conversation(
     admin: AdminUser = Depends(get_current_admin),
     service: SupportService = Depends(get_support_service),
 ):
-    """Ответ оператора: Outbox (окно 24ч) → Bedolaga → запись у нас."""
+    """Ответ оператора: текст через Outbox (окно 24ч), вложения — send_media."""
     conv = await service.store.get_conversation(conversation_id)
     if conv is None:
         raise _not_found()
+
+    if body.attachment_ids:
+        return await _reply_with_attachments(service, conv, conversation_id, body)
+
     try:
         external_msg_id = await service.outbox.send(conv, body.text)
     except WindowClosedError:
@@ -145,6 +156,87 @@ async def reply_to_conversation(
     return {
         "success": True,
         "data": {"message_id": message_id, "conversation_id": conversation_id, "external_msg_id": external_msg_id},
+    }
+
+
+async def _reply_with_attachments(service: SupportService, conv: dict[str, Any], conversation_id: int, body: ReplyIn) -> dict:
+    """Ответ с вложениями: send_media → record_outbound → insert_attachment → claim.
+
+    Окно 24ч проверяется внутри outbox.check_window (для telegram-лички окна нет).
+    """
+    attachments = []
+    for token in body.attachment_ids:
+        att = resolve_upload_token(service, token)
+        if att is None:
+            raise HTTPException(
+                status_code=400,
+                detail={"success": False, "error": "Вложение не найдено или истекло", "code": E.INVALID_INPUT.value},
+            )
+        attachments.append(att)
+
+    sent_message_ids: list[int] = []
+    try:
+        for index, att in enumerate(attachments):
+            caption = body.text if index == 0 else None
+            external_msg_id = await service.outbox.send_media(conv, caption, att)
+            message_id = await service.store.record_outbound(
+                conversation_id=conversation_id,
+                text_value=caption or "",
+                author="agent",
+                external_msg_id=external_msg_id,
+                media_type=att.get("media_type"),
+                media_file_id=f"up:{att.get('token')}",
+            )
+            attachment_id = await service.store.insert_attachment(
+                message_id=message_id,
+                media_type=att.get("media_type"),
+                file_ref=f"up:{att.get('token')}",
+                local_path=att.get("local_path"),
+                bytes_count=int(att.get("bytes") or 0) or None,
+                original_name=att.get("original_name"),
+                mime_type=att.get("mime_type"),
+                sha256=att.get("sha256"),
+            )
+            await service.store.claim_for_message(attachment_id, message_id)
+            sent_message_ids.append(message_id)
+            service.event_bus.publish(
+                EventKind.MESSAGE_CREATED,
+                {"message_id": message_id, "direction": "out", "text": caption or "", "media_type": att.get("media_type")},
+                conversation_id=conversation_id,
+            )
+    except WindowClosedError:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "success": False,
+                "error": "Клиент давно не писал, отправка ограничена",
+                "code": E.REPLY_WINDOW_CLOSED.value,
+            },
+        )
+    except NotImplementedError:
+        raise HTTPException(
+            status_code=501,
+            detail={
+                "success": False,
+                "error": f"Канал «{conv.get('channel')}» не поддерживает отправку вложений",
+                "code": E.NOT_IMPLEMENTED.value,
+            },
+        )
+    except HTTPStatusError as e:
+        logger.warning("Telegram media reply failed: %s %s", e.response.status_code, e.response.text[:200])
+        raise HTTPException(
+            status_code=502,
+            detail={"success": False, "error": "Telegram API error при отправке вложения", "code": "UPSTREAM_ERROR"},
+        )
+
+    service.event_bus.publish(EventKind.CONVERSATION_CHANGED, {"status": conv.get("status")}, conversation_id=conversation_id)
+    return {
+        "success": True,
+        "data": {
+            "conversation_id": conversation_id,
+            "message_ids": sent_message_ids,
+            "count": len(sent_message_ids),
+        },
     }
 
 

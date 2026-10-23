@@ -1,7 +1,7 @@
 """Outbound channel contract and registry for support replies.
 
-Phase 0 only the contract exists; real senders arrive with phases 1–2
-(Bedolaga poller in phase 1, Telegram in phase 2).
+Phase 2: send_media is OPTIONAL — a channel that supports files implements it;
+the outbox checks capability via hasattr() before routing an attachment.
 """
 from typing import Any, Mapping, Protocol, runtime_checkable
 
@@ -16,7 +16,20 @@ class ChannelSender(Protocol):
         """Deliver `text` to the customer behind `conversation`.
 
         Returns the transport-side message id when the channel exposes one
-        (Bedolaga replies report it), None otherwise.
+        (Bedolaga/Telegram replies report it), None otherwise.
+        """
+        ...
+
+    async def send_media(
+        self,
+        conversation: Mapping[str, Any],
+        text: str | None,
+        attachment: Mapping[str, Any],
+    ) -> str | None:
+        """Deliver an attachment (photo/document/…) — optional capability.
+
+        Channels without media support simply omit it; the Outbox checks
+        hasattr(sender, "send_media") and answers 501 when required but missing.
         """
         ...
 

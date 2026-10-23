@@ -8,9 +8,17 @@ from typing import Any, AsyncIterator
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from web.backend.core.support.store import conversations, customers, poll_state, queries
+from web.backend.core.support.store import attachments, conversations, customers, poll_state, queries
 
-__all__ = ["SupportStore", "conversations", "customers", "queries", "poll_state", "open_session"]
+__all__ = [
+    "SupportStore",
+    "attachments",
+    "conversations",
+    "customers",
+    "queries",
+    "poll_state",
+    "open_session",
+]
 
 
 @asynccontextmanager
@@ -130,3 +138,16 @@ class SupportStore:
     async def set_poll_state(self, key: str, value: str) -> None:
         async with open_session() as db:
             await poll_state.set_poll_state(db, key, value)
+
+    # ── attachments (фаза 2) ───────────────────────────────────────
+    async def insert_attachment(self, **kwargs: Any) -> int:
+        async with open_session() as db:
+            return await attachments.insert_attachment(db, **kwargs)
+
+    async def get_attachment(self, attachment_id: int) -> dict[str, Any] | None:
+        async with open_session() as db:
+            return await attachments.get_attachment(db, attachment_id)
+
+    async def claim_for_message(self, attachment_id: int, message_id: int) -> bool:
+        async with open_session() as db:
+            return await attachments.claim_for_message(db, attachment_id, message_id)

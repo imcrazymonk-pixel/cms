@@ -76,7 +76,14 @@ ai-support **переписывается и внедряется в CMS пол�
   - Экран «Очередь обращений» `/admin/support` (список+фильтры+поиск, переписка пузырями, статусы/приоритет, «Взять диалог», карточка клиента, live через WS, композер Enter/Shift+Enter)
   - Меню «Саппорт» в сайдбаре: секция + группа со всеми 7 подпунктами (Очередь/SLA/КБ/ИИ/Шаблоны/Аналитика/Команда), остальные — заглушки «в разработке»
   - Проверено вживую: `/admin/support` рендерится (пустая очередь, запросы к API работают), сборка ✓, typecheck ✓
-- ⬜ Фаза 2 — Telegram-канал + форум-мост («отвечать и там, и там», история в карточку)
+- ✅ **ФАЗА 2 (Telegram-канал «личка», бэкенд) ГОТОВА (2026-10-23):**
+  - Клиент TG Bot API на httpx (getUpdates/sendMessage/sendPhoto/sendDocument/getFile), long-poll с offset в БД, дедуп, только private chat — `core/support/tg/`
+  - Канал `channels/telegram.py` (send_text/send_media), окно 24ч для лички отключено (Outbox.no_window_channels), вложения: диск uploads/support + `support_attachment` + allowlist без svg/html
+  - Эндпоинты: `GET/POST /api/support/attachments` (upload→token, отдача файла за JWT, ?download=1), reply с `attachment_ids` (send_media → record_outbound → claim)
+  - Настройки: `SUPPORT_TG_TOKEN`/`SUPPORT_TG_BOT_NAME` (env-дефолты) + флаг `tg.main.enabled` в БД; канал стартует только при токене (проверено: корректно спит)
+  - Тесты: 29 новых; весь набор **176 passed**, регрессий нет
+- ⬜ Фаза 2b — форум-мост (темы форума ↔ очередь; «отвечать и там, и там») + фронтенид композера с вложениями
+- ⬜ Фаза 3 — ИИ-черновики + база знаний + дообучение
 
 ---
 
