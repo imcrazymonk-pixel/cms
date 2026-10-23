@@ -1,0 +1,84 @@
+# .kilocodeignore — исключения для ИИ (Kilocode)
+# Работает как правила read+edit: файлы нельзя ни прочитать, ни изменить агенту.
+# Глобальный аналог: ~/.kilocode/.kilocodeignore
+# Синтаксис: строки-шаблоны, # — комментарий, ! — вернуть обратно (allow).
+
+# ─── Зависимости и сборка ───────────────────────────────────────────────
+node_modules/
+web/frontend/node_modules/
+web/frontend/dist/
+dist/
+build/
+*.egg-info/
+.venv/
+venv/
+
+# ─── Кэши и артефакты инструментов ──────────────────────────────────────
+__pycache__/
+*.pyc
+.pytest_cache/
+.playwright-mcp/
+*.map
+.eslintcache
+
+# ─── VCS и worktree ─────────────────────────────────────────────────────
+.git/
+.kilo/worktrees/
+
+# ─── Данные БД, дампы, бэкапы ───────────────────────────────────────────
+db/postgres/
+db/backups/
+db/prod_data.sql
+*.sqlite3
+*.db
+*.dump
+
+# ─── Эталон Remnawave ───────────────────────────────────────────────────
+# Сам репозиторий ДОСТУПЕН для чтения — из него копируются компоненты.
+# Из сканирования его исключает .gitignore (строка /remnawave-admin-main/).
+# Здесь закрыт только балласт: 406 МБ node_modules + .git эталона.
+remnawave-admin-main/web/frontend/node_modules/
+remnawave-admin-main/.git/
+# Карта путей эталона — в REFERENCE.md
+
+# ─── Крупные бинарники и архивы ─────────────────────────────────────────
+*.exe
+*.pdf
+*.zip
+*.7z
+*.tar
+*.gz
+*.woff2
+*.ttf
+
+# ─── Тяжёлое медиа ──────────────────────────────────────────────────────
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.mp3
+*.wav
+
+# ─── Загруженные пользователями файлы ───────────────────────────────────
+public/uploads/
+
+# Картинки (*.png, *.jpg, *.svg, *.webp) НЕ игнорируются:
+# vision-агент должен читать скриншоты из корня проекта.
+
+# ─── Логи и временное ───────────────────────────────────────────────────
+# Внимание: *.log НЕ игнорируется — иначе агент не сможет прочитать test.log
+logs/
+storage/
+*.tmp
+
+# ─── Мусор в корне ──────────────────────────────────────────────────────
+/login_out.html
+
+# ═══ НЕ игнорируется (нужно агентам) ════════════════════════════════════
+#  AGENTS.md, CONTEXT.md, STRUCTURE.md, TASK.md, MEMORY.md
+#  core/, templates/, config/, plugins/
+#  web/backend/, web/frontend/src/
+#  public/hexaveil/, public/css/
+#  db/migrations/
+#  docs/ (кроме docs/archive/)
+#  .kilo/, .agents/, .claude/

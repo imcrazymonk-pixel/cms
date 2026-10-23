@@ -23,6 +23,8 @@ VPN-сервис **HexaVeil**. Единая инфраструктура из 5 
 |------------|------|-----------|
 | **NewWeb** (этот) | `C:\Users\Andre\Desktop\VPN\NewWeb` | CMS: публичный сайт + админка |
 | **remnawave-admin-main** | `C:\Users\Andre\Desktop\VPN\remnawave-admin-main` (gitignored) | Эталон Remnawave, upstream: `github.com/Case211/remnawave-admin` |
+| **ai-support** | `C:\Users\Andre\Desktop\VPN\NewWeb\ai-support` (gitignored) | Эталон техподдержки с ИИ (Telegram/Bedolaga/MiniShop), источник модулей для CMS, upstream: `github.com/tagashi666/ai-support` |
+| **bot** | `C:\Users\Andre\Desktop\VPN\NewWeb\bot` (gitignored) | Существующий Telegram-бот HexaVeil (исходники), интегрируется в CMS |
 | **Заглушка** | `C:\Users\Andre\Desktop\VPN\Заглушка` | Инфраструктура нод, decoy-страницы, конфиги |
 
 ---
