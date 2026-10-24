@@ -266,3 +266,46 @@ next_attempt_at, last_error`. ОБРАТИ внимание: НЕТ колонк
 ## НЕ ДЕЛАТЬ
 - Форум-темы/бизнес-режим/голос-расшифровку/MiniShop (ф2b/ф3+); React (меню/композер — отдельно); db/postgres (deny);
   но `schema.py`/lifespan best-effort НЕ ломать.
+
+---
+
+# ФАЗА 2c — форум-мост (замена Node-бота). Статус: дизайн готов (thinker), реализация ⬜
+
+> Дизайн (thinker, 2026-10-24) — детальный; сводка здесь. Полный текст — в отчёте thinker (в диалоге).
+> ЦЕЛЬ: один токен, одна conversation на клиента; тема форума = операторский интерфейс параллельно вебу.
+
+## Модель и маппинг
+- Conversation та же, что у лички: `(channel='telegram', external_id=личный chat_id)`. `source_id` репоузинг: **source_id = topic_id (число-строка)**; НЕ число → «темы нет». Бот-имя живёт в poll_state ключе, в conversation не нужен.
+- Новый read `queries.get_conversation_by_source_id(channel, source_id)` + `store/conversations.set_source_id(conv_id, topic_id)`.
+- Бан: `support_setting` ключ `tg.main.bans` = JSON-список int (store/settings.py get/set). Мью: in-memory dict в ForumBridge {user_id: muted_until} (10/20с→60с, паритет Node).
+- Двойной записи нет: входящие → record_inbound, исходящие (из темы и из веба) → record_outbound(author='agent'); карточка показывает обе стороны (решение 2.2).
+
+## Поллер/классификация (расширение tg/poller.py _handle_update)
+1. private → _handle_private (как сейчас: is_bot skip, text/медиа, record_inbound, медиа→attachment) + форум: bridge.ensure_topic + forward_to_topic.
+2. chat.id == staff_group_id AND message_thread_id → _handle_topic: skip is_bot (свои копии), нет контента (service); text с `/` → bridge.handle_command; иначе ответ оператора: copyMessage(клиенту) → record_outbound(external_msg_id=id копии) → медиа оператора скачать через helper `tg/media.py:fetch_and_store_media(...)` (вынести из poller).
+3. Прочее → skip.
+- `Message` в types.py: добавить `message_thread_id: int|None`.
+- `api.py`: добавить create_forum_topic, forward_message, copy_message, close_forum_topic, reopen_forum_topic, get_chat_administrators; message_thread_id в send_message/send_photo/send_document (+upload).
+
+## ForumBridge (новый `tg/forum.py`)
+- ensure_topic(conv, from_user): source_id не число → createForumTopic(имя "First Last (@user)" ≤127) → set_source_id → инфо-сообщение в тему → forward_to_topic.
+- forward_to_topic: forwardMessage(staff_group, from_chat=личка, message_id, message_thread_id) ; ошибка → reopen → повтор; опять → source_id=NULL + ensure_topic заново. НИКАКИХ deleteMessage (инвариант).
+- handle_command: /close (resolve+closeForumTopic+клиенту «✅…»+в тему), /reopen, /ban (ban+close+«🚫»), /unban. Доступ: только админы группы (getChatAdministrators, TTL-кеш 300с; иначе «⛔ только администраторам»).
+- Спам в _handle_private до record_inbound; баны — молчаливый дроп; `/start`,`/myid` в личке — skip.
+
+## Двусторонняя синхронизация
+- Хук в conversations.py reply: после outbox.send / send_media → _mirror_to_forum (bridge.mirror_text/mirror_media: sendMessage/sendPhoto в тему с message_thread_id; caption≤1024, длинный текст отдельным сообщением). Всё в try/except — ошибка темы НЕ роняет ответ клиенту. reply endpoint: добавить except TelegramAPIError → 502 (сейчас текстовый путь 500-ит).
+- Закрытая тема → reopen → повтор; удалена → новая тема + set_source_id. Не удалять.
+- Из темы → клиенту: окна нет (no_window_channels). state=resolved → opt. closeForumTopic — вне скоупа 2c.
+
+## Настройки/запуск
+- settings: tg_staff_group_id (env SUPPORT_TG_STAFF_GROUP_ID), tg_forum (SUPPORT_TG_FORUM), tg_archive_days (7). Runtime: tg.main.staff_group_id / tg.main.forum / tg.main.archive_days.
+- __init__.py _wire_telegram: форум = токен && tg.main.forum && staff_group_id; собрать ForumBridge → поллер. Если forum вкл, а группы нет — warn, личка остаётся. Включённый форум → warn «убедитесь, что Node-бот остановлен» (getUpdates один consumer на токен!).
+- workers: _forum_archive_loop (скан channel='telegram' AND source_id цифровой AND status open/pending AND last_message_at < now()-days; → privacy-текст клиенту, closeForumTopic(игнор 400), set_status('closed'), CONVERSATION_CHANGED).
+
+## Тесты (web/backend/tests/test_support_tg_forum.py)
+- TgTransport расширить (createForumTopic/forwardMessage/copyMessage/reopen/close/getChatAdministrators), FakeStore с get_conversation_by_source_id/set_source_id.
+- Кейсы: тема→conv→copy клиенту+record_outbound; /close; первая личка→create+forward (порядок), повтор→без create; спам 11-е; веб-ответ→клиенту+в тему; /ban→дроп; archive; команда не-админа→отказ.
+
+## Порядок перехода (Node-бот жив)
+1) Деплой 2c с tg.main.forum=off (поведение не меняется). 2) Smoke на тестовой группе. 3) Cutover: стоп Node (bot/ docker compose down). 4) tg.main.staff_group_id + tg.main.forum=true (+ enabled=true) → рестарт воркеров. 5) Проверка клиент→тема, тема→клиент, веб→оба края, /close. 6) Старые темы НЕ импортируем (Б1 — архив в Telegram; операторам: клиент пишет заново). 7) Удалить bot/ из деплоя, обновить INTEGRATION.md. Fallback: выключить форум — личка остаётся.
