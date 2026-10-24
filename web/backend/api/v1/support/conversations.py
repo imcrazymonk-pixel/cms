@@ -18,6 +18,7 @@ from web.backend.core.support.deps import get_support_service
 from web.backend.core.support.events import EventKind
 from web.backend.core.support.outbox import WindowClosedError
 from web.backend.core.support.integrations import build_customer_card
+from web.backend.core.support.tg.api import TelegramAPIError
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -151,6 +152,12 @@ async def reply_to_conversation(
             status_code=502,
             detail={"success": False, "error": "Bedolaga API error при отправке", "code": "UPSTREAM_ERROR"},
         )
+    except TelegramAPIError as e:
+        logger.warning("Telegram reply failed: %s", e)
+        raise HTTPException(
+            status_code=502,
+            detail={"success": False, "error": "Telegram API error при отправке", "code": "UPSTREAM_ERROR"},
+        )
 
     message_id = await service.store.record_outbound(
         conversation_id=conversation_id, text_value=body.text, author="agent",
@@ -162,6 +169,7 @@ async def reply_to_conversation(
         conversation_id=conversation_id,
     )
     service.event_bus.publish(EventKind.CONVERSATION_CHANGED, {"status": conv.get("status")}, conversation_id=conversation_id)
+    await _mirror_text_to_forum(service, conv, body.text)
     return {
         "success": True,
         "data": {"message_id": message_id, "conversation_id": conversation_id, "external_msg_id": external_msg_id},
@@ -237,8 +245,17 @@ async def _reply_with_attachments(service: SupportService, conv: dict[str, Any],
             status_code=502,
             detail={"success": False, "error": "Telegram API error при отправке вложения", "code": "UPSTREAM_ERROR"},
         )
+    except TelegramAPIError as e:
+        logger.warning("Telegram media reply failed: %s", e)
+        raise HTTPException(
+            status_code=502,
+            detail={"success": False, "error": "Telegram API error при отправке вложения", "code": "UPSTREAM_ERROR"},
+        )
 
     service.event_bus.publish(EventKind.CONVERSATION_CHANGED, {"status": conv.get("status")}, conversation_id=conversation_id)
+    for index, att in enumerate(attachments):
+        caption = body.text if index == 0 else None
+        await _mirror_media_to_forum(service, conv, caption, att)
     return {
         "success": True,
         "data": {
@@ -247,6 +264,27 @@ async def _reply_with_attachments(service: SupportService, conv: dict[str, Any],
             "count": len(sent_message_ids),
         },
     }
+
+
+async def _mirror_text_to_forum(service: SupportService, conv: dict[str, Any], text: str) -> None:
+    """Зеркало ответа в тему форума — ошибка темы НЕ роняет ответ клиенту."""
+    bridge = getattr(service, 'forum_bridge', None)
+    if bridge is None or conv.get("channel") != "telegram" or not text:
+        return
+    try:
+        await bridge.mirror_text(conv, text)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("forum mirror_text failed (conversation %s): %s", conv.get("id"), e)
+
+
+async def _mirror_media_to_forum(service: SupportService, conv: dict[str, Any], text: str | None, attachment: dict[str, Any]) -> None:
+    bridge = getattr(service, 'forum_bridge', None)
+    if bridge is None or conv.get("channel") != "telegram":
+        return
+    try:
+        await bridge.mirror_media(conv, text, attachment)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("forum mirror_media failed (conversation %s): %s", conv.get("id"), e)
 
 
 # ── Read / state / assignee ────────────────────────────────────────────────

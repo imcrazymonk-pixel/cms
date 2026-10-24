@@ -52,6 +52,7 @@ class Message:
     text: str | None = None
     caption: str | None = None
     media: MediaRef | None = None
+    message_thread_id: int | None = None  # тема форума (для сообщений из групп)
 
 
 @dataclass
@@ -182,6 +183,7 @@ def parse_update(raw: Any) -> Update | None:
         text=text,
         caption=caption,
         media=media,
+        message_thread_id=_int(message_raw.get("message_thread_id")),
     )
     return Update(update_id=update_id, message=message, raw=raw)
 

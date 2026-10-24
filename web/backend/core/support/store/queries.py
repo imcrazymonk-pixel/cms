@@ -171,13 +171,51 @@ async def get_conversation_by_external(db: AsyncSession, *, channel: str, extern
     row = (
         await db.execute(
             text(
-                "SELECT id, status, priority, tg_user_id, customer_profile_id, subject "
+                "SELECT id, status, priority, tg_user_id, customer_profile_id, subject, source_id "
                 "FROM support_conversation WHERE channel = :channel AND external_id = :external_id"
             ),
             {"channel": channel, "external_id": external_id},
         )
     ).fetchone()
     return _row_to_dict(row)
+
+
+async def get_conversation_by_source_id(db: AsyncSession, *, channel: str, source_id: str) -> dict[str, Any] | None:
+    """Conversation by its forum topic id (source_id) — оператор пишет в тему."""
+    row = (
+        await db.execute(
+            text(
+                "SELECT id, external_id, source_id, status, tg_user_id, channel "
+                "FROM support_conversation WHERE channel = :channel AND source_id = :source_id"
+            ),
+            {"channel": channel, "source_id": source_id},
+        )
+    ).fetchone()
+    return _row_to_dict(row)
+
+
+async def list_archivable_forum(
+    db: AsyncSession,
+    *,
+    channel: str,
+    cutoff: Any,
+) -> list[dict[str, Any]]:
+    """Telegram-диалоги с цифровым source_id (тема есть), активные и замороженные.
+
+    Архивация: status open/pending + last_message_at старше cutoff.
+    Тема считается созданной, когда source_id — число-строка.
+    """
+    rows = (
+        await db.execute(
+            text(
+                "SELECT id, external_id, source_id, last_message_at FROM support_conversation "
+                "WHERE channel = :channel AND source_id ~ '^[0-9]+$' "
+                "AND status IN ('open', 'pending') AND last_message_at < :cutoff"
+            ),
+            {"channel": channel, "cutoff": cutoff},
+        )
+    ).fetchall()
+    return [_row_to_dict(r) for r in rows]
 
 
 async def list_active_conversations(db: AsyncSession, *, channel: str) -> list[dict[str, Any]]:

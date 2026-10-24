@@ -8,7 +8,14 @@ from typing import Any, AsyncIterator
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from web.backend.core.support.store import attachments, conversations, customers, poll_state, queries
+from web.backend.core.support.store import (
+    attachments,
+    conversations,
+    customers,
+    poll_state,
+    queries,
+    settings as support_settings,
+)
 
 __all__ = [
     "SupportStore",
@@ -17,6 +24,7 @@ __all__ = [
     "customers",
     "queries",
     "poll_state",
+    "support_settings",
     "open_session",
 ]
 
@@ -55,6 +63,10 @@ class SupportStore:
     async def set_status(self, conversation_id: int, status: str) -> bool:
         async with open_session() as db:
             return await conversations.set_status(db, conversation_id, status)
+
+    async def set_source_id(self, conversation_id: int, topic_id: str | None) -> bool:
+        async with open_session() as db:
+            return await conversations.set_source_id(db, conversation_id, topic_id)
 
     async def set_priority(self, conversation_id: int, priority: str) -> bool:
         async with open_session() as db:
@@ -110,6 +122,14 @@ class SupportStore:
         async with open_session() as db:
             return await queries.get_conversation_by_external(db, channel=channel, external_id=external_id)
 
+    async def get_conversation_by_source_id(self, *, channel: str, source_id: str) -> dict[str, Any] | None:
+        async with open_session() as db:
+            return await queries.get_conversation_by_source_id(db, channel=channel, source_id=source_id)
+
+    async def list_archivable_forum(self, *, channel: str, cutoff: Any) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await queries.list_archivable_forum(db, channel=channel, cutoff=cutoff)
+
     async def list_active_conversations(self, *, channel: str) -> list[dict[str, Any]]:
         async with open_session() as db:
             return await queries.list_active_conversations(db, channel=channel)
@@ -138,6 +158,15 @@ class SupportStore:
     async def set_poll_state(self, key: str, value: str) -> None:
         async with open_session() as db:
             await poll_state.set_poll_state(db, key, value)
+
+    # ── runtime settings (JSON, фаза 2c) ───────────────────────────
+    async def get_json_setting(self, key: str, default: Any = None) -> Any:
+        async with open_session() as db:
+            return await support_settings.get_json_setting(db, key, default)
+
+    async def set_json_setting(self, key: str, value: Any) -> None:
+        async with open_session() as db:
+            await support_settings.set_json_setting(db, key, value)
 
     # ── attachments (фаза 2) ───────────────────────────────────────
     async def insert_attachment(self, **kwargs: Any) -> int:

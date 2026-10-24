@@ -34,6 +34,10 @@ class SupportSettings(BaseSettings):
     # Telegram-канал «личка» (фаза 2) — env SUPPORT_TG_TOKEN / SUPPORT_TG_BOT_NAME
     tg_token: str | None = Field(default=None, description="Токен Telegram-бота (личка)")
     tg_bot_name: str | None = Field(default=None, description="Короткое имя бота для ключей состояния поллера")
+    # Форум-мост (фаза 2c) — env SUPPORT_TG_STAFF_GROUP_ID / SUPPORT_TG_FORUM / SUPPORT_TG_ARCHIVE_DAYS
+    tg_staff_group_id: int | None = Field(default=None, description="Id группы-форума (операторская тема)")
+    tg_forum: bool = Field(default=False, description="Включить форум-мост (тема на клиента)")
+    tg_archive_days: int = Field(default=7, ge=1, description="Неактивность (дней) до архивации диалога")
 
 
 def get_support_settings() -> SupportSettings:

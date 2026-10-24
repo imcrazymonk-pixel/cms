@@ -1,34 +1,31 @@
-"""Telegram long-poll поллер «лички» (private chats only) — фаза 2.
+"""Telegram long-poll поллер — личка (private) + форум-мост (фазы 2-2c).
 
-Цикл: getUpdates(timeout=30) с offset из support_poll_state `tg:<bot>:offset`
-и локальным last_update_id; приватные чаты и message-only; текст/caption →
-invbound-сообщение; медиа → getFile+downloadFile в `{upload_dir}/support/`
-(allowlist расширений, лимит размера) → support_attachment (привязка через
-message_id). Ошибки не двигают offset; 429 отдаётся наружу — цикл спит
-retry_after. POLLER_STATUS публикуется каждый проход.
+Цикл: getUpdates(timeout=30) с offset из support_poll_state `tg:<bot>:offset`;
+классификация _handle_update:
+  * private → _handle_private (спам-защита, баны, record_inbound, медиа,
+    форум: ensure_topic + forward_to_topic);
+  * staff_group + message_thread_id → _handle_topic (команды /close.., иначе
+    copyMessage клиенту → record_outbound → медиа оператора);
+  * прочее → тихий skip.
+Ошибки не двигают offset; 429 отдаётся наружу (цикл спит retry_after).
 """
 import asyncio
-import hashlib
 import logging
-import secrets
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from web.backend.core.support.events import EventBus, EventKind
 from web.backend.core.support.tg.api import TelegramAPIError, TelegramClient, TelegramRateLimited
-from web.backend.core.support.tg.types import MediaRef, Update, parse_update
+from web.backend.core.support.tg.forum import ForumBridge
+from web.backend.core.support.tg.media import MAX_UPLOAD_SIZE, fetch_and_store_media
+from web.backend.core.support.tg.types import Message, Update, parse_update
 
 logger = logging.getLogger(__name__)
 
 LONG_POLL_TIMEOUT = 30
-MAX_UPLOAD_SIZE = 8 * 1024 * 1024  # 8 МБ — типичный лимит Bot API на загрузку
-ALLOWED_EXTENSIONS = frozenset({
-    ".jpg", ".jpeg", ".png", ".webp", ".gif",
-    ".ogg", ".mp3", ".mp4",
-    ".pdf", ".doc", ".docx", ".txt",
-})
 MAX_HANDLED_PER_TICK = 200
+_PRIVATE_SKIP_COMMANDS = {"/start", "/myid"}
 
 
 class TelegramPoller:
@@ -47,6 +44,9 @@ class TelegramPoller:
         enabled: bool = True,
         upload_dir: Path | None = None,
         max_upload_size: int = MAX_UPLOAD_SIZE,
+        bridge: ForumBridge | None = None,
+        staff_group_id: int | None = None,
+        archive_days: int = 7,
     ):
         self.store = store
         self.event_bus = event_bus
@@ -57,6 +57,9 @@ class TelegramPoller:
         self.enabled = bool(enabled)
         self.upload_dir = Path(upload_dir) if upload_dir is not None else None
         self.max_upload_size = max(1, int(max_upload_size))
+        self.bridge = bridge
+        self.staff_group_id = int(staff_group_id) if staff_group_id else None
+        self.archive_days = max(1, int(archive_days))
         self._last_update_id = 0
         self._running = False
         self.status: dict[str, Any] = {
@@ -107,8 +110,7 @@ class TelegramPoller:
                 if update_id and update_id > max_id:
                     max_id = update_id
             if max_id > 0:
-                # подтверждаем offset ТОЛЬКО после успешной выборки (ошибки его не двигают).
-                # Храним следующий offset (max_id+1): неуспешный проход вернёт тот же диапазон.
+                # подтверждаем offset ТОЛЬКО после успешной выборки (ошибки его не двигают)
                 next_offset = max_id + 1
                 await self.store.set_poll_state(self.offset_key, str(next_offset))
                 self._last_update_id = max_id
@@ -128,7 +130,6 @@ class TelegramPoller:
                 },
             )
         except TelegramRateLimited:
-            # 429: offset не двигаем, пауза — в run_loop
             self.status["last_error"] = "rate_limited"
             self._publish_status(event_bus=self.event_bus)
             raise
@@ -140,22 +141,42 @@ class TelegramPoller:
             self.status["running"] = False
         return processed
 
-    # ── Обработка обновлений ──────────────────────────────────────
+    # ── Классификация ─────────────────────────────────────────────
     async def _handle_update(self, raw: dict) -> int:
         update = parse_update(raw)
         if update is None or update.message is None:
             return 0
         message = update.message
-        if message.chat is None or message.chat.type != "private":
-            return 0  # группы/супергруппы/каналы не обрабатываем
-        if message.from_user is None or message.from_user.is_bot:
-            return 0  # чужие боты/ответы нашего бота не заводим
+        if message.chat is None:
+            return 0
+        if message.chat.type == "private":
+            return await self._handle_private(message)
+        if (
+            self.staff_group_id
+            and message.chat.id == self.staff_group_id
+            and message.message_thread_id is not None
+        ):
+            return await self._handle_topic(message)
+        return 0  # группы/каналы без темы — тихий skip
 
-        chat_id = str(message.chat.id)
+    # ── Личка ─────────────────────────────────────────────────────
+    async def _handle_private(self, message: Message) -> int:
+        if message.from_user is None or message.from_user.is_bot:
+            return 0
+        if self.bridge is not None:
+            if await self.bridge.is_banned(message.from_user.id):
+                return 0  # бан — молчаливый дроп
+            if self.bridge.is_spam(message.from_user.id):
+                return 0
+
         text_content = message.text or message.caption
+        token = str(text_content or "").strip().split()[0].lower()
+        if token in _PRIVATE_SKIP_COMMANDS:
+            return 0  # /start /myid в личке — не заводим диалог
+
         media = message.media
         ts = datetime.fromtimestamp(message.date, tz=timezone.utc)
-        username = (message.from_user.username or message.chat.username or "").strip() or None
+        chat_id = str(message.chat.id)
 
         result = await self.store.record_inbound(
             channel=self.channel,
@@ -165,7 +186,7 @@ class TelegramPoller:
             tg_user_id=message.from_user.id,
             source_id=self.bot_name,
             created_at=ts,
-            subject=f"Telegram{': ' + username if username else ''}",
+            subject=_private_subject(message),
             media_type=media.kind if media else None,
             media_file_id=media.file_id if media else None,
         )
@@ -173,64 +194,85 @@ class TelegramPoller:
             return 0
 
         if media:
-            await self._handle_media(result["message_id"], media)
+            await fetch_and_store_media(
+                self.client, self.store, message_id=result["message_id"], media=media,
+                upload_dir=self.upload_dir, max_upload_size=self.max_upload_size,
+                error_sink=self._media_error,
+            )
 
         self.event_bus.publish(
             EventKind.MESSAGE_CREATED,
             {"message_id": result["message_id"], "direction": "in", "text": text_content or ""},
             conversation_id=result["conversation_id"],
         )
+
+        if self.bridge is not None:
+            try:
+                conv_ref = await self.store.get_conversation_by_external(channel=self.channel, external_id=chat_id)
+                if conv_ref is not None:
+                    await self.bridge.ensure_topic(
+                        conv_ref, message.from_user,
+                        trigger_message_id=message.message_id, from_chat_id=message.chat.id,
+                    )
+            except Exception as e:  # noqa: BLE001 — тема не должна ронять импорт
+                logger.warning("forum ensure_topic failed: %s", e)
         return 1
 
-    async def _handle_media(self, message_id: int | None, media: MediaRef) -> None:
-        """getFile → downloadFile → сохранение → поддержка insert_attachment."""
-        if message_id is None:
-            return
+    # ── Тема форума (оператор) ────────────────────────────────────
+    async def _handle_topic(self, message: Message) -> int:
+        if message.from_user is None or message.from_user.is_bot:
+            return 0  # свои копии/эхо бота
+        if self.bridge is None:
+            return 0
+        text_content = message.text or message.caption
+        if not text_content and message.media is None:
+            return 0  # service-сообщения без контента
+
+        if text_content and self.bridge.is_command(text_content):
+            await self.bridge.handle_command(message)
+            return 1
+
+        source_id = str(message.message_thread_id or "")
+        conv = await self.store.get_conversation_by_source_id(channel=self.channel, source_id=source_id)
+        if conv is None:
+            return 0  # чужая тема — не трогаем
+        chat_id = int(conv["external_id"]) if str(conv.get("external_id") or "").isdigit() else 0
+        if chat_id <= 0:
+            return 0
+
         try:
-            file_info = await self.client.get_file(media.file_id)
+            copied = await self.client.copy_message(chat_id, self.staff_group_id, message.message_id)
         except TelegramAPIError as e:
-            logger.warning("Telegram getFile %s: %s", media.file_id, e)
-            self.status["last_error"] = f"getFile: {e}"
-            return
-        file_path = str(file_info.get("file_path") or "") if isinstance(file_info, dict) else ""
-        if not file_path:
-            return
-        ext = Path(file_path).suffix.lower()
-        if ext not in ALLOWED_EXTENSIONS:
-            logger.info("Telegram: файл %s отброшен (расширение %s вне allowlist)", file_path, ext)
-            return
+            logger.warning("Telegram copy %s: %s", source_id, e)
+            self._media_error(f"copy: {e}")
+            return 0
+        copied_id = int((copied or {}).get("message_id") or 0)
+        media = message.media
+        ts = datetime.fromtimestamp(message.date, tz=timezone.utc)
 
-        await asyncio.to_thread(self._ensure_upload_dir)
-        try:
-            data = await self.client.download_file(file_path)
-        except TelegramAPIError as e:
-            logger.warning("Telegram download %s: %s", file_path, e)
-            self.status["last_error"] = f"download: {e}"
-            return
-        if len(data) > self.max_upload_size:
-            logger.warning("Telegram: файл %s слишком большой (%d байт)", file_path, len(data))
-            return
-
-        sha256 = hashlib.sha256(data).hexdigest()
-        token = secrets.token_hex(8)
-        local_path = self.upload_dir / f"{token}{ext}"
-        await asyncio.to_thread(local_path.write_bytes, data)
-
-        await self.store.insert_attachment(
-            message_id=message_id,
-            media_type=media.kind,
-            file_ref=media.file_id,
-            local_path=str(local_path),
-            bytes_count=len(data),
-            original_name=media.file_name,
-            mime_type=media.mime_type,
-            sha256=sha256,
-            width=media.width,
-            height=media.height,
+        outbound_id = await self.store.record_outbound(
+            conversation_id=conv["id"],
+            text_value=text_content or "",
+            author="agent",
+            external_msg_id=str(copied_id) if copied_id else None,
+            media_type=media.kind if media else None,
+            media_file_id=media.file_id if media else None,
+            created_at=ts,
         )
-        logger.debug("Telegram attachment %s (%d байт) сохранён", local_path.name, len(data))
+        if media:
+            await fetch_and_store_media(
+                self.client, self.store, message_id=outbound_id, media=media,
+                upload_dir=self.upload_dir, max_upload_size=self.max_upload_size,
+                error_sink=self._media_error,
+            )
+        self.event_bus.publish(
+            EventKind.MESSAGE_CREATED,
+            {"message_id": outbound_id, "direction": "out", "text": text_content or ""},
+            conversation_id=conv["id"],
+        )
+        return 1
 
-    # ── Offset ────────────────────────────────────────────────────
+    # ── Offset / ошибки ───────────────────────────────────────────
     async def _load_offset(self) -> int:
         stored = await self.store.get_poll_state(self.offset_key)
         persisted = _as_int(stored) or 0
@@ -238,11 +280,9 @@ class TelegramPoller:
             return max(persisted, self._last_update_id)
         return persisted
 
-    def _ensure_upload_dir(self) -> None:
-        if self.upload_dir is not None:
-            self.upload_dir.mkdir(parents=True, exist_ok=True)
+    def _media_error(self, message: str) -> None:
+        self.status["last_error"] = message
 
-    # ── Ошибки ────────────────────────────────────────────────────
     def _report_error(self, error: Exception) -> None:
         message = f"{type(error).__name__}: {error}"
         self.status["last_error"] = message
@@ -260,6 +300,15 @@ class TelegramPoller:
                 "ingested": self.status.get("ingested", 0),
             },
         )
+
+
+def _private_subject(message: Message) -> str:
+    username = ""
+    if message.from_user is not None and message.from_user.username:
+        username = message.from_user.username
+    elif message.chat is not None and message.chat.username:
+        username = message.chat.username
+    return f"Telegram{': ' + username if username else ''}"
 
 
 def _as_int(value: Any) -> int | None:

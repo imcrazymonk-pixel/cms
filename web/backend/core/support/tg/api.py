@@ -1,8 +1,8 @@
 """Telegram Bot API client — тонкий httpx-обёртка, без автоматических ретраев.
 
-Методы: get_updates/send_message/send_photo/send_document/get_file/download_file.
+Фаза 2c: + форум (create_forum_topic/forward_message/copy_message/close/reopen/
+get_chat_administrators) и message_thread_id для отправки в темы.
 Ошибки: TelegramAPIError (общая) и TelegramRateLimited(429, retry_after).
-429 и 5xx НЕ повторяются автоматически — решение о паузе принимает поллер.
 """
 import logging
 from typing import Any
@@ -67,24 +67,51 @@ class TelegramClient:
         result = await self._call("getUpdates", payload=payload, timeout=timeout + 8)
         return result if isinstance(result, list) else []
 
-    async def send_message(self, chat_id: int, text: str, *, parse_mode: str | None = None) -> dict:
+    async def send_message(
+        self,
+        chat_id: int,
+        text: str,
+        *,
+        parse_mode: str | None = None,
+        message_thread_id: int | None = None,
+    ) -> dict:
         payload: dict[str, Any] = {"chat_id": chat_id, "text": text}
         if parse_mode:
             payload["parse_mode"] = parse_mode
+        if message_thread_id:
+            payload["message_thread_id"] = message_thread_id
         result = await self._call("sendMessage", payload=payload)
         return result if isinstance(result, dict) else {}
 
-    async def send_photo(self, chat_id: int, file_id: str, *, caption: str | None = None) -> dict:
+    async def send_photo(
+        self,
+        chat_id: int,
+        file_id: str,
+        *,
+        caption: str | None = None,
+        message_thread_id: int | None = None,
+    ) -> dict:
         payload = {"chat_id": chat_id, "photo": file_id}
         if caption:
             payload["caption"] = caption
+        if message_thread_id:
+            payload["message_thread_id"] = message_thread_id
         result = await self._call("sendPhoto", payload=payload)
         return result if isinstance(result, dict) else {}
 
-    async def send_document(self, chat_id: int, file_id: str, *, caption: str | None = None) -> dict:
+    async def send_document(
+        self,
+        chat_id: int,
+        file_id: str,
+        *,
+        caption: str | None = None,
+        message_thread_id: int | None = None,
+    ) -> dict:
         payload = {"chat_id": chat_id, "document": file_id}
         if caption:
             payload["caption"] = caption
+        if message_thread_id:
+            payload["message_thread_id"] = message_thread_id
         result = await self._call("sendDocument", payload=payload)
         return result if isinstance(result, dict) else {}
 
@@ -100,9 +127,13 @@ class TelegramClient:
         filename: str | None = None,
         mime_type: str | None = None,
         caption: str | None = None,
+        message_thread_id: int | None = None,
     ) -> dict:
         """Отправка ЛОКАЛЬНОГО файла как фото (multipart)."""
-        return await self._upload("sendPhoto", "photo", chat_id, file_path, filename=filename, mime_type=mime_type, caption=caption)
+        return await self._upload(
+            "sendPhoto", "photo", chat_id, file_path,
+            filename=filename, mime_type=mime_type, caption=caption, message_thread_id=message_thread_id,
+        )
 
     async def send_document_upload(
         self,
@@ -112,9 +143,13 @@ class TelegramClient:
         filename: str | None = None,
         mime_type: str | None = None,
         caption: str | None = None,
+        message_thread_id: int | None = None,
     ) -> dict:
         """Отправка ЛОКАЛЬНОГО файла как документа (multipart)."""
-        return await self._upload("sendDocument", "document", chat_id, file_path, filename=filename, mime_type=mime_type, caption=caption)
+        return await self._upload(
+            "sendDocument", "document", chat_id, file_path,
+            filename=filename, mime_type=mime_type, caption=caption, message_thread_id=message_thread_id,
+        )
 
     async def _upload(
         self,
@@ -126,11 +161,14 @@ class TelegramClient:
         filename: str | None = None,
         mime_type: str | None = None,
         caption: str | None = None,
+        message_thread_id: int | None = None,
     ) -> dict:
         url = f"{self.base_url}/{method}"
         data: dict[str, Any] = {"chat_id": str(chat_id)}
         if caption:
             data["caption"] = caption
+        if message_thread_id:
+            data["message_thread_id"] = message_thread_id
         name = filename or file_path.split("/")[-1]
         client = self._http
         owned = client is None
@@ -150,6 +188,50 @@ class TelegramClient:
         result = self._raise_or_json(response, method)
         return result if isinstance(result, dict) else {}
 
+    # ── Форум (фаза 2c) ───────────────────────────────────────────
+    async def create_forum_topic(self, chat_id: int, name: str) -> dict:
+        result = await self._call("createForumTopic", payload={"chat_id": chat_id, "name": name})
+        return result if isinstance(result, dict) else {}
+
+    async def forward_message(
+        self,
+        chat_id: int,
+        from_chat_id: int,
+        message_id: int,
+        *,
+        message_thread_id: int | None = None,
+    ) -> dict:
+        payload: dict[str, Any] = {"chat_id": chat_id, "from_chat_id": from_chat_id, "message_id": message_id}
+        if message_thread_id:
+            payload["message_thread_id"] = message_thread_id
+        result = await self._call("forwardMessage", payload=payload)
+        return result if isinstance(result, dict) else {}
+
+    async def copy_message(
+        self,
+        chat_id: int,
+        from_chat_id: int,
+        message_id: int,
+        *,
+        message_thread_id: int | None = None,
+    ) -> dict:
+        payload: dict[str, Any] = {"chat_id": chat_id, "from_chat_id": from_chat_id, "message_id": message_id}
+        if message_thread_id:
+            payload["message_thread_id"] = message_thread_id
+        result = await self._call("copyMessage", payload=payload)
+        return result if isinstance(result, dict) else {}
+
+    async def close_forum_topic(self, chat_id: int, message_thread_id: int) -> dict:
+        return await self._call("closeForumTopic", payload={"chat_id": chat_id, "message_thread_id": message_thread_id})
+
+    async def reopen_forum_topic(self, chat_id: int, message_thread_id: int) -> dict:
+        return await self._call("reopenForumTopic", payload={"chat_id": chat_id, "message_thread_id": message_thread_id})
+
+    async def get_chat_administrators(self, chat_id: int) -> list[dict]:
+        result = await self._call("getChatAdministrators", payload={"chat_id": chat_id})
+        return result if isinstance(result, list) else []
+
+    # ── Transport ─────────────────────────────────────────────────
     async def download_file(self, file_path: str) -> bytes:
         """Скачивает файл по file_path: https://api.telegram.org/file/bot<token>/<path>."""
         url = f"{FILE_URL}/bot{self._token}/{file_path.lstrip('/')}"

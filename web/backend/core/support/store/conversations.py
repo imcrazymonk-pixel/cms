@@ -204,6 +204,15 @@ async def record_outbound(
     return message_id
 
 
+async def set_source_id(db: AsyncSession, conversation_id: int, topic_id: str | None) -> bool:
+    """Сохранить источник (topic_id форума) для диалога; None — очистить."""
+    res = await db.execute(
+        text("UPDATE support_conversation SET source_id = :topic_id WHERE id = :id"),
+        {"topic_id": topic_id, "id": conversation_id},
+    )
+    return res.rowcount > 0
+
+
 async def set_status(db: AsyncSession, conversation_id: int, status: str) -> bool:
     """Update conversation status. Returns False when the row is missing."""
     res = await db.execute(
