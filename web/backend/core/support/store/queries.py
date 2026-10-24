@@ -100,7 +100,11 @@ async def list_conversations(
 
 
 async def get_conversation_with_messages(db: AsyncSession, conversation_id: int, *, limit: int = 200) -> dict[str, Any] | None:
-    """Conversation + its messages (newest first). None when the conversation is missing."""
+    """Conversation + messages (newest first), каждый месседж с его вложением.
+
+    Вложение (support_attachment) привязывается через message_id: действителен
+    один LEFT JOIN → поля attachment_* группируются в объект `attachment` (или None).
+    """
     row = (
         await db.execute(
             text(f"SELECT {_CONVERSATION_COLUMNS} FROM support_conversation WHERE id = :id"),
@@ -109,8 +113,46 @@ async def get_conversation_with_messages(db: AsyncSession, conversation_id: int,
     ).fetchone()
     if row is None:
         return None
-    messages = await list_messages(db, conversation_id, before_id=None, limit=limit)
-    return {"conversation": _row_to_dict(row), "messages": messages}
+    rows = (
+        await db.execute(
+            text(_MESSAGES_WITH_ATTACHMENTS_SQL),
+            {"conversation_id": conversation_id, "limit": limit},
+        )
+    ).fetchall()
+    return {"conversation": _row_to_dict(row), "messages": [_message_with_attachment(r) for r in rows]}
+
+
+_MESSAGES_WITH_ATTACHMENTS_SQL = (
+    "SELECT m.id, m.conversation_id, m.direction, m.author, m.text, m.media_type, m.media_file_id, "
+    "m.external_msg_id, m.reply_to_external_id, m.reply_excerpt, m.is_backfill, m.created_at, "
+    "a.id AS attachment_id, a.mime_type AS attachment_mime_type, "
+    "a.original_name AS attachment_original_name, a.bytes AS attachment_size, "
+    "a.media_type AS attachment_media_type "
+    "FROM support_message m "
+    "LEFT JOIN support_attachment a ON a.message_id = m.id "
+    "WHERE m.conversation_id = :conversation_id "
+    "ORDER BY m.id DESC LIMIT :limit"
+)
+
+_ATTACHMENT_KEYS = ("attachment_id", "attachment_mime_type", "attachment_original_name", "attachment_size", "attachment_media_type")
+
+
+def _message_with_attachment(row) -> dict[str, Any]:
+    mapping = dict(row._mapping)
+    attachment = None
+    if mapping.get("attachment_id") is not None:
+        attachment = {
+            "id": mapping.pop("attachment_id"),
+            "mime_type": mapping.pop("attachment_mime_type"),
+            "original_name": mapping.pop("attachment_original_name"),
+            "size": mapping.pop("attachment_size"),
+            "media_type": mapping.pop("attachment_media_type"),
+        }
+    else:
+        for key in _ATTACHMENT_KEYS:
+            mapping.pop(key, None)
+    mapping["attachment"] = attachment
+    return mapping
 
 
 async def get_conversation(db: AsyncSession, conversation_id: int) -> dict[str, Any] | None:

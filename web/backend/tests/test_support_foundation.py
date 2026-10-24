@@ -203,3 +203,99 @@ async def test_support_health_envelope(client: AsyncClient):
     assert data["status"] == "ok"
     assert data["db"] is True
     assert data["pollers"] == {}
+
+
+# ── get_conversation_with_messages: вложения (LEFT JOIN по message_id) ──────
+
+class _FakeRow:
+    def __init__(self, mapping):
+        self._m = mapping
+
+    @property
+    def _mapping(self):
+        return dict(self._m)
+
+
+class _FakeResult:
+    def __init__(self, rows):
+        self._rows = list(rows)
+
+    def fetchone(self):
+        return self._rows[0] if self._rows else None
+
+    def fetchall(self):
+        return self._rows
+
+
+class _FakeSession:
+    """AsyncSession-заглушка: по очереди возвращает подготовленные выборки."""
+
+    def __init__(self, results):
+        self._results = list(results)
+        self.calls: list[tuple[str, dict | None]] = []
+
+    async def execute(self, stmt, params=None):
+        self.calls.append((str(stmt), params))
+        return self._results.pop(0)
+
+
+def _message_mapping(**overrides):
+    base = {
+        "id": 1, "conversation_id": 10, "direction": "in", "author": "client",
+        "text": "привет", "media_type": None, "media_file_id": None,
+        "external_msg_id": "5", "reply_to_external_id": None, "reply_excerpt": None,
+        "is_backfill": False, "created_at": "2026-01-01T10:00:00+00:00",
+        "attachment_id": None, "attachment_mime_type": None,
+        "attachment_original_name": None, "attachment_size": None, "attachment_media_type": None,
+    }
+    base.update(overrides)
+    return base
+
+
+@pytest.mark.asyncio
+async def test_get_conversation_with_messages_includes_attachment():
+    from web.backend.core.support.store import queries
+
+    conv_row = {"id": 10, "channel": "telegram", "external_id": "1", "status": "open",
+                "priority": "normal", "subject": None, "last_message_at": None}
+    msg_with = _message_mapping(
+        id=1, text=None, media_type="photo", media_file_id="f1",
+        attachment_id=7, attachment_mime_type="image/jpeg",
+        attachment_original_name="фото.jpg", attachment_size=2048, attachment_media_type="photo",
+    )
+    msg_without = _message_mapping(id=2, text="просто текст")
+
+    session = _FakeSession([
+        _FakeResult([_FakeRow(conv_row)]),
+        _FakeResult([_FakeRow(msg_with), _FakeRow(msg_without)]),
+    ])
+
+    result = await queries.get_conversation_with_messages(session, 10)
+
+    assert result["conversation"]["id"] == 10
+    with_att = result["messages"][0]
+    without_att = result["messages"][1]
+
+    # у сообщения с вложением — сгруппированный объект attachment
+    assert with_att["attachment"] == {
+        "id": 7, "mime_type": "image/jpeg", "original_name": "фото.jpg",
+        "size": 2048, "media_type": "photo",
+    }
+    assert with_att["text"] is None and with_att["media_file_id"] == "f1"
+    # поля attachment_* не засоряют сообщение
+    assert "attachment_id" not in with_att and "attachment_original_name" not in with_att
+
+    # без вложения — attachment None и поля исходного сообщения целы
+    assert without_att["attachment"] is None
+    assert without_att["text"] == "просто текст"
+
+    # JOIN запрошен по message_id
+    assert "LEFT JOIN support_attachment" in session.calls[1][0]
+
+
+@pytest.mark.asyncio
+async def test_get_conversation_with_messages_unknown_returns_none():
+    from web.backend.core.support.store import queries
+
+    session = _FakeSession([_FakeResult([])])
+    assert await queries.get_conversation_with_messages(session, 999) is None

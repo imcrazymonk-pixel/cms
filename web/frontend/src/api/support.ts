@@ -41,6 +41,14 @@ export interface SupportMessage {
   reply_excerpt: string | null
   is_backfill: boolean
   created_at: string
+  /** Вложение сообщения (LEFT JOIN по message_id) — null, если файла нет. */
+  attachment?: {
+    id: number
+    mime_type?: string | null
+    original_name?: string | null
+    size?: number | null
+    media_type?: string | null
+  } | null
 }
 
 export interface SupportCustomerProfileBrief {
@@ -109,6 +117,15 @@ export interface ListConversationParams {
   per_page?: number
 }
 
+export interface SupportUploadResult {
+  token: string
+  media_type: string
+  mime_type: string
+  original_name: string
+  bytes: number
+  sha256: string
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 
 /** Backend answers {success, data} — strip the envelope. */
@@ -134,8 +151,10 @@ export const supportApi = {
   getConversation: (id: number) =>
     api.get(`/support/conversations/${id}`).then((r) => unwrap<SupportConversationDetail>(r.data)),
 
-  replyConversation: (id: number, data: { text: string }) =>
-    api.post(`/support/conversations/${id}/reply`, data).then((r) => unwrap<{ message_id: number; conversation_id: number; external_msg_id: string | null }>(r.data)),
+  replyConversation: (id: number, data: { text: string; attachment_ids?: string[] }) =>
+    api.post(`/support/conversations/${id}/reply`, data).then((r) =>
+      unwrap<{ conversation_id: number; message_id?: number; external_msg_id?: string | null; message_ids?: number[]; count?: number }>(r.data),
+    ),
 
   readConversation: (id: number) =>
     api.post(`/support/conversations/${id}/read`, {}).then((r) => unwrap<{ conversation_id: number; unread: number }>(r.data)),
@@ -151,6 +170,21 @@ export const supportApi = {
 
   refreshCustomer: (id: number) =>
     api.post(`/support/conversations/${id}/customer/refresh`, {}).then((r) => unwrap<SupportCustomerCard>(r.data)),
+
+  // ── Вложения (фаза 2b) ────────────────────────────────────────────
+
+  /** Загрузить файл оператора → токен для attachment_ids в reply. */
+  uploadAttachment: (file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post('/support/attachments', form).then((r) => unwrap<SupportUploadResult>(r.data))
+  },
+
+  /** Скачать содержимое вложения (blob через axios — Authorization из клиента). */
+  getAttachmentBlob: (id: number, download = false) =>
+    api
+      .get(`/support/attachments/${id}${download ? '?download=1' : ''}`, { responseType: 'blob' })
+      .then((r) => r.data as Blob),
 
   getPollers: () =>
     api.get('/support/pollers').then((r) => unwrap<SupportPollersResult>(r.data)),

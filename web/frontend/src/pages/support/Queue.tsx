@@ -99,7 +99,8 @@ export default function SupportQueue() {
   })
 
   const replyMutation = useMutation({
-    mutationFn: ({ id, text }: { id: number; text: string }) => supportApi.replyConversation(id, { text }),
+    mutationFn: ({ id, text, attachment_ids = [] }: { id: number; text: string; attachment_ids?: string[] }) =>
+      supportApi.replyConversation(id, { text, attachment_ids }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['support-conversation', data.conversation_id] })
       scheduleListRefresh()
@@ -149,9 +150,9 @@ export default function SupportQueue() {
     setActiveId(id)
   }
 
-  const handleReply = (text: string) => {
+  const handleReply = (text: string, attachmentIds: string[]) => {
     if (activeId == null) return
-    replyMutation.mutate({ id: activeId, text })
+    replyMutation.mutate({ id: activeId, text, attachment_ids: attachmentIds })
   }
 
   const handleState = (patch: { status?: ConversationStatus; priority?: ConversationPriority }) => {

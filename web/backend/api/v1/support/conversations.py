@@ -28,9 +28,12 @@ _MAX_ATTACHMENTS = 10
 
 
 class ReplyIn(BaseModel):
-    """Text of an outbound reply + опциональные загруженные вложения (токены)."""
+    """Text of an outbound reply + опциональные загруженные вложения (токены).
 
-    text: str = Field(..., min_length=1, max_length=4000)
+    `text` может быть пустым, если отправляются attachment_ids (медиа-only).
+    """
+
+    text: str = Field("", max_length=4000, description="Текст ответа (пустой допустим при вложениях)")
     attachment_ids: list[str] = Field(
         default_factory=list,
         max_length=_MAX_ATTACHMENTS,
@@ -115,6 +118,12 @@ async def reply_to_conversation(
 
     if body.attachment_ids:
         return await _reply_with_attachments(service, conv, conversation_id, body)
+
+    if not body.text:
+        raise HTTPException(
+            status_code=400,
+            detail={"success": False, "error": "Пустой ответ", "code": E.INVALID_INPUT.value},
+        )
 
     try:
         external_msg_id = await service.outbox.send(conv, body.text)
