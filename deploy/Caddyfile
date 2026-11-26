@@ -1,0 +1,43 @@
+# ── HexaVeil CMS — Caddy reverse proxy ─────────────────────────────────────
+# Two sites: public website (SITE_DOMAIN) and admin/API (ADMIN_DOMAIN).
+# Caddy terminates TLS (automatic ACME) and forwards to the internal `web`
+# container, which keeps all app-level routing (PHP / FastAPI) as before.
+#
+# Troubleshooting: Let's Encrypt rate limits. To test issuance without burning
+# quota, enable the ACME staging CA and uncomment the line below.
+#   acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
+# (The plan also documents passing CADDY_ACME_CA; if your Caddy build reads it,
+#  export it on the caddy service rather than editing this file.)
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$SITE_DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 64MB
+	}
+
+	reverse_proxy web:80 {
+		header_up Host              {host}
+		header_up X-Real-IP         {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}
+
+{$ADMIN_DOMAIN} {
+	encode zstd gzip
+	request_body {
+		max_size 64MB
+	}
+
+	# SPA lives under /admin/ (vite base + router basename).
+	redir / /admin/ 302
+
+	reverse_proxy web:80 {
+		header_up Host              {host}
+		header_up X-Real-IP         {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}

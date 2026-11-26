@@ -1,0 +1,17 @@
+# managed by hexaveil install.sh
+# ── HexaVeil CMS — host reverse-proxy override ─────────────────────────────
+# Used by install.sh --behind-proxy (host nginx + certbot fallback).
+#
+# Merges with deploy/compose.install.yml:
+#   docker compose --env-file .env \
+#     -f deploy/compose.install.yml \
+#     -f deploy/compose.behind-proxy.yml up -d
+#
+# Only `web` is published, and only on loopback. The host nginx proxies
+# *:80/*:443 to 127.0.0.1:${CMS_HTTP_PORT:-3000}. Caddy must NOT be started
+# in this mode (install.sh runs `db migrate app api web` explicitly).
+
+services:
+  web:
+    ports:
+      - "127.0.0.1:${CMS_HTTP_PORT:-3000}:80"

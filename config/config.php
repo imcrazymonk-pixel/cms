@@ -17,8 +17,9 @@ define('DB_CHARSET', 'utf8');
 // Настройки сайта
 define('SITE_NAME', getenv('SITE_NAME') ?: 'Моя CMS');
 $__scheme = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')) ? 'https' : 'http';
-define('SITE_URL', $__scheme . '://' . $_SERVER['HTTP_HOST']);
-unset($__scheme);
+$__site_url = getenv('SITE_URL');
+define('SITE_URL', ($__site_url !== false && $__site_url !== '') ? $__site_url : $__scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost'));
+unset($__scheme, $__site_url);
 define('ADMIN_EMAIL', getenv('ADMIN_EMAIL') ?: 'ilhar2k@ya.ru');
 
 // Пути к директориям
@@ -37,7 +38,7 @@ define('HASH_COST', 10);
 
 // Ключ шифрования чувствительных данных (API-ключи платёжных систем).
 // AES-256-CBC. НЕ МЕНЯТЬ после внесения ключей — данные перестанут расшифровываться.
-define('APP_ENCRYPTION_KEY', getenv('APP_ENCRYPTION_KEY') ?: '140ce5c3fc65a29787e350261b047dc01997ce19a76d7dbe760d2106e371dcab');
+define('APP_ENCRYPTION_KEY', getenv('APP_ENCRYPTION_KEY') ?: 'hexacms-default-key-change-me');
 
 // Отладка (false в production)
 define('DEBUG', getenv('APP_DEBUG') ? strtolower(getenv('APP_DEBUG')) === 'true' : true);

@@ -4,7 +4,14 @@ set -e
 echo "=== HexaVeil CMS Docker EntryPoint ==="
 
 echo "Waiting for PostgreSQL..."
+attempt=0
 until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" 2>/dev/null; do
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge 60 ]; then
+        echo "ERROR: PostgreSQL is not ready after 60 attempts (${DB_HOST}:${DB_PORT})." >&2
+        echo "       Check the db service health and DB_* environment variables." >&2
+        exit 1
+    fi
     sleep 1
 done
 echo "PostgreSQL is ready."
@@ -14,18 +21,6 @@ if [ ! -f /var/www/html/install.lock ]; then
     echo "Creating install.lock..."
     touch /var/www/html/install.lock
     chown www-data:www-data /var/www/html/install.lock
-fi
-
-# Generate admin password hash if it's still a placeholder (safe mode, no fail)
-ADMIN_PW="${ADMIN_PASSWORD:-Cke;bkb2Njdfhbof}"
-ADMIN_HASH=$(php -r "echo password_hash('$ADMIN_PW', PASSWORD_BCRYPT);" 2>/dev/null || true)
-if [ -n "$ADMIN_HASH" ]; then
-    # Update user 'admn' if its password is still the placeholder
-    PG_COUNT=$(psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -tAc "SELECT COUNT(*) FROM users WHERE login='admn' AND password='\$2y\$10\$change_this_to_a_real_bcrypt_hash';" 2>/dev/null || echo "0")
-    if [ "$PG_COUNT" = "1" ]; then
-        echo "Updating admn password hash..."
-        psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "UPDATE users SET password='$ADMIN_HASH' WHERE login='admn';" >/dev/null 2>&1 || true
-    fi
 fi
 
 echo "Starting PHP-FPM..."

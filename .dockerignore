@@ -1,0 +1,38 @@
+# ── Build context hygiene ──────────────────────────────────────────────────
+# Keeps docker images free of secrets and heavy unrelated trees, and keeps
+# `docker build` fast on a fresh clone.
+
+# VCS and local env
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# Large/unrelated directories (not needed by any image)
+Fin/
+remnawave-admin-main/
+bot/
+ai-support/
+.agents/
+.kilo/
+.claude/
+.playwright-mcp/
+.superpowers/
+docs/
+deploy/backups/
+
+# Root-level screenshots (audit artifacts), not site assets
+/*.png
+
+# Frontend deps + prebuilt dist: the `web` image builds SPA from source
+web/frontend/node_modules/
+web/frontend/dist/
+
+# Python caches / local venv
+**/__pycache__/
+**/.pytest_cache/
+web/backend/.venv/
+
+# Runtime marker created by the entrypoint
+install.lock

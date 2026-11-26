@@ -44,6 +44,10 @@ Thumbs.db
 # Резервные копии финансовых данных (JSON-дампы и исходники FIN) — не в git
 /db/backups/
 
+# Установщик: сгенерированные учётные данные и резервные копии
+/.install-credentials
+/deploy/backups/
+
 # Кеш Python
 __pycache__/
 *.pyc
@@ -73,3 +77,6 @@ __pycache__/
 # Docker
 /.env
 /docker-compose.override.yml
+
+# SDD scratch (briefs/reports, not for commit)
+/.superpowers/

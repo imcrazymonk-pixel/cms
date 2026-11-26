@@ -21,6 +21,9 @@ class CmsSettings(BaseSettings):
     debug: bool = Field(default=False, alias="APP_DEBUG")
     host: str = Field(default="0.0.0.0", alias="API_HOST")
     port: int = Field(default=8000, alias="API_PORT")
+    # Public base URL used in generated commands (agent install, copy-paste links).
+    # Must be reachable from the target servers, e.g. https://hexaveil.xyz
+    public_url: str = Field(default="", alias="CMS_PUBLIC_URL")
 
     # Database (same .env keys as PHP)
     db_driver: str = Field(default="pgsql", alias="DB_DRIVER")
@@ -60,7 +63,7 @@ class CmsSettings(BaseSettings):
     bot_db_port: int = Field(default=5434, alias="BOT_DB_PORT")
     bot_db_name: str = Field(default="remnawave_bot", alias="BOT_DB_NAME")
     bot_db_user: str = Field(default="cms_ro", alias="BOT_DB_USER")
-    bot_db_pass: str = Field(default="cms_ro_pass_2026", alias="BOT_DB_PASS")
+    bot_db_pass: str = Field(default="", alias="BOT_DB_PASS")
 
     @property
     def bot_database_url(self) -> str:
@@ -72,14 +75,27 @@ class CmsSettings(BaseSettings):
     app_encryption_key: str = Field(default="", alias="APP_ENCRYPTION_KEY")
 
     # CORS
-    cors_origins_raw: str = Field(
-        default="http://localhost:3000,http://localhost:5173,http://localhost",
-        alias="CORS_ORIGINS",
-    )
+    # Explicit CORS_ORIGINS always wins. When it is empty/unset, origins are
+    # derived from CMS_PUBLIC_URL and SITE_URL; if neither is set, localhost
+    # development defaults are kept.
+    cors_origins_raw: str = Field(default="", alias="CORS_ORIGINS")
+    site_url: str = Field(default="", alias="SITE_URL")
 
     @property
     def cors_origins(self) -> list[str]:
-        return [o.strip() for o in self.cors_origins_raw.split(",") if o.strip()]
+        explicit = [o.strip() for o in self.cors_origins_raw.split(",") if o.strip()]
+        if explicit:
+            return explicit
+
+        derived: list[str] = []
+        for value in (self.public_url, self.site_url):
+            origin = (value or "").strip().rstrip("/")
+            if origin and origin not in derived:
+                derived.append(origin)
+        if derived:
+            return derived
+
+        return ["http://localhost:3000", "http://localhost:5173", "http://localhost"]
 
     # Uploads
     upload_dir: str = Field(default="/var/www/html/public/uploads", alias="UPLOAD_DIR")

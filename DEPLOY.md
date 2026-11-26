@@ -1,192 +1,261 @@
-# Deploy HexaVeil CMS (standalone server)
+# Деплой HexaVeil CMS — установка одной командой
 
-CMS ставится на отдельный сервер, Nginx слушает 80-й порт напрямую.
+Установщик `deploy/install.sh` сам генерирует `.env`, поднимает PostgreSQL,
+применяет миграции по ledger, собирает SPA в образе, запускает стек
+(Caddy → web → app/api) и создаёт администратора. Архитектурное решение —
+`docs/decisions/ADR-006-one-command-deploy.md`.
 
-## 1. Подготовка сервера
+- Каталог установки по умолчанию: `/opt/hexaveil-cms`
+- Compose-файл прода: `deploy/compose.install.yml` (project name `hexaveil`)
+- Нужны: Debian/Ubuntu, root, `curl`, `openssl`; `git` — для режима `curl | bash`
 
-```bash
-# Подключиться
-ssh root@твой-сервер
+---
 
-# Установить Docker (если нет)
-curl -fsSL https://get.docker.com | sh
-```
+## 1. Быстрый старт
 
-## 2. Скопировать проект
+Репозиторий: **https://github.com/imcrazymonk-pixel/cms** (ветка `main`, публичный).
 
-```bash
-# На сервере
-mkdir -p /opt/HexaVeil_CMS
-cd /opt/HexaVeil_CMS
-```
-
-**Вариант A — через git:**
-```bash
-git clone <url-репозитория> .
-```
-
-**Вариант B — через rsync с локальной машины:**
-```bash
-# На локальной машине
-rsync -avz --exclude '.git' --exclude 'Fin/' --exclude '__pycache__' \
-  /путь/к/NewWeb/ root@твой-сервер:/opt/HexaVeil_CMS/
-```
-
-## 3. Настроить .env
-
-На сервере два IP:
-- **Старый** — на нём уже висит заглушка ноды (не трогать)
-- **Новый** — выдал хостер, сюда сажаем CMS
+### Одна команда (`curl | bash`)
 
 ```bash
-cd /opt/HexaVeil_CMS
-
-cp .env.prod .env
-nano .env
+curl -fsSL https://raw.githubusercontent.com/imcrazymonk-pixel/cms/main/deploy/install.sh \
+  | sudo bash -s -- --site-domain example.com --admin-domain admin.example.com \
+                     --acme-email ops@example.com
 ```
 
-**Что обязательно поменять:**
+В этом режиме репозиторий клонируется в `--dir` (по умолчанию
+`/opt/hexaveil-cms`), а вопросы читаются из `/dev/tty`, не из stdin.
 
-```ini
-# IP, который выдал хостер для CMS
-CMS_BIND_IP=5.5.5.5     # <-- заменить на свой новый IP
-
-# Пароль БД — придумать свой
-DB_PASS=надёжный_пароль
-
-# Ключ шифрования (сгенерировать!)
-APP_ENCRYPTION_KEY=здесь_64_hex_символа
-
-# Email админа
-ADMIN_EMAIL=admin@твой-сайт.ru
-```
-
-**Сгенерировать ключ:**
-```bash
-openssl rand -hex 32
-# Результат вставить в APP_ENCRYPTION_KEY
-```
-
-## 4. Запустить
+### Клонирование (2 команды)
 
 ```bash
-cd /opt/HexaVeil_CMS
-
-# Production compose
-cp docker-compose.prod.yml docker-compose.yml
-
-# Запустить
-docker compose up -d
-
-# Проверить
-docker compose ps
-docker compose logs app
-
-# Открыть в браузере
-curl http://твой-сервер
-# Должен показать HTML лендинга HexaVeil
+git clone https://github.com/imcrazymonk-pixel/cms.git /opt/hexaveil-cms
+cd /opt/hexaveil-cms && sudo bash deploy/install.sh
 ```
 
-## 5. Настроить HTTPS (Certbot)
+Установщик спросит `SITE_DOMAIN`, `ADMIN_DOMAIN`, `ACME_EMAIL` и пароль
+администратора (Enter — сгенерировать). Логин по умолчанию `admin`.
+
+Без вопросов:
 
 ```bash
-# Установить certbot
-apt install -y certbot
-
-# Получить сертификат (Nginx должен быть на 80 порту)
-certbot certonly --standalone -d hexacms.твой-сайт.ru
-
-# Скопировать сертификаты
-mkdir -p /opt/HexaVeil_CMS/ssl
-cp /etc/letsencrypt/live/hexacms.твой-сайт.ru/fullchain.pem /opt/HexaVeil_CMS/ssl/
-cp /etc/letsencrypt/live/hexacms.твой-сайт.ru/privkey.pem /opt/HexaVeil_CMS/ssl/
+cd /opt/hexaveil-cms && sudo bash deploy/install.sh \
+  --site-domain example.com --admin-domain admin.example.com \
+  --acme-email ops@example.com --non-interactive
 ```
 
-**Добавить HTTPS в Nginx конфиг** `.docker/nginx/default.conf`:
+Домены должны быть разными и уже указывать A-записями на сервер; ACME нужен
+входящий TCP 80.
 
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name hexacms.твой-сайт.ru;
+---
 
-    ssl_certificate /etc/nginx/ssl/fullchain.pem;
-    ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+## 2. Флаги
 
-    # ... остальной конфиг такой же как для 80 порта
-}
+| Флаг | Env | Назначение |
+|------|-----|------------|
+| `--site-domain DOMAIN` | `SITE_DOMAIN` | публичный сайт |
+| `--admin-domain DOMAIN` | `ADMIN_DOMAIN` | SPA `/admin/` + `/api/*` |
+| `--acme-email EMAIL` | `ACME_EMAIL` | ACME-аккаунт (Let's Encrypt) |
+| `--admin-login LOGIN` | `ADMIN_LOGIN` | по умолчанию `admin` |
+| `--admin-password PASS` | `ADMIN_PASSWORD` | иначе сгенерировать |
+| `--site-name NAME` | `SITE_NAME` | заголовок сайта, по умолчанию `HexaVeil` |
+| `--repo URL` | `HEXAVEIL_REPO_URL` | git-URL для режима `curl \| bash` |
+| `--dir PATH` | `INSTALL_DIR` | каталог клонирования (по умолчанию `/opt/hexaveil-cms`) |
+| `--behind-proxy` / `--proxy=host-nginx` | — | не занимать 80/443, слушать `127.0.0.1:3000` |
+| `--adopt-existing` | — | сохранить секреты/данные, `pg_dump` перед миграциями |
+| `--reset-admin-password` | — | сменить пароль существующего админа |
+| `--reconfigure-domains` | — | разрешить смену доменов на повторном запуске |
+| `--no-install-docker` | — | не устанавливать Docker автоматически |
+| `--non-interactive` | — | без вопросов; обязательные флаги должны быть заданы |
+| `--dry-run` | — | проверки + `.env` + валидация Caddyfile, без запуска |
+| `--help`, `-h` | — | справка |
 
-server {
-    listen 80;
-    server_name hexacms.твой-сайт.ru;
-    return 301 https://$host$request_uri;
-}
-```
+В интерактивном режиме спрашиваются только домены, email и пароль. В
+`--non-interactive` отсутствие `--site-domain`, `--admin-domain` или
+`--acme-email` — ошибка (кроме повторного запуска, когда значения берутся
+из существующего `.env`).
 
-**Перезапустить:**
-```bash
-docker compose restart web
-```
+Что делает установщик до изменений: проверяет root, ОС, Docker/Compose,
+занятость портов (80/443, либо 3000), ≥ 5 ГБ диска, ≥ 1 ГБ RAM (warning),
+DNS-записи (warning), формат доменов/email. Docker при отсутствии ставится
+с `https://get.docker.com`, если не указан `--no-install-docker`.
 
-**Авто-обновление сертификата (cron):**
-```bash
-crontab -e
-# Добавить строку (обновляется раз в месяц):
-0 3 1 * * certbot renew --quiet && cp /etc/letsencrypt/live/hexacms.твой-сайт.ru/fullchain.pem /opt/HexaVeil_CMS/ssl/ && cp /etc/letsencrypt/live/hexacms.твой-сайт.ru/privkey.pem /opt/HexaVeil_CMS/ssl/ && docker compose -f /opt/HexaVeil_CMS/docker-compose.yml restart web
-```
+`--dry-run` дополнительно валидирует `deploy/Caddyfile` через
+`caddy:2-alpine` и не запускает контейнеры.
 
-## 6. Первый вход
+---
 
-- **Сайт**: `http://IP-сервера` (или `https://hexacms.твой-сайт.ru`)
-- **Админка**: `/admin`
-- **Логин**: `admin`
-- **Пароль**: `Cke;bkb2Njdfhbof`
-
-## 7. Бекапы
+## 3. `--behind-proxy` (host nginx уже на 80/443)
 
 ```bash
-# Бекап БД
-docker compose exec -T db pg_dump -U cms -d cms > /opt/backups/cms_$(date +%Y%m%d).sql
-
-# Восстановить
-docker compose exec -T db psql -U cms -d cms < backup.sql
-
-# Авто-бекап (cron)
-0 2 * * * docker compose -f /opt/HexaVeil_CMS/docker-compose.yml exec -T db pg_dump -U cms -d cms | gzip > /opt/backups/cms_$(date +\%Y\%m\%d).sql.gz && find /opt/backups/ -name '*.sql.gz' -mtime +30 -delete
+sudo bash deploy/install.sh --behind-proxy \
+  --site-domain example.com --admin-domain admin.example.com \
+  --acme-email ops@example.com
 ```
 
-## 8. Обновление
+- `web` публикуется только на `127.0.0.1:${CMS_HTTP_PORT:-3000}:80`
+  (override `deploy/compose.behind-proxy.yml`), Caddy не запускается;
+- установщик кладёт `00-upgrade-map.conf` в `/etc/nginx/conf.d/` и рендерит
+  `hexaveil-site.conf` / `hexaveil-admin.conf` из `deploy/nginx-host/*`;
+- сертификаты получаются в два этапа: сначала HTTP-only
+  `hexaveil-bootstrap.conf` с ACME-webroot `/var/www/certbot`, затем
+  `certbot certonly --webroot -d <site> -d <admin>`; TLS-блоки включаются
+  только когда `fullchain.pem` есть для обоих доменов;
+- `certbot` молча не устанавливается. Если его нет, остаётся bootstrap-конфиг
+  и печатается команда для ручного запуска; повторный запуск установщика
+  безопасно доводит переключение.
+
+Команда для ручного получения сертификатов:
 
 ```bash
-cd /opt/HexaVeil_CMS
+sudo certbot certonly --webroot -w /var/www/certbot \
+  -d example.com -d admin.example.com --email ops@example.com --agree-tos -n
+sudo bash deploy/install.sh --behind-proxy
+```
 
-# Забрать новые файлы
+Повторный запуск не перезаписывает nginx-конфиг без маркера
+`# managed by hexaveil install.sh`.
+
+---
+
+## 4. `--adopt-existing` (перевод существующей установки)
+
+```bash
+sudo bash deploy/install.sh --adopt-existing --non-interactive
+```
+
+- существующий `.env` переиспользуется, секреты не меняются;
+- тома (`hexaveil_pgdata`) не пересоздаются, `down -v` не вызывается;
+- перед `migrate` делается `pg_dump` в `deploy/backups/pre-migrate-<ts>.sql`;
+- `init/01-schema.sql` пропускается (таблица `users` уже есть);
+- ledger создаётся пустым, поэтому файловые миграции должны быть
+  идемпотентны; уже применённые объекты пропускаются guard'ами;
+- существующий `admin` с реальным хешем не меняется (только с
+  `--reset-admin-password`).
+
+Если на старом проде host nginx слушает 80/443 — добавьте `--behind-proxy`.
+
+---
+
+## 5. Повторный запуск и обновление
+
+Повторный запуск идемпотентен:
+
+- недостающие ключи дописываются в `.env`, существующие не меняются
+  (старый файл — `.env.bak.<ts>`);
+- `migrate` пропускает всё, что уже в `schema_migrations`;
+- пароль админа не меняется без `--reset-admin-password`;
+- домены не меняются без `--reconfigure-domains`;
+- тома `hexaveil_*` не трогаются.
+
+Обновление кода:
+
+```bash
+cd /opt/hexaveil-cms
 git pull
+sudo bash deploy/install.sh --non-interactive   # домены возьмутся из .env
+```
 
-# Пересобрать и перезапустить
-docker compose up --build -d
+Пересобрать образы и прогнать миграции без установщика:
 
-# Проверить логи
-docker compose logs -f
+```bash
+docker compose --env-file .env -f deploy/compose.install.yml up -d --build
 ```
 
 ---
 
-## 9. Реальный прод (85.198.99.102 / hexaveil.xyz)
+## 6. Что печатает установщик
 
-⚠️ На хосте порты **:80/:443 заняты** `nginx-selfsteal` (RU-нода/decoy, host network) и
-`remnanode` — **их не трогать**.
+В конце — сводка: `https://<site>`, `https://<admin>/admin/`, результат
+health-проверки, логин, каталог, команды управления и напоминание, что
+повторный запуск безопасен.
 
-- Поэтому `hexacms_web` слушает host **:3000**; снаружи CMS доступна через хостовый
-  nginx-прокси на `127.0.0.1:3000`.
-- **Не запускать полный `docker compose up -d`** без override — иначе `web` займёт :80
-  и конфликтует с selfsteal. На сервере есть `/opt/HexaVeil_CMS/docker-compose.override.yml`
-  (gitignored): `web.ports: !override ["3000:80"]`.
-- **Грабля с bind-mount одного файла:** после `git pull` контейнер `web` может видеть
-  старый `default.conf` (новый inode). Обход: `cat > /etc/nginx/conf.d/default.conf`
-  внутрь контейнера + `nginx -s reload` — **контейнер не пересоздавать**.
-- **FastAPI (`hexacms_api`):** при обновлении — `docker compose build api && docker compose up -d api`.
-- **Админка (SPA):** `web/frontend/dist` (ранее `admin-react/dist`) доставляется вручную
-  (git его может не нести); пересборка локально → распаковка в контейнер (т.к. `/opt` под root).
-- **Проверки после выката:** `/api/health` → `database: connected`; `/`, `/blog` → 200;
-  `/admin/`, `/admin/login` → 200; `/admin/logout` → 302; вход `admn`; финансы отдают данные.
-- Прод-файл `_deploy.bat` сохраняется при merge (не перезаписывать).
+Пароль:
+
+- сгенерирован — печатается **один раз** и пишется в
+  `<каталог>/.install-credentials` (0600, root);
+- задан пользователем — в файл не пишется;
+- после успешного bootstrap строка `ADMIN_PASSWORD` удаляется из `.env`.
+
+---
+
+## 7. Управление
+
+Из каталога установки:
+
+```bash
+sudo docker compose --env-file .env -f deploy/compose.install.yml ps
+sudo docker compose --env-file .env -f deploy/compose.install.yml logs -f
+sudo docker compose --env-file .env -f deploy/compose.install.yml logs -f caddy api app web
+sudo docker compose --env-file .env -f deploy/compose.install.yml restart api
+```
+
+Повторно применить миграции вручную:
+
+```bash
+sudo docker compose --env-file .env -f deploy/compose.install.yml run --rm migrate
+```
+
+Тома (project name закреплён как `hexaveil`):
+
+| Том | Что внутри |
+|-----|-----------|
+| `hexaveil_pgdata` | PostgreSQL |
+| `hexaveil_uploads_data` | `public/uploads` (общий для `web`, `app`, `api`) |
+| `hexaveil_backup_data` | локальные бэкапы CMS (`/var/lib/hexaveil/backups`) |
+| `hexaveil_caddy_data` | сертификаты и ACME-аккаунт Caddy |
+| `hexaveil_caddy_config` | автогенерируемый конфиг Caddy |
+
+---
+
+## 8. Legacy-стек (host nginx → 127.0.0.1:3000)
+
+`docker-compose.prod.yml` + `deploy.sh` сохранены для текущего прода и
+сценариев без Caddy. Это отдельный проект Compose (имя проекта берётся из
+каталога, контейнеры `hexacms_*`, тома `postgres_data` / `uploads_data` /
+`backup_data`).
+
+```bash
+cp docker-compose.prod.yml docker-compose.yml
+docker compose up -d --build
+sh deploy.sh          # up -d --build + nginx -s reload + health
+```
+
+- `web` публикуется на `${CMS_BIND_IP:-127.0.0.1}:${CMS_HTTP_PORT:-3000}:80`;
+- снаружи — хостовый nginx на 80/443 (на текущем проде это `nginx-selfsteal`,
+  его не трогать);
+- сервис `migrate` есть и здесь; initdb-каталог не монтируется;
+- контейнеры `hexacms_*` — legacy, не смешивайте их с проектом `hexaveil`.
+
+Перевод на новый стек: остановить legacy, выполнить
+`sudo bash deploy/install.sh --adopt-existing --behind-proxy` (если 80/443
+заняты) или без флага (если Caddy может занять порты).
+
+---
+
+## 9. Troubleshooting
+
+| Симптом | Что делать |
+|---------|-----------|
+| `port 80/443 is already in use` | `ss -ltnp \| grep -E ':(80\|443)\b'`; остановить слушателя или `--behind-proxy` |
+| DNS warning / TLS не выдаётся | A-записи обоих доменов → IP сервера; входящий TCP 80 открыт; `logs caddy` |
+| `TLS is not ready after 120s` | проверить DNS/порт 80, затем повторить установщик; ACME staging — раскомментировать `acme_ca` в `deploy/Caddyfile` |
+| Забыли пароль админа | `sudo bash deploy/install.sh --reset-admin-password --admin-password 'новый'` (или интерактивно, без флага пароля) |
+| `migrations failed` | `docker compose --env-file .env -f deploy/compose.install.yml logs migrate`; исправить SQL/данные, повторить `run --rm migrate` |
+| `WARNING: checksum mismatch` | файл миграции изменили после применения; это предупреждение, не ошибка. Не удаляйте строку из ledger и не переименовывайте версию |
+| 502 от Caddy/host nginx | `ps` + `logs web api app`; `migrate` должен быть `exited (0)`, `db` — `healthy` |
+| 413 при загрузке | лимит 64 МБ: `request_body` Caddy, `client_max_body_size`, `MAX_UPLOAD_SIZE` |
+| `--behind-proxy`, TLS не переключился | нет `certbot` или сертификата для одного из доменов; выполнить команду `certbot certonly` из лога и повторить установщик |
+
+---
+
+## 10. Секреты и приватность
+
+- `.install-credentials` содержит пароль администратора — сохраните его в
+  менеджер паролей и удалите: `sudo rm /opt/hexaveil-cms/.install-credentials`.
+- `deploy/backups/` содержит полные дампы БД (`pre-migrate-*.sql`) — не
+  коммитить, не публиковать, хранить с правами `0600`/`0700`.
+- `.env` содержит `DB_PASS`, `JWT_SECRET`, `APP_ENCRYPTION_KEY` — `0600`,
+  не коммитить, не копировать в образ (`.dockerignore` это гарантирует).
+- Бэкапами в проде управляет подсистема CMS: **Инфраструктура → Бэкапы**
+  (`docs/decisions/ADR-005-backup-system.md`).

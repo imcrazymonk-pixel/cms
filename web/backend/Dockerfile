@@ -8,6 +8,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     libpq-dev \
+    postgresql-client \
+    tar \
+    gzip \
+    zstd \
     tzdata \
     && rm -rf /var/lib/apt/lists/*
 
@@ -19,7 +23,11 @@ RUN pip install --no-cache-dir -r /app/web/backend/requirements.txt
 
 # Copy application code
 COPY web/backend/ /app/web/backend/
-COPY .env /app/.env
+# Agent installer is served by /api/backup-agent/v1/install.sh
+COPY backup-agent/ /app/backup-agent/
+# NOTE: .env is deliberately NOT copied into the image. Runtime config comes
+# from `env_file: .env` in compose; baking secrets into the image breaks fresh
+# clones (and `.dockerignore` also excludes .env).
 
 # Set Python path
 ENV PYTHONPATH=/app

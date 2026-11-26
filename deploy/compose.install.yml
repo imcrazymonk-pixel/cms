@@ -1,0 +1,119 @@
+# ── HexaVeil CMS — production install stack ────────────────────────────────
+# caddy (TLS/80/443) → web (internal nginx) → app (PHP-FPM) / api (FastAPI)
+# plus db (Postgres) and a one-shot migrate service.
+#
+# IMPORTANT: this file lives in deploy/, so Compose resolves relative paths
+# (build context, binds, env_file) against deploy/ — hence `../` for repo root
+# and `./` for files next to this file.
+#
+# IMPORTANT: Compose loads interpolation `.env` from the project directory
+# (deploy/), not the repo root. Always pass the root env file explicitly:
+#
+#   docker compose --env-file .env -f deploy/compose.install.yml up -d
+#
+# (Run from the repo root. `DB_PASS` is the only required interpolation var.)
+#
+# Note: `web` intentionally publishes no ports — caddy is the only entrypoint.
+
+# Stable project name: volume/network names are `hexaveil_*` and do not depend
+# on the checkout directory (previously the `deploy/` folder name leaked in).
+name: hexaveil
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    env_file: ../.env
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+    restart: unless-stopped
+    volumes:
+      - uploads_data:/var/www/html/public/uploads
+    depends_on:
+      - app
+      - api
+    # No published ports: only caddy is exposed (80/443).
+
+  app:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: ../.env
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - uploads_data:/var/www/html/public/uploads
+      - /var/run/docker.sock:/var/run/docker.sock # backup agent (accepted risk)
+    healthcheck:
+      test: ["CMD", "php-fpm", "-t"]
+
+  api:
+    build:
+      context: ..
+      dockerfile: web/backend/Dockerfile
+    restart: unless-stopped
+    env_file: ../.env
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      # RW repo mount: templates/, tools/, nodes_stats.json (accepted debt).
+      - ..:/var/www/html
+      - uploads_data:/var/www/html/public/uploads
+      - backup_data:/var/lib/hexaveil/backups
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cms}
+      POSTGRES_USER: ${DB_USER:-cms}
+      POSTGRES_PASSWORD: ${DB_PASS:?DB_PASS is required}
+    command: ["postgres", "-c", "log_min_messages=warning"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # No initdb mount: schema is applied by the `migrate` service (single source).
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-cms} -d ${DB_NAME:-cms}"]
+
+  migrate:
+    image: postgres:16-alpine
+    env_file: ../.env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ../db:/db:ro
+      # Created in stage 2 (ledger + psql loop). Do not run `up` before it exists:
+      # Docker would create a directory at this path on Linux.
+      - ./migrate.sh:/migrate.sh:ro
+    entrypoint: ["/bin/sh", "/migrate.sh"]
+    restart: "no"
+
+volumes:
+  pgdata:
+  uploads_data:
+  backup_data:
+  caddy_data:
+  caddy_config:

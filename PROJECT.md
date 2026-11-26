@@ -68,7 +68,56 @@ nginx-selfsteal (`network_mode: host`, порты 80/443) → reverse proxy на
 | **Фронтенд админки** | React 18 + TypeScript + Vite + Tailwind + shadcn/ui (Radix) |
 | **Бэкенд админки** | FastAPI + SQLAlchemy async + PyJWT + Pydantic v2 + structlog |
 | **Дизайн-система** | Remnawave-style: 6 пресетов, glass-эффекты, mesh-фон |
-| **Инфраструктура** | Docker Compose (app / api / web / db) |
+| **Инфраструктура** | Docker Compose (caddy / app / api / web / db / migrate) |
+
+### Деплой CMS (2026-11-26)
+
+Новый прод-стек — `deploy/compose.install.yml` (project name `hexaveil`) —
+ставится одной командой на чистом Ubuntu/Debian: `sudo bash deploy/install.sh`.
+Полный справочник — `DEPLOY.md`, решение — `docs/decisions/ADR-006-one-command-deploy.md`.
+
+**Топология (Caddy-режим):**
+
+```
+Интернет ──► caddy :80/:443 (авто-TLS, ACME)
+               ├── SITE_DOMAIN  ──► web:80 ──► app:9000 (PHP) / api:8000 (/api/*)
+               └── ADMIN_DOMAIN ──► web:80 ──► / → 302 /admin/ (SPA)
+                                              └─ /api/* → api:8000
+db:5432 (postgres:16) ◄── app / api / migrate
+migrate (one-shot) ──► ledger schema_migrations ──► app/api ждут exit 0
+```
+
+**Два домена:**
+
+| Домен | Роль |
+|-------|------|
+| `SITE_DOMAIN` | публичный сайт (PHP: лендинг, блог, страницы) |
+| `ADMIN_DOMAIN` | SPA `/admin/` + FastAPI `/api/*` + bridge-пути; корень → `302 /admin/` |
+
+**Установка, данные, миграции:**
+
+- путь по умолчанию `/opt/hexaveil-cms` (`--dir`), TLS — автоматический через Caddy;
+- тома стабильны: `hexaveil_pgdata`, `hexaveil_uploads_data`, `hexaveil_backup_data`,
+  `hexaveil_caddy_data`, `hexaveil_caddy_config`;
+- `.env` — `0600`, секреты генерируются только при отсутствии; пароль админа —
+  в `.install-credentials` (`0600`, удалить после сохранения);
+- миграции: сервис `migrate` применяет `db/postgres/migrations/*.sql`, затем
+  `db/migrations/*.sql`, учитывая версии в `schema_migrations` (sha256);
+  `db/postgres/init/01-schema.sql` — только если таблицы `users` нет;
+- обновление: `git pull && sudo bash deploy/install.sh --non-interactive`
+  (секреты, тома, БД и пароль не меняются);
+- существующая установка: `--adopt-existing` (переиспользует `.env`, делает
+  `pg_dump` перед миграциями, никогда не вызывает `down -v`).
+
+**Legacy-прод и fallback:**
+
+- текущий прод — `docker-compose.prod.yml` + `deploy.sh`: host nginx (на проде
+  `nginx-selfsteal`, порты 80/443) → `127.0.0.1:3000` → `web`; контейнеры
+  `hexacms_*`, имя проекта Compose берётся из каталога. Перевод:
+  `sudo bash deploy/install.sh --adopt-existing --behind-proxy`;
+- fallback без Caddy — `--behind-proxy`: `web` публикуется только на
+  `127.0.0.1:3000`, установщик рендерит server-блоки `deploy/nginx-host/*`,
+  сертификаты — `certbot` в два этапа (ACME webroot → TLS-блоки).
 
 ---
 
@@ -139,6 +188,29 @@ CMS проксирует Bedolaga Bot Web API (`/api/bedolaga/*`) и читае�
 - `allowed_squads`, `external_squad_uuid` — серверы/сквады
 
 **В карточке клиента** (`/admin/#/bedolaga/customers/:id`) — строка «Тариф» в блоке «Подписка» (имя тарифа из Web API бота: поля `tariff_id`/`tariff_name` в `GET /users/{id}`).
+
+### Настройки интеграций и прокси (2026-11-15)
+
+Все исходящие подключения настраиваются в **Настройки → Интеграции**:
+
+| Блок | Что настраивается | Прокси |
+|------|-------------------|--------|
+| Bedolaga Bot | URL, токен, таймаут, вкл/выкл | да |
+| Telegram / Саппорт | токен бота, группа-форум, интервалы, окно ответа | да |
+| Bedolaga БД | host, port, база, логин, пароль (read-only) | **нет** (TCP, нужен SSH-туннель/VPN) |
+| Platega | credentials + автосинк (существующие) | да |
+| YooKassa | credentials + автосинк (существующие) | да |
+
+Прокси: глобальный по умолчанию (`OUTBOUND_PROXY_*`) плюс режим у каждой HTTP-интеграции
+`inherit | direct | custom`. Поддерживаются `http`, `https`, `socks5`, `socks5h`,
+логин/пароль и список исключений (`no_proxy`). Все клиенты создаются с `trust_env=False`,
+поэтому `HTTP_PROXY` из окружения не подхватывается неявно.
+
+Сохранение применяется без рестарта контейнера: клиент Bedolaga пересоздаётся, Telegram-канал
+перезапускается in-place (живые WebSocket-подписки не рвутся), Bedolaga DB переподключается.
+У каждого блока есть кнопка проверки подключения, у прокси — проверка с показом внешнего IP.
+ENV-переменные `BEDOLAGA_*`, `SUPPORT_*`, `BOT_DB_*` остаются стартовыми значениями;
+сохранённое в админке имеет приоритет.
 
 ### Правила работы
 
@@ -224,4 +296,28 @@ docker exec remnanode mkdir -p /var/log/remnanode
 
 ---
 
-*Последнее обновление: 2026-10-10. При изменении инфраструктуры обновлять секции нод и доступов.*
+## Бэкапы и DR (2026-11-21)
+
+Подсистема `backup-*` в CMS + отдельный агент `backup-agent/` на серверах.
+Спроектировано в `docs/plans/2026-11-21-backup-system.md`, решение — `docs/decisions/ADR-005-backup-system.md`.
+
+| Компонент | Где | Роль |
+|-----------|-----|------|
+| CMS-оркестратор | `web/backend/core/backup/`, `api/v1/backups/` | рецепты, политики, манифесты, планировщик, UI |
+| Агент | `backup-agent/` (Docker, `/opt/hexaveil-backup-agent`) | pg_dump/tar/age, локальное расписание, spool |
+| API агента | `/api/backup-agent/v1/*` | регистрация, heartbeat, state, inventory, runs, upload, commands |
+| БД | таблицы `backup_*` | хосты, агенты, компоненты, политики/уровни, запуски, артефакты, восстановления, уведомления |
+| UI | `/admin/backups`, `/admin/infrastructure/nodes`, `/admin/infrastructure/panel` | управление и мониторинг |
+
+Инварианты:
+
+- плановые уровни всегда `online`; `quiesce` — только вручную;
+- retention по умолчанию: БД — 48 копий (48 ч), полный — 14 дней, `min_copies=3`;
+- SLA: БД не старше 1 ч, полный — 24 ч;
+- артефакты шифруются `age`; приватный ключ — в CMS (обёрнут `APP_ENCRYPTION_KEY`) + офлайн;
+- для хоста CMS (`role=self`, `transport=inline`) запрещено единственное локальное хранилище;
+- удаление хоста не удаляет артефакты — они помечаются `orphaned`.
+
+---
+
+*Последнее обновление: 2026-11-26. При изменении инфраструктуры обновлять секции нод и доступов.*

@@ -1,0 +1,40 @@
+# ── HexaVeil CMS web image ─────────────────────────────────────────────────
+# Static PHP site + prebuilt React SPA served by the vendored nginx config.
+# Build context: repository root (see deploy/compose.install.yml).
+#
+#   docker build -f deploy/Dockerfile.web .
+
+# ── Stage 1: build the admin SPA from source (no runtime npm on the host) ──
+FROM node:20-alpine AS build
+WORKDIR /src
+
+# Dependencies first for layer caching. `npm ci` is reproducible against the
+# committed lockfile (web/frontend/package-lock.json, lockfileVersion 3).
+# NOTE: --force is required because the lockfile contains leftover
+# `"extraneous": true` entries for foreign-platform esbuild binaries
+# (@esbuild/netbsd-arm64 etc.), which make plain `npm ci` abort with
+# EBADPLATFORM on linux/x64. Drop --force once the lockfile is regenerated.
+COPY web/frontend/package.json web/frontend/package-lock.json ./
+RUN npm ci --force --no-audit --no-fund
+
+COPY web/frontend/ ./
+# vite.config.ts already sets base: '/admin/' and outDir: 'dist'
+RUN npm run build
+
+# ── Stage 2: nginx + public/ + built SPA ───────────────────────────────────
+FROM nginx:1.27-alpine
+
+# Vendored internal nginx config proxies to app:9000 (PHP-FPM) and api:8000
+# (FastAPI) over docker DNS.
+COPY .docker/nginx/default.conf /etc/nginx/conf.d/default.conf
+
+# PHP front controller. nginx only needs to SEE the file so `try_files` can
+# resolve `/` and pretty URLs; the actual PHP runs in the `app` container via
+# fastcgi_pass app:9000 (same /var/www/html layout there).
+COPY index.php /var/www/html/index.php
+
+# Public site (PHP entrypoints, assets, themes' static files)
+COPY public/ /var/www/html/public/
+
+# Built SPA — nginx config aliases /admin/ to /var/www/html/web/frontend/dist/
+COPY --from=build /src/dist /var/www/html/web/frontend/dist/

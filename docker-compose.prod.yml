@@ -16,6 +16,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       # Только uploads сохраняются, код read-only из образа
       - uploads_data:/var/www/html/public/uploads
@@ -33,11 +35,13 @@ services:
     container_name: hexacms_web
     restart: unless-stopped
     ports:
-      # CMS будет доступна только на этом IP
-      # В .env указать CMS_BIND_IP=твой.новый.ip
-      - "${CMS_BIND_IP}:80:80"
+      # CMS будет доступна только на этом IP.
+      # CMS_BIND_IP по умолчанию 127.0.0.1 (за host-nginx/Caddy); для прямого
+      # доступа снаружи задать в .env, например CMS_BIND_IP=85.198.99.102.
+      # CMS_HTTP_PORT по умолчанию 3000 (совместимо с текущим продом).
+      - "${CMS_BIND_IP:-127.0.0.1}:${CMS_HTTP_PORT:-3000}:80"
       # Для HTTPS раскомментировать:
-      # - "${CMS_BIND_IP}:443:443"
+      # - "${CMS_BIND_IP:-127.0.0.1}:443:443"
     volumes:
       # Конфиг nginx
       - ./.docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
@@ -72,9 +76,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     volumes:
       # Uploads — общий том с app/web (media list/upload)
       - uploads_data:/var/www/html/public/uploads
+      # Локальное хранилище бэкапов (inline-бэкап CMS)
+      - backup_data:/var/lib/hexaveil/backups
       # Корень проекта — для diagnostics (nodes_stats.json + tools/collect_stats.py)
       - .:/var/www/html
     networks:
@@ -99,8 +107,8 @@ services:
     command: ["postgres", "-c", "log_min_messages=warning"]
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Авто-инициализация схемы при первом запуске
-      - ./db/postgres/init:/docker-entrypoint-initdb.d:ro
+      # Схему и миграции применяет сервис `migrate` (единый источник истины),
+      # поэтому initdb-каталог здесь больше не монтируется.
     expose:
       - "5432"
     networks:
@@ -112,10 +120,30 @@ services:
       retries: 10
       start_period: 30s
 
+  # ── One-shot bootstrap + migrations (ledger: schema_migrations) ──
+  # Applies db/postgres/init/01-schema.sql on an empty database, then every
+  # file migration not yet in the ledger. `app` and `api` wait for exit 0.
+  migrate:
+    image: postgres:16-alpine
+    container_name: hexacms_migrate
+    restart: "no"
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./db:/db:ro
+      - ./deploy/migrate.sh:/migrate.sh:ro
+    entrypoint: ["/bin/sh", "/migrate.sh"]
+    networks:
+      - cms-network
+
 volumes:
   postgres_data:
     driver: local
   uploads_data:
+    driver: local
+  backup_data:
     driver: local
 
 networks:
