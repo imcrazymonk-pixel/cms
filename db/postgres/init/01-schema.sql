@@ -32,8 +32,13 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_users_updated_at') THEN
+        CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END $$;
 
 -- ============================================
 -- Категории
@@ -73,8 +78,13 @@ CREATE INDEX IF NOT EXISTS idx_posts_featured ON posts(featured);
 CREATE INDEX IF NOT EXISTS idx_posts_category ON posts(category_id);
 CREATE INDEX IF NOT EXISTS idx_posts_user ON posts(user_id);
 
-CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON posts
-FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_posts_updated_at') THEN
+        CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON posts
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END $$;
 
 -- ============================================
 -- Настройки сайта
@@ -208,8 +218,13 @@ CREATE INDEX IF NOT EXISTS idx_fin_transactions_participant ON fin_transactions(
 CREATE INDEX IF NOT EXISTS idx_fin_transactions_date_type ON fin_transactions(date, type);
 CREATE INDEX IF NOT EXISTS idx_fin_record_id ON fin_transactions(record_id);
 
-CREATE TRIGGER update_fin_transactions_updated_at BEFORE UPDATE ON fin_transactions
-FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_fin_transactions_updated_at') THEN
+        CREATE TRIGGER update_fin_transactions_updated_at BEFORE UPDATE ON fin_transactions
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END $$;
 
 -- ============================================
 -- Финансовый модуль: настройки
@@ -222,8 +237,13 @@ CREATE TABLE IF NOT EXISTS fin_settings (
 );
 CREATE INDEX IF NOT EXISTS idx_fin_settings_key ON fin_settings(setting_key);
 
-CREATE TRIGGER update_fin_settings_updated_at BEFORE UPDATE ON fin_settings
-FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_fin_settings_updated_at') THEN
+        CREATE TRIGGER update_fin_settings_updated_at BEFORE UPDATE ON fin_settings
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END $$;
 
 -- ============================================
 -- Логи приложения

@@ -12,8 +12,13 @@ CREATE TABLE IF NOT EXISTS changelog_entries (
     updated_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE TRIGGER update_changelog_entries_updated_at BEFORE UPDATE ON changelog_entries
-FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'update_changelog_entries_updated_at') THEN
+        CREATE TRIGGER update_changelog_entries_updated_at BEFORE UPDATE ON changelog_entries
+        FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+    END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_changelog_entries_sort ON changelog_entries(sort_order);
 
