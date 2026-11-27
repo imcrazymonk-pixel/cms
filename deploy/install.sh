@@ -64,6 +64,9 @@ log()  { printf '%s\n' "$*"; }
 warn() { printf 'WARN: %s\n' "$*" >&2; }
 die()  { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
 
+# Surface the failing line instead of exiting silently on `set -e`.
+trap 'printf "ERROR: install.sh failed at line %s (exit %s)\n" "$LINENO" "$?" >&2' ERR
+
 cleanup() {
     if [ -n "$ENV_TMP" ] && [ -f "$ENV_TMP" ]; then rm -f "$ENV_TMP" || true; fi
 }
@@ -242,6 +245,14 @@ resolve_repo() {
 
     if [ -f "$INSTALL_DIR/deploy/compose.install.yml" ]; then
         REPO_ROOT=$(cd "$INSTALL_DIR" && pwd)
+        # Existing install: keep the checkout current so install.sh fixes and
+        # new migrations actually reach this server. Offline re-runs continue
+        # with whatever is on disk.
+        if [ -d "$REPO_ROOT/.git" ]; then
+            log "Updating existing checkout in $REPO_ROOT"
+            git -C "$REPO_ROOT" pull --ff-only \
+                || warn "git pull failed; continuing with the current checkout"
+        fi
         log "Repository: $REPO_ROOT (existing checkout)"
     elif [ -d "$INSTALL_DIR/.git" ]; then
         log "Updating existing checkout in $INSTALL_DIR"
@@ -519,14 +530,17 @@ write_env() {
 # ── compose wrapper ──────────────────────────────────────────────────────────
 # The compose file lives in deploy/, so interpolation .env must be passed
 # explicitly: Compose would otherwise look for deploy/.env.
+# stdin is /dev/null on purpose: in `curl | bash` mode stdin carries this
+# script, and child processes (docker compose exec, psql, ...) would drain it
+# and silently truncate the install at the first exec. Prompts use /dev/tty.
 compose() {
     if [ "$BEHIND_PROXY" = 1 ]; then
         docker compose --env-file "$ENV_FILE" \
             -f "$REPO_ROOT/deploy/compose.install.yml" \
-            -f "$REPO_ROOT/deploy/compose.behind-proxy.yml" "$@"
+            -f "$REPO_ROOT/deploy/compose.behind-proxy.yml" "$@" </dev/null
     else
         docker compose --env-file "$ENV_FILE" \
-            -f "$REPO_ROOT/deploy/compose.install.yml" "$@"
+            -f "$REPO_ROOT/deploy/compose.install.yml" "$@" </dev/null
     fi
 }
 
@@ -610,6 +624,50 @@ remove_admin_password_from_env() {
         sed -i '/^ADMIN_PASSWORD=/d' "$ENV_FILE"
         chmod 600 "$ENV_FILE"
         log "Removed ADMIN_PASSWORD from .env"
+    fi
+}
+
+# Admin password: the decision needs the database (was the admin user created?),
+# so it runs after migrations instead of before the stack starts. This keeps a
+# re-run after a failed install from skipping the password just because .env
+# already exists.
+admin_user_exists() {
+    local out=""
+    out=$(compose exec -T db psql -U "$DB_USER" -d "$DB_NAME" \
+        -v login="$ADMIN_LOGIN" -tAc \
+        "SELECT 1 FROM users WHERE login = :'login' LIMIT 1" 2>/dev/null \
+        | tr -d '[:space:]' || true)
+    [ "$out" = "1" ]
+}
+
+ensure_admin_password() {
+    local needs_password=0
+    if [ "$RESET_ADMIN_PASSWORD" = 1 ]; then
+        needs_password=1
+    elif ! admin_user_exists; then
+        needs_password=1
+    fi
+
+    if [ "$needs_password" != 1 ]; then
+        if [ -n "${ADMIN_PASSWORD-}" ]; then
+            warn "existing admin '$ADMIN_LOGIN': password unchanged (use --reset-admin-password to rotate)"
+        fi
+        return 0
+    fi
+
+    if [ -n "${ADMIN_PASSWORD-}" ]; then return 0; fi
+
+    if [ "$NON_INTERACTIVE" = 1 ]; then
+        ADMIN_PASSWORD=$(gen_password)
+        PASSWORD_GENERATED=1
+        return 0
+    fi
+
+    ask_secret "Пароль администратора $ADMIN_LOGIN (Enter — сгенерировать): "
+    ADMIN_PASSWORD="$ANSWER"
+    if [ -z "$ADMIN_PASSWORD" ]; then
+        ADMIN_PASSWORD=$(gen_password)
+        PASSWORD_GENERATED=1
     fi
 }
 
@@ -917,26 +975,8 @@ if [ "$DRY_RUN" = 1 ]; then log "Mode: dry-run (no containers will start)"; fi
 
 write_env
 
-# Admin password: rotate only on a first install or explicit --reset-admin-password.
-if [ "$DRY_RUN" != 1 ]; then
-    if [ "$RESET_ADMIN_PASSWORD" = 1 ] || [ "$ENV_EXISTED" = 0 ]; then
-        if [ -z "$ADMIN_PASSWORD" ]; then
-            if [ "$NON_INTERACTIVE" = 1 ]; then
-                ADMIN_PASSWORD=$(gen_password)
-                PASSWORD_GENERATED=1
-            else
-                ask_secret "Пароль администратора $ADMIN_LOGIN (Enter — сгенерировать): "
-                ADMIN_PASSWORD="$ANSWER"
-                if [ -z "$ADMIN_PASSWORD" ]; then
-                    ADMIN_PASSWORD=$(gen_password)
-                    PASSWORD_GENERATED=1
-                fi
-            fi
-        fi
-    elif [ -n "$ADMIN_PASSWORD" ]; then
-        warn "existing install: password is unchanged without --reset-admin-password"
-    fi
-fi
+# Admin password is decided after migrations (see ensure_admin_password), once
+# the users table exists.
 
 if [ "$DRY_RUN" = 1 ]; then
     log "Validating Caddyfile ..."
@@ -948,7 +988,7 @@ if [ "$DRY_RUN" = 1 ]; then
             -e "ADMIN_DOMAIN=$ADMIN_DOMAIN" \
             -e "ACME_EMAIL=$ACME_EMAIL" \
             -v "$(host_path "$REPO_ROOT/deploy/Caddyfile"):/etc/caddy/Caddyfile:ro" \
-            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile; then
+            caddy:2-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile </dev/null; then
             log "Caddyfile validation: OK"
         else
             die "Caddyfile validation failed"
@@ -972,6 +1012,7 @@ wait_pg
 
 backup_before_migrate
 run_migrations
+ensure_admin_password
 
 log "Starting application services ..."
 if [ "$BEHIND_PROXY" = 1 ]; then
