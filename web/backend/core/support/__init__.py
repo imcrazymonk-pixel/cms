@@ -16,7 +16,11 @@ from web.backend.core.support.channels import registry
 from web.backend.core.support.channels.bedolaga import BedolagaPoller
 from web.backend.core.support.events import EventBus, EventKind, SupportEvent
 from web.backend.core.support.outbox import Outbox, WindowClosedError, reply_window
-from web.backend.core.support.settings import SupportSettings, get_support_settings, read_runtime_settings
+from web.backend.core.support.settings import (
+    SupportSettings,
+    get_support_settings,
+    load_support_config,
+)
 from web.backend.core.support.store import SupportStore
 from web.backend.core.support.tg.forum import ForumBridge
 
@@ -61,14 +65,18 @@ def _flag_enabled(raw: str | None) -> bool | None:
 
 
 async def _bedolaga_enabled(runtime: dict[str, str]) -> bool:
-    """Флаг канала: support_setting 'bedolaga.enabled', иначе env-конфигурация."""
+    """Флаг канала: hard-off интеграции важнее runtime-флага."""
+    from web.backend.core.bedolaga_client import bedolaga_client, ensure_configured_async
+
+    if bedolaga_client.disabled:
+        return False
+
     flag = _flag_enabled(runtime.get("bedolaga.enabled"))
     if flag is not None:
         return flag
-    from web.backend.core.bedolaga_client import ensure_configured
 
     try:
-        return bool(ensure_configured())
+        return bool(await ensure_configured_async())
     except Exception:  # noqa: BLE001
         return False
 
@@ -88,7 +96,12 @@ def _forum_config(settings: SupportSettings, runtime: dict[str, str]) -> tuple[b
     group_raw = runtime.get("tg.main.staff_group_id") or (
         str(settings.tg_staff_group_id) if settings.tg_staff_group_id else None
     )
-    group_id = int(group_raw) if group_raw and str(group_raw).strip().isdigit() else None
+    group_id: int | None = None
+    if group_raw is not None:
+        text_value = str(group_raw).strip()
+        # Telegram supergroup ids are negative (`-100…`); accept an optional sign.
+        if text_value and text_value.lstrip("-").isdigit():
+            group_id = int(text_value)
     return bool(forum), group_id
 
 
@@ -101,16 +114,45 @@ def _support_upload_dir() -> Path:
     return (base / "support").resolve()
 
 
+async def _telegram_proxy_kwargs() -> dict:
+    """httpx kwargs for Bot API: resolved support proxy, direct on any error."""
+    try:
+        from web.backend.core import outbound_proxy
+        from web.backend.core.database import get_session_factory
+
+        factory = await get_session_factory()
+        async with factory() as session:
+            resolution = await outbound_proxy.resolve_proxy(session, "support")
+        return outbound_proxy.client_kwargs(resolution, "api.telegram.org")
+    except Exception as e:  # noqa: BLE001 — прокси не должен ломать запуск канала
+        # Never log the proxy URL (it may embed credentials) — class name only.
+        logger.warning(
+            "Support: не удалось определить прокси для Telegram (%s) — работаем напрямую",
+            type(e).__name__,
+        )
+        return {"trust_env": False}
+
+
 async def _wire_telegram(service: SupportService, runtime: dict[str, str]) -> bool:
     """Собрать поллер+сендер Telegram; вернуть True, если канал поднялся."""
-    if not service.settings.tg_token:
-        logger.info("Telegram support channel disabled (нет SUPPORT_TG_TOKEN или флага tg.main.enabled)")
+    if not _telegram_enabled(service.settings, runtime):
+        logger.info("Telegram support channel disabled (tg.main.enabled=off или нет токена)")
         return False
+
+    token = (service.settings.tg_token or "").strip()
+    if not token:
+        logger.warning(
+            "Telegram support channel включён (tg.main.enabled=on), но токен не задан — "
+            "канал не поднят (Настройки → Интеграции)"
+        )
+        return False
+
     from web.backend.core.support.channels.telegram import TelegramChannelSender
     from web.backend.core.support.tg.api import TelegramClient
     from web.backend.core.support.tg.poller import MAX_UPLOAD_SIZE, TelegramPoller
 
-    client = TelegramClient(service.settings.tg_token.strip())
+    proxy_kwargs = await _telegram_proxy_kwargs()
+    client = TelegramClient(token, proxy_kwargs=proxy_kwargs)
     upload_dir = service.upload_dir or _support_upload_dir()
     upload_dir.mkdir(parents=True, exist_ok=True)
 
@@ -166,24 +208,49 @@ async def _wire_telegram(service: SupportService, runtime: dict[str, str]) -> bo
     return True
 
 
-async def init_support() -> SupportService:
-    """Build the support service; runtime overrides + channel wiring (best-effort)."""
-    settings = get_support_settings()
-    service = SupportService(
-        settings=settings,
-        outbox=Outbox(registry=registry, window_hours=settings.window_hours),
-    )
-    runtime: dict[str, str] = {}
-    try:
-        from web.backend.core.database import get_session_factory
+async def init_support(
+    existing: "SupportService | None" = None,
+    db: Any = None,
+) -> SupportService:
+    """Build the support service; runtime overrides + channel wiring (best-effort).
 
-        factory = await get_session_factory()
-        async with factory() as session:
-            runtime = await read_runtime_settings(session)
-        window_hours = int(runtime.get("window_hours", str(settings.window_hours)))
-        service.outbox.window_hours = window_hours
-    except Exception as e:  # noqa: BLE001 — без схемы остаются env-дефолты
-        logger.debug("Support runtime settings unavailable, using env defaults: %s", e)
+    When `existing` is passed the service is reloaded in place: `store`,
+    `outbox` and `event_bus` are preserved (live WebSocket subscribers stay
+    attached), only `settings`, `pollers` and `forum_bridge` are rebuilt.
+    When `db` is passed the config is read through that session instead of a
+    fresh one (callers already holding a session avoid a second connection).
+    """
+    runtime: dict[str, str] = {}
+    if db is not None:
+        try:
+            settings, runtime = await load_support_config(db)
+        except Exception as e:  # noqa: BLE001 — без схемы остаются env-дефолты
+            logger.debug("Support runtime settings unavailable, using env defaults: %s", e)
+            settings = get_support_settings()
+            runtime = {}
+    else:
+        try:
+            from web.backend.core.database import get_session_factory
+
+            factory = await get_session_factory()
+            async with factory() as session:
+                settings, runtime = await load_support_config(session)
+        except Exception as e:  # noqa: BLE001
+            logger.debug("Support runtime settings unavailable, using env defaults: %s", e)
+            settings = get_support_settings()
+            runtime = {}
+
+    if existing is not None:
+        service = existing
+        service.settings = settings
+        service.outbox.window_hours = settings.window_hours
+        service.pollers.clear()
+        service.forum_bridge = None
+    else:
+        service = SupportService(
+            settings=settings,
+            outbox=Outbox(registry=registry, window_hours=settings.window_hours),
+        )
 
     if await _bedolaga_enabled(runtime):
         poller = BedolagaPoller(

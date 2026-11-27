@@ -3,8 +3,9 @@
 Adapted from remnawave-admin-main/shared/bedolaga_client.py.
 CMS version — no shared/ package dependency, uses CmsSettings directly.
 """
+import asyncio
 import logging
-from typing import Optional
+from typing import Any, Optional
 
 import httpx
 
@@ -20,12 +21,49 @@ class BedolagaClient:
         self._base_url: Optional[str] = None
         self._api_token: Optional[str] = None
         self._client: Optional[httpx.AsyncClient] = None
+        self._timeout: float = 15.0
+        self._proxy_kwargs: dict = {}
+        self._disabled: bool = False
 
-    def configure(self, base_url: str, api_token: str):
-        """Configure the client with URL and token."""
+    def configure(
+        self,
+        base_url: str,
+        api_token: str,
+        *,
+        timeout: float = 15.0,
+        proxy_kwargs: dict | None = None,
+    ):
+        """Configure the client with URL, token, timeout and httpx proxy kwargs.
+
+        `proxy_kwargs` comes from `core.outbound_proxy.client_kwargs` and already
+        carries `trust_env=False`; explicit proxy settings always win over env.
+        """
+        self._disabled = False
         self._base_url = base_url.rstrip("/")
         self._api_token = api_token
+        self._timeout = timeout
+        self._proxy_kwargs = dict(proxy_kwargs or {})
         self._client = None
+
+    def reset(self) -> None:
+        """Drop the configuration and the cached HTTP client.
+
+        Does not touch `_disabled`: a plain reset leaves the client "not
+        switched off", so `ensure_configured()` may still pick up ENV.
+        """
+        self._base_url = None
+        self._api_token = None
+        self._client = None
+        self._proxy_kwargs = {}
+
+    def disable(self) -> None:
+        """Hard-off: `ensure_configured` must not revive the client from ENV."""
+        self.reset()
+        self._disabled = True
+
+    @property
+    def disabled(self) -> bool:
+        return self._disabled
 
     @property
     def is_configured(self) -> bool:
@@ -33,10 +71,14 @@ class BedolagaClient:
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None or self._client.is_closed:
+            # `trust_env=False` is mandatory for integrations: `direct` must be
+            # genuinely direct instead of silently using HTTP_PROXY from env.
+            client_kwargs = {"trust_env": False, **self._proxy_kwargs}
             self._client = httpx.AsyncClient(
                 base_url=self._base_url,
                 headers={"X-API-Key": self._api_token},
-                timeout=httpx.Timeout(15.0),
+                timeout=httpx.Timeout(self._timeout),
+                **client_kwargs,
             )
         return self._client
 
@@ -345,12 +387,69 @@ class BedolagaClient:
 bedolaga_client = BedolagaClient()
 
 
+_configure_lock: Optional[asyncio.Lock] = None
+
+
+async def ensure_configured_async(db: Any = None) -> bool:
+    """Configure the client from the settings registry, falling back to ENV.
+
+    Priority: hard-off (`disabled`) wins over everything, then an already
+    configured client, then the registry read (`apply_bedolaga`). A registry
+    read failure only logs a warning and falls back to the legacy ENV snapshot
+    in `ensure_configured()`. Double-checked locking keeps request bursts from
+    hammering the CMS database.
+    """
+    if bedolaga_client.disabled:
+        return False
+    if bedolaga_client.is_configured:
+        return True
+
+    global _configure_lock
+    if _configure_lock is None:
+        _configure_lock = asyncio.Lock()
+
+    async with _configure_lock:
+        if bedolaga_client.disabled:
+            return False
+        if bedolaga_client.is_configured:
+            return True
+        try:
+            from web.backend.core.integrations import apply_bedolaga  # lazy: cycle
+
+            if db is not None:
+                applied = await apply_bedolaga(db)
+            else:
+                from web.backend.core.database import get_session_factory
+
+                factory = await get_session_factory()
+                async with factory() as session:
+                    applied = await apply_bedolaga(session)
+            if applied and bedolaga_client.is_configured:
+                return True
+        except Exception as e:  # noqa: BLE001 — ENV fallback below
+            logger.warning(
+                "Bedolaga registry config read failed, falling back to ENV: %s", e,
+            )
+
+    return ensure_configured()
+
+
 def ensure_configured() -> bool:
-    """Configure client from BEDOLAGA_API_URL / BEDOLAGA_API_TOKEN. Returns False if not set."""
+    """ENV-only fallback: configure from BEDOLAGA_API_URL / BEDOLAGA_API_TOKEN.
+
+    Returns False when the integration is hard-off or ENV is empty. Request
+    paths must use `ensure_configured_async()` so the settings registry wins.
+    """
+    if bedolaga_client.disabled:
+        return False
     if bedolaga_client.is_configured:
         return True
     settings = get_cms_settings()
     if not settings.bedolaga_api_url or not settings.bedolaga_api_token:
+        logger.warning(
+            "Bedolaga API не настроена: задайте URL и токен в Настройки → Интеграции "
+            "(или BEDOLAGA_API_URL / BEDOLAGA_API_TOKEN в окружении)"
+        )
         return False
     bedolaga_client.configure(settings.bedolaga_api_url, settings.bedolaga_api_token)
     return True

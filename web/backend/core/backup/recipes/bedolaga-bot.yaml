@@ -1,0 +1,33 @@
+id: bedolaga-bot
+title: Bedolaga Bot
+version: 1
+detect:
+  any:
+    - docker_image: "^bedolaga.*bot:"
+    - docker_container: "^remnawave_bot$"
+  min_confidence: high
+artifacts:
+  database:
+    kind: postgres
+    container: remnawave_bot_db
+    env_from_container: [POSTGRES_USER, POSTGRES_DB]
+    password_from: container-env
+    method: pg_dump
+    format: custom
+    consistency: online
+  files:
+    - path: /opt/bedolaga
+      exclude: ["*.log", "*.tar.gz"]
+      required: [".env", "docker-compose.yml"]
+manifest:
+  capture: [docker_image_digest, app_version]
+secret_env_keys: [BOT_TOKEN, POSTGRES_PASSWORD]
+healthcheck:
+  command: "curl -fsS http://127.0.0.1:8080/health"
+  timeout: 30
+restore:
+  order: 20
+  stop: [bedolaga-bot]
+  steps: [restore_database, restore_files, start:bedolaga-bot, wait_healthy]
+  destructive: true
+  requires_versions_match: true

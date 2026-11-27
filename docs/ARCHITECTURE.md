@@ -123,6 +123,23 @@ NewWeb/
 - `hexacms_api` (FastAPI + uvicorn)
 - `hexacms_db` (PostgreSQL 16)
 
+### Хранилище документации
+
+Документация админки (`/changelog`) хранится в PostgreSQL, а файлы `docs/*.md` —
+только seed при первом старте и цель экспорта:
+
+| Таблица | Назначение |
+|---------|-----------|
+| `docs_documents` | Базовый markdown технической истории (`name` PK, `content`, `updated_at`). Редактируется целиком через `PUT /api/docs/history`. |
+| `history_entries` | Блоки-дополнения технической истории: ручные (`origin='manual'`) и копии записей ленты (`origin='changelog'`, `source_changelog_id`). |
+| `changelog_entries` | Лента изменений (`/api/docs/changelog/*`). |
+
+После первой правки источник истины — БД; `HISTORY_TECHNICAL.md` и `CHANGELOG_CMS.md`
+загружаются один раз (`seed_history_document`, `migrate_file_to_db`) и выгружаются
+эндпоинтами `/api/docs/history/export` и `/api/docs/changelog/export`.
+DDL дублируется в `ensure_docs_tables()` (идемпотентно при старте); SQL-файл
+`005-docs-history.sql` применяется вручную из плана §4.
+
 ---
 
 ## 5. Стек

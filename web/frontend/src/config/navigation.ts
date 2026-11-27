@@ -6,7 +6,8 @@ import {
   Menu,
   Image,
   Puzzle,
-  Palette,
+  Globe,
+  SlidersHorizontal,
   Wallet,
   Users,
   Settings,
@@ -26,6 +27,9 @@ import {
   Sparkles,
   FileStack,
   UserCog,
+  TrendingUp,
+  HardDrive,
+  Server,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -55,14 +59,14 @@ const navigation: NavigationEntry[] = [
   { type: 'section', name: 'Главное' },
   { name: 'Дашборд', href: '/', icon: LayoutDashboard, permission: null },
 
-  { type: 'section', name: 'Сайт' },
-  { name: 'Посты', href: '/posts', icon: FileText, permission: null },
-  { name: 'Категории', href: '/posts/categories', icon: Folder, permission: null },
-  { name: 'Страницы', href: '/pages', icon: File, permission: null },
-  { name: 'Меню', href: '/menus', icon: Menu, permission: null },
-  { name: 'Медиа', href: '/media', icon: Image, permission: null },
-  { name: 'Виджеты', href: '/widgets', icon: Puzzle, permission: null },
-  { name: 'Темы', href: '/themes', icon: Palette, permission: null },
+  { type: 'group', name: 'Сайт', icon: Globe, items: [
+      { name: 'Посты', href: '/posts', icon: FileText, permission: null },
+      { name: 'Категории', href: '/posts/categories', icon: Folder, permission: null },
+      { name: 'Страницы', href: '/pages', icon: File, permission: null },
+      { name: 'Меню', href: '/menus', icon: Menu, permission: null },
+      { name: 'Медиа', href: '/media', icon: Image, permission: null },
+      { name: 'Виджеты', href: '/widgets', icon: Puzzle, permission: null },
+  ]},
 
   { type: 'section', name: 'Финансы' },
   { name: 'Финансы', href: '/finance', icon: Wallet, permission: null },
@@ -76,9 +80,11 @@ const navigation: NavigationEntry[] = [
       { name: 'Дашборд', href: '/bedolaga', icon: BarChart3, permission: null },
       { name: 'Клиенты', href: '/bedolaga/customers', icon: Users, permission: null },
       { name: 'Тарифы', href: '/bedolaga/tariffs', icon: BadgeCheck, permission: null },
+      { name: 'Доход по тарифам', href: '/bedolaga/revenue', icon: TrendingUp, permission: null },
       { name: 'Промокоды', href: '/bedolaga/promo', icon: Ticket, permission: null },
       { name: 'Маркетинг', href: '/bedolaga/marketing', icon: Megaphone, permission: null },
       { name: 'Рефералы', href: '/bedolaga/referrals', icon: Share2, permission: null },
+      { name: 'Настройки', href: '/settings?tab=integrations&from=bedolaga', icon: SlidersHorizontal, permission: null },
     ],
   },
 
@@ -95,6 +101,19 @@ const navigation: NavigationEntry[] = [
       { name: 'Шаблоны', href: '/support/templates', icon: FileStack, permission: null },
       { name: 'Аналитика', href: '/support/analytics', icon: BarChart3, permission: null },
       { name: 'Команда', href: '/support/team', icon: UserCog, permission: null },
+      { name: 'Настройки', href: '/settings?tab=integrations&from=support', icon: SlidersHorizontal, permission: null },
+    ],
+  },
+
+  { type: 'section', name: 'Инфраструктура' },
+  {
+    type: 'group',
+    name: 'Инфраструктура',
+    icon: Server,
+    items: [
+      { name: 'Бэкапы', href: '/backups', icon: HardDrive, permission: null },
+      { name: 'Ноды', href: '/infrastructure/nodes', icon: Server, permission: null },
+      { name: 'Панель', href: '/infrastructure/panel', icon: Gauge, permission: null },
     ],
   },
 

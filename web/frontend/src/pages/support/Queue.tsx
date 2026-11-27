@@ -1,18 +1,126 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { RefreshCw } from 'lucide-react'
+import { Activity, AlertTriangle, RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
-import { supportApi, type ConversationPriority, type ConversationStatus } from '@/api/support'
+import {
+  supportApi,
+  type ConversationPriority,
+  type ConversationStatus,
+  type PollerStatus,
+} from '@/api/support'
 import { useSupportSocket } from '@/lib/supportSocket'
 import { toast } from 'sonner'
 import { toastMutationError } from '@/lib/mutationToast'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Card } from '@/components/ui/card'
 import { ConversationList } from './components/ConversationList'
 import { MessageThread } from './components/MessageThread'
 import { CustomerCard } from './components/CustomerCard'
 
 const PAGE_SIZE = 20
 const LIST_REFETCH_DEBOUNCE = 400
+
+function formatPollTime(value?: string | null): string {
+  if (!value) return 'ещё не было'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return date.toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
+}
+
+function PollerRow({ channel, status }: { channel: 'telegram' | 'bedolaga'; status?: PollerStatus }) {
+  const label = channel === 'telegram' ? 'Telegram' : 'Bedolaga'
+
+  if (!status) {
+    return (
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <span className="font-medium text-dark-100">{label}</span>
+        <Badge variant="secondary">не запущен</Badge>
+        <span className="text-dark-300">нет данных от поллера</span>
+      </div>
+    )
+  }
+
+  const conflict = status.last_error === 'conflict'
+  const badge = conflict ? (
+    <Badge variant="destructive">конфликт</Badge>
+  ) : status.running ? (
+    <Badge variant="success">работает</Badge>
+  ) : status.enabled ? (
+    <Badge variant="warning">ожидание</Badge>
+  ) : (
+    <Badge variant="secondary">выключен</Badge>
+  )
+
+  return (
+    <div className="space-y-1">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        <span className="font-medium text-dark-100">{label}</span>
+        {badge}
+        <span className="text-dark-300">последний опрос: {formatPollTime(status.last_poll)}</span>
+        {typeof status.ingested === 'number' && (
+          <span className="text-dark-300">· обработано: {status.ingested}</span>
+        )}
+      </div>
+      {conflict && (
+        <p className="flex items-start gap-1.5 text-xs text-red-400">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-px" />
+          Тот же токен опрашивает другой бот/webhook: остановите второй поллер или используйте
+          отдельный токен
+        </p>
+      )}
+      {!conflict && status.last_error && (
+        <p className="text-xs text-yellow-400 break-all">Ошибка: {status.last_error}</p>
+      )}
+    </div>
+  )
+}
+
+function PollerStatusPanel({
+  pollers,
+  isLoading,
+  isError,
+}: {
+  pollers?: Record<string, PollerStatus>
+  isLoading: boolean
+  isError: boolean
+}) {
+  const telegram = pollers?.telegram
+
+  return (
+    <Card className="p-4 md:p-5">
+      <div className="mb-3 flex items-center gap-2">
+        <Activity className="w-4 h-4 text-dark-300" />
+        <h2 className="text-sm font-semibold text-white">Каналы поддержки</h2>
+        {isLoading && <span className="text-xs text-dark-300">обновление…</span>}
+        {isError && <Badge variant="warning">статус недоступен</Badge>}
+      </div>
+
+      {!pollers && isLoading ? (
+        <p className="text-xs text-dark-300">Проверка статуса поллеров…</p>
+      ) : !pollers && isError ? (
+        <p className="text-xs text-yellow-400">Не удалось получить статус поллеров</p>
+      ) : (
+        <div className="space-y-3">
+          <PollerRow channel="telegram" status={telegram} />
+          <PollerRow channel="bedolaga" status={pollers?.bedolaga} />
+          {!isError && !telegram && (
+            <p className="text-xs text-yellow-400">
+              Telegram-канал не запущен: проверьте токен и support_tg_enabled в Настройки →
+              Интеграции
+            </p>
+          )}
+        </div>
+      )}
+    </Card>
+  )
+}
 
 export default function SupportQueue() {
   const queryClient = useQueryClient()
@@ -86,6 +194,13 @@ export default function SupportQueue() {
     queryFn: () => supportApi.getCustomer(activeId as number),
     enabled: activeId != null,
     staleTime: 30_000,
+  })
+
+  const pollersQuery = useQuery({
+    queryKey: ['support-pollers'],
+    queryFn: supportApi.getPollers,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
   })
 
   // ── Мутации ──────────────────────────────────────────────────
@@ -189,6 +304,12 @@ export default function SupportQueue() {
           </Button>
         </div>
       </div>
+
+      <PollerStatusPanel
+        pollers={pollersQuery.data?.pollers}
+        isLoading={pollersQuery.isLoading}
+        isError={pollersQuery.isError}
+      />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-[340px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)_340px] 2xl:items-start">
         {/* Список */}

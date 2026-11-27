@@ -13,6 +13,7 @@ from httpx import ConnectError, HTTPStatusError, TimeoutException
 from pydantic import BaseModel, Field
 
 from web.backend.api.deps import get_current_admin, AdminUser, get_client_ip
+from web.backend.core import bedolaga_analytics as analytics_core
 from web.backend.core.bedolaga_client import bedolaga_client
 
 from . import ensure_configured, proxy_request
@@ -27,6 +28,28 @@ _LIST_CACHE_TTL = 60
 
 def _invalidate_list() -> None:
     _list_cache.clear()
+
+
+def _normalize_items(data: dict) -> dict:
+    """Add normalized `tariff_id/tariff_name/tariff_missing` without touching upstream keys."""
+    if not isinstance(data, dict):
+        return data
+    items = data.get("items")
+    if not isinstance(items, list):
+        return data
+    normalized = dict(data)
+    normalized["items"] = [
+        analytics_core.normalize_user_subscription(user) if isinstance(user, dict) else user
+        for user in items
+    ]
+    return normalized
+
+
+def _tariff_sort_name(user: dict) -> str:
+    tariff = analytics_core.user_tariff(user)
+    if tariff["tariff_missing"]:
+        return ""
+    return analytics_core.normalize_name(tariff["tariff_name"])
 
 
 # ── Schemas ──
@@ -78,20 +101,29 @@ async def list_users(
     search: Optional[str] = Query(None),
     promo_group_id: Optional[int] = Query(None),
     subscription_status: Optional[str] = Query(None),
+    tariff_id: Optional[int] = Query(None),
+    tariff_missing: bool = Query(False),
     sort: Optional[str] = Query(None),
     order: Optional[str] = Query(None),
     admin: AdminUser = Depends(get_current_admin),
 ):
     """Список клиентов Bedolaga Bot."""
-    need_local = bool(subscription_status) or (sort and sort != "created_at") or (sort == "created_at" and order == "asc")
+    need_local = (
+        bool(subscription_status)
+        or tariff_id is not None
+        or tariff_missing
+        or (sort and sort != "created_at")
+        or (sort == "created_at" and order == "asc")
+    )
 
     if not need_local:
-        return await proxy_request(lambda: bedolaga_client.list_users(
+        data = await proxy_request(lambda: bedolaga_client.list_users(
             limit=limit, offset=offset, status=status, search=search,
             promo_group_id=promo_group_id, sort=sort, order=order,
         ))
+        return _normalize_items(data)
 
-    cache_key = (status, search, promo_group_id)
+    cache_key = (status, search, promo_group_id, tariff_id, tariff_missing)
     cached = _list_cache.get(cache_key)
     if cached and time.time() - cached[0] < _LIST_CACHE_TTL:
         all_items = list(cached[1])
@@ -109,6 +141,10 @@ async def list_users(
             if len(items) < batch_size:
                 break
             batch_offset += batch_size
+        all_items = [
+            analytics_core.normalize_user_subscription(user) if isinstance(user, dict) else user
+            for user in all_items
+        ]
         if len(_list_cache) > 20:
             _list_cache.clear()
         _list_cache[cache_key] = (time.time(), list(all_items))
@@ -127,6 +163,11 @@ async def list_users(
             return True
         all_items = [u for u in all_items if match_sub(u)]
 
+    if tariff_missing:
+        all_items = [u for u in all_items if analytics_core.user_tariff(u)["tariff_missing"]]
+    elif tariff_id is not None:
+        all_items = [u for u in all_items if analytics_core.user_tariff(u)["tariff_id"] == tariff_id]
+
     if sort:
         reverse = order == "desc"
         if sort == "last_activity":
@@ -137,6 +178,11 @@ async def list_users(
             all_items.sort(key=lambda u: (u.get("username") or u.get("first_name") or "").lower(), reverse=reverse)
         elif sort == "created_at":
             all_items.sort(key=lambda u: u.get("created_at") or "", reverse=reverse)
+        elif sort == "tariff":
+            named = [u for u in all_items if _tariff_sort_name(u)]
+            unnamed = [u for u in all_items if not _tariff_sort_name(u)]
+            named.sort(key=_tariff_sort_name, reverse=reverse)
+            all_items = named + unnamed
 
     return {"items": all_items[offset:offset + limit], "total": len(all_items)}
 
@@ -270,7 +316,10 @@ async def get_user(
     admin: AdminUser = Depends(get_current_admin),
 ):
     """Детальная информация о клиенте."""
-    return await proxy_request(lambda: bedolaga_client.get_user(user_id))
+    data = await proxy_request(lambda: bedolaga_client.get_user(user_id))
+    if isinstance(data, dict):
+        return analytics_core.normalize_user_subscription(data)
+    return data
 
 
 @router.patch("/{user_id}")
@@ -355,7 +404,7 @@ async def user_activity(
     admin: AdminUser = Depends(get_current_admin),
 ):
     """Лента активности клиента."""
-    ensure_configured()
+    await ensure_configured()
 
     now = time.monotonic()
     if not _activity_support["supported"]:

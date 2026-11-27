@@ -9,7 +9,6 @@ import {
   Menu,
   Image,
   Puzzle,
-  Palette,
   Wallet,
   Users,
   Settings,
@@ -111,13 +110,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           >
             <Puzzle className="mr-2 h-4 w-4" />
             {t('nav.widgets')}
-          </CommandItem>
-          <CommandItem
-            value="themes темы оформление"
-            onSelect={() => runCommand(() => navigate('/themes'))}
-          >
-            <Palette className="mr-2 h-4 w-4" />
-            {t('nav.themes')}
           </CommandItem>
           <CommandItem
             value="finance финансы деньги транзакции"

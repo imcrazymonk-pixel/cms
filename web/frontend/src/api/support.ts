@@ -32,7 +32,7 @@ export interface SupportMessage {
   id: number
   conversation_id: number
   direction: 'in' | 'out'
-  author: 'client' | 'agent' | 'system'
+  author: 'client' | 'agent' | 'system' | 'bot'
   text: string | null
   media_type: string | null
   media_file_id: string | null
@@ -95,8 +95,17 @@ export interface SupportConversationDetail {
   customer: SupportCustomerProfileBrief | null
 }
 
+export interface PollerStatus {
+  enabled?: boolean
+  running?: boolean
+  last_poll?: string | null
+  last_offset?: number
+  last_error?: string | null
+  ingested?: number
+}
+
 export interface SupportPollersResult {
-  pollers: Record<string, { enabled?: boolean; running?: boolean; last_poll?: string | null; last_error?: string | null; ingested?: number }>
+  pollers: Record<string, PollerStatus>
 }
 
 export interface SupportConfigStatus {

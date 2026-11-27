@@ -9,7 +9,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from web.backend.core.bedolaga_client import bedolaga_client, ensure_configured
+from web.backend.core.bedolaga_client import bedolaga_client, ensure_configured_async
 from web.backend.core.support.channels.bedolaga import ticket_id_of
 
 logger = logging.getLogger(__name__)
@@ -78,13 +78,13 @@ async def _ensure_profile_linked(service, conversation: dict[str, Any]) -> dict[
     return await service.store.get_customer_profile(customer_id=new_id)
 
 
-def _bedolaga_client(service):
+async def _bedolaga_client(service):
     """Bedolaga client: from the poller when wired, else the shared singleton."""
     poller = service.pollers.get("bedolaga") if service.pollers else None
     if poller is not None and getattr(poller, "client", None) is not None:
         return poller.client
     try:
-        return bedolaga_client if ensure_configured() else None
+        return bedolaga_client if await ensure_configured_async() else None
     except Exception:  # noqa: BLE001
         return None
 
@@ -93,7 +93,7 @@ def _bedolaga_client(service):
 
 async def _fetch_card(service, conversation: dict[str, Any]) -> dict[str, Any]:
     """Build the card from Bedolaga (best-effort; failures become empty sections)."""
-    client = _bedolaga_client(service)
+    client = await _bedolaga_client(service)
     user: dict | None = None
     user_id: int | None = None
     tg = conversation.get("tg_user_id")

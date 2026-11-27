@@ -33,6 +33,17 @@ class TelegramRateLimited(TelegramAPIError):
         self.retry_after = int(retry_after or 0)
 
 
+class TelegramConflict(TelegramAPIError):
+    """HTTP 409 Conflict — тот же токен уже опрашивает другой процесс/бот.
+
+    Telegram отдаёт 409 на getUpdates, когда webhook или второй поллер уже
+    забирает обновления. Поллер не должен молотить этот токен каждую минуту.
+    """
+
+    def __init__(self, description: str, *, error_code: int | None = 409):
+        super().__init__(description, error_code=error_code)
+
+
 class TelegramClient:
     """Безопасный к инъекциям клиент: можно передать свой httpx.AsyncClient (тесты)."""
 
@@ -42,16 +53,22 @@ class TelegramClient:
         *,
         api_url: str = API_URL,
         http_client: httpx.AsyncClient | None = None,
+        proxy_kwargs: dict | None = None,
     ):
         self._token = token
         self._api_url = api_url.rstrip("/")
         self.base_url = f"{self._api_url}/bot{token}"
         self._http = http_client
         self._owned_http = http_client is None
+        self._proxy_kwargs = dict(proxy_kwargs or {})
 
     @property
     def token(self) -> str:
         return self._token
+
+    def _new_http(self, timeout: float) -> httpx.AsyncClient:
+        """Owned transport: explicit proxy from settings, never env proxies."""
+        return httpx.AsyncClient(timeout=timeout, **{"trust_env": False, **self._proxy_kwargs})
 
     async def close(self) -> None:
         if self._owned_http and self._http is not None:
@@ -173,7 +190,7 @@ class TelegramClient:
         client = self._http
         owned = client is None
         if owned:
-            client = httpx.AsyncClient(timeout=REQUEST_TIMEOUT)
+            client = self._new_http(REQUEST_TIMEOUT)
         try:
             with open(file_path, "rb") as fh:
                 files = {param: (name, fh, mime_type or "application/octet-stream")}
@@ -238,7 +255,7 @@ class TelegramClient:
         client = self._http
         owned = client is None
         if owned:
-            client = httpx.AsyncClient(timeout=REQUEST_TIMEOUT)
+            client = self._new_http(REQUEST_TIMEOUT)
         try:
             response = await client.get(url)
             if response.status_code != 200:
@@ -257,7 +274,7 @@ class TelegramClient:
         client = self._http
         owned = client is None
         if owned:
-            client = httpx.AsyncClient(timeout=timeout)
+            client = self._new_http(timeout)
         try:
             response = await client.post(url, json=payload or {}, timeout=timeout)
         except httpx.HTTPError as e:
@@ -285,5 +302,7 @@ class TelegramClient:
                 except (TypeError, ValueError):
                     retry_after = 0
                 raise TelegramRateLimited(description, retry_after, error_code=error_code)
+            if response.status_code == 409 or error_code == 409:
+                raise TelegramConflict(description, error_code=error_code)
             raise TelegramAPIError(f"{description} (error_code={error_code})", error_code=error_code)
         return payload.get("result")

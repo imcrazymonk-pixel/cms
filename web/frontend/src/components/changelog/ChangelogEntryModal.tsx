@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -16,6 +16,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
+import { docsApi } from '@/api/docs'
 import type { DocEntry, UserName } from '@/api/docs'
 
 export interface EntryFormData {
@@ -31,6 +32,8 @@ interface ChangelogEntryModalProps {
   mode: 'create' | 'edit'
   entry?: DocEntry  // provided when editing
   users: UserName[]
+  /** Which document the entry belongs to. Defaults to the changelog feed. */
+  docName?: 'changelog' | 'history'
   onSave: (data: EntryFormData) => Promise<void>
   onClose: () => void
 }
@@ -39,9 +42,11 @@ export default function ChangelogEntryModal({
   mode,
   entry,
   users,
+  docName = 'changelog',
   onSave,
   onClose,
 }: ChangelogEntryModalProps) {
+  const isHistory = docName === 'history'
   const [open, setOpen] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -59,6 +64,37 @@ export default function ChangelogEntryModal({
   const [title, setTitle] = useState(entry?.title ?? '')
   const [body, setBody] = useState(entry?.body ?? '')
   const [alsoHistory, setAlsoHistory] = useState(false)
+  // Backend-rendered preview, same engine as the history page.
+  const [previewHtml, setPreviewHtml] = useState('')
+  const [previewLoading, setPreviewLoading] = useState(false)
+  const [previewError, setPreviewError] = useState<string | null>(null)
+
+  // Debounced preview rendering — only while the preview tab is visible.
+  useEffect(() => {
+    if (activeTab !== 'preview') return
+    let cancelled = false
+    const timer = window.setTimeout(() => {
+      setPreviewLoading(true)
+      docsApi
+        .renderMarkdown(body)
+        .then((html) => {
+          if (cancelled) return
+          setPreviewHtml(html)
+          setPreviewError(null)
+        })
+        .catch((e: unknown) => {
+          if (cancelled) return
+          setPreviewError(e instanceof Error ? e.message : 'Не удалось отрисовать предпросмотр')
+        })
+        .finally(() => {
+          if (!cancelled) setPreviewLoading(false)
+        })
+    }, 300)
+    return () => {
+      cancelled = true
+      window.clearTimeout(timer)
+    }
+  }, [activeTab, body])
 
   const handleClose = () => {
     setOpen(false)
@@ -82,7 +118,7 @@ export default function ChangelogEntryModal({
         author: author.trim(),
         title: title.trim(),
         body: body.trim(),
-        also_history: alsoHistory,
+        also_history: isHistory ? false : alsoHistory,
       })
       handleClose()
     } catch (e: unknown) {
@@ -92,33 +128,9 @@ export default function ChangelogEntryModal({
     }
   }
 
-  const titleText = mode === 'create' ? '✏️ Новая запись' : '✏️ Редактировать запись'
-
-  // ── Preview ────────────────────────────────────────────────
-  function mdToHtml(md: string): string {
-    if (!md) return '<p class="text-dark-200 italic">Нет содержимого</p>'
-    let html = md
-      // Headings
-      .replace(/^### (.+)$/gm, '<h4 class="text-white font-semibold mt-2 mb-1">$1</h4>')
-      .replace(/^## (.+)$/gm, '<h3 class="text-lg text-white font-bold mt-3 mb-1">$1</h3>')
-      .replace(/^# (.+)$/gm, '<h2 class="text-xl text-white font-bold mt-4 mb-2">$1</h2>')
-      // Bold & italic
-      .replace(/\*\*(.+?)\*\*/g, '<strong class="text-white">$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      // Inline code
-      .replace(/`(.+?)`/g, '<code class="bg-white/10 text-cyan-400 px-1 rounded">$1</code>')
-      // Unordered list items
-      .replace(/^- (.+)$/gm, '<li class="text-dark-200 ml-4">$1</li>')
-    // Wrap consecutive <li> in <ul>
-    html = html.replace(/((?:<li[^>]*>.*?<\/li>\n?)+)/g, '<ul class="space-y-0.5 my-1">$1</ul>')
-    // Line breaks
-    html = html.replace(/\n\n/g, '</p><p class="text-dark-200 mb-1">')
-    html = html.replace(/\n/g, '<br/>')
-    return '<div class="prose p-3 rounded-lg border border-[var(--glass-border)]">' +
-      '<p class="text-dark-200 mb-1">' + html + '</p></div>'
-  }
-
-  const previewHtml = mdToHtml(body)
+  const titleText = mode === 'create'
+    ? (isHistory ? '✏️ Новая запись в тех.историю' : '✏️ Новая запись')
+    : '✏️ Редактировать запись'
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
@@ -127,8 +139,12 @@ export default function ChangelogEntryModal({
           <DialogTitle>{titleText}</DialogTitle>
           <DialogDescription>
             {mode === 'create'
-              ? 'Добавьте новую запись в ленту изменений'
-              : 'Измените дату, автора или содержимое записи'}
+              ? (isHistory
+                  ? 'Добавьте запись в техническую историю'
+                  : 'Добавьте новую запись в ленту изменений')
+              : (isHistory
+                  ? 'Измените дату, автора или содержимое блока тех.истории'
+                  : 'Измените дату, автора или содержимое записи')}
           </DialogDescription>
         </DialogHeader>
 
@@ -224,8 +240,8 @@ export default function ChangelogEntryModal({
                 />
               </div>
 
-              {/* Also history (only for create) */}
-              {mode === 'create' && (
+              {/* Also history (changelog only, create mode) */}
+              {mode === 'create' && !isHistory && (
                 <div className="flex items-center justify-between rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2">
                   <div className="flex flex-col">
                     <span className="text-sm font-medium text-white">Также в тех.историю</span>
@@ -241,16 +257,30 @@ export default function ChangelogEntryModal({
             <ScrollArea className="max-h-[30rem]">
               <div className="rounded-xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-4">
                 {/* Preview header */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
                   <span>{date}</span>
                   <span className="opacity-40">·</span>
                   <span>{time}</span>
                   <span className="opacity-40">·</span>
                   <span>{author}</span>
+                  {previewLoading && (
+                    <>
+                      <span className="opacity-40">·</span>
+                      <span className="flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Рендеринг…
+                      </span>
+                    </>
+                  )}
                 </div>
                 <h3 className="text-base font-semibold text-white mb-1">{title || 'Заголовок'}</h3>
-                {/* Rendered body */}
-                <div className="text-sm">{previewHtml}</div>
+                {previewError && (
+                  <p className="mb-2 text-xs text-red-400">
+                    {previewError} — показан предыдущий вариант
+                  </p>
+                )}
+                {/* Rendered body — backend engine output */}
+                <div className="prose" dangerouslySetInnerHTML={{ __html: previewHtml }} />
               </div>
             </ScrollArea>
           </TabsContent>

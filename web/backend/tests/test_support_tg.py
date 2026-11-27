@@ -15,7 +15,7 @@ from web.backend.core.support.channels.telegram import MAX_CAPTION_LENGTH, Teleg
 from web.backend.core.support.events import EventBus
 from web.backend.core.support.outbox import Outbox, WindowClosedError
 from web.backend.core.support.tg.api import TelegramAPIError, TelegramClient, TelegramRateLimited
-from web.backend.core.support.tg.poller import TelegramPoller
+from web.backend.core.support.tg.poller import GREETING, TelegramPoller
 from web.backend.core.support.tg.types import parse_update
 
 _UTC = timezone.utc
@@ -120,6 +120,23 @@ class FakeStore:
         return {"conversation_id": conv["id"], "conversation_created": True,
                 "message_created": True, "message_id": msg["id"]}
 
+    async def record_outbound(self, **kwargs) -> int:
+        msg = {
+            "id": self._next_msg,
+            "conversation_id": kwargs["conversation_id"],
+            "direction": "out",
+            "author": kwargs.get("author", "agent"),
+            "external_msg_id": kwargs.get("external_msg_id"),
+            "text": kwargs.get("text_value"),
+            "media_type": kwargs.get("media_type"),
+            "media_file_id": kwargs.get("media_file_id"),
+            "is_backfill": False,
+            "created_at": kwargs.get("created_at"),
+        }
+        self._next_msg += 1
+        self.messages.append(msg)
+        return msg["id"]
+
     async def insert_attachment(self, **kwargs) -> int:
         att = {"id": len(self.attachments) + 1, **kwargs}
         self.attachments.append(att)
@@ -220,6 +237,63 @@ async def test_poller_text_creates_conversation_and_advances_offset(tmp_path):
     assert store.messages[0]["media_type"] is None
     assert store.poll_state["tg:main:offset"] == "2"
     assert transport.get_updates_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_poller_start_creates_conversation_and_greets_once(tmp_path):
+    transport = TgTransport()
+    store = FakeStore()
+    poller = _make_poller(transport, store, tmp_path)
+
+    assert await poller._handle_update(_update_text(1, 30, "/start")) == 1
+
+    conv = store.conversation("123")
+    assert conv is not None
+    inbound = store.message("30")
+    assert inbound is not None and inbound["text"] == "/start"
+    outbound = [m for m in store.messages if m["direction"] == "out"]
+    assert len(outbound) == 1
+    assert outbound[0]["author"] == "bot"
+    assert outbound[0]["text"] == GREETING
+    assert outbound[0]["external_msg_id"] == "500"
+    assert transport.send_calls[-1]["method"] == "sendMessage"
+    assert transport.send_calls[-1]["json"]["chat_id"] == 123
+    assert transport.send_calls[-1]["json"]["text"] == GREETING
+
+    # повторная доставка того же update не дублирует приветствие
+    assert await poller._handle_update(_update_text(1, 30, "/start")) == 0
+    assert len([m for m in store.messages if m["direction"] == "out"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_poller_start_greeting_failure_keeps_tick_alive(tmp_path):
+    transport = TgTransport()
+    store = FakeStore()
+    poller = _make_poller(transport, store, tmp_path)
+
+    async def fail_send(*args, **kwargs):
+        raise TelegramAPIError("send failed")
+
+    poller.client.send_message = fail_send
+
+    assert await poller._handle_update(_update_text(1, 31, "/start")) == 1
+    assert store.conversation("123") is not None
+    assert not [m for m in store.messages if m["direction"] == "out"]
+
+
+@pytest.mark.asyncio
+async def test_poller_myid_replies_without_conversation(tmp_path):
+    transport = TgTransport()
+    store = FakeStore()
+    poller = _make_poller(transport, store, tmp_path)
+
+    assert await poller._handle_update(_update_text(1, 32, "/myid")) == 1
+
+    assert store.conversations == {}
+    assert store.messages == []
+    assert transport.send_calls[-1]["method"] == "sendMessage"
+    assert transport.send_calls[-1]["json"]["chat_id"] == 123
+    assert transport.send_calls[-1]["json"]["text"] == "Ваш Telegram ID: 9"
 
 
 @pytest.mark.asyncio

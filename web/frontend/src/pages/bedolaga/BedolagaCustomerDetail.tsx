@@ -31,8 +31,10 @@ import {
   Users,
   Share2,
   List,
+  AlertCircle,
 } from '@/components/brand/icons'
 import client from '@/api/client'
+import { bedolagaApi, type BedolagaAnalyticsCustomer } from '@/api/bedolaga'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -84,12 +86,17 @@ function isOnline(d?: string): boolean {
 }
 
 // Centralized locale-aware formatters (used outside components)
-import { formatDateUtil as formatDate, formatDateShortUtil as formatDateShort, useFormatters } from '@/lib/useFormatters'
+import { formatDateUtil as formatDate, formatDateShortUtil as formatDateShort, getLocale, useFormatters } from '@/lib/useFormatters'
 
 function daysUntil(d?: string): number | null {
   if (!d) return null
   const diff = new Date(d).getTime() - Date.now()
   return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
+
+function formatKopeks(kopeks?: number | null): string {
+  if (kopeks == null) return '—'
+  return `${(kopeks / 100).toLocaleString(getLocale(), { maximumFractionDigits: 2 })} ₽`
 }
 
 const txTypeIcons: Record<string, typeof TrendingUp> = {
@@ -144,6 +151,16 @@ export default function BedolagaCustomerDetail() {
     queryFn: () => client.get(`/bedolaga/customers/${id}`).then((r) => r.data),
     enabled: !!id,
     staleTime: 15_000,
+  })
+
+  // Финансовый профиль клиента из аналитики. Ошибка/partial не ломает страницу:
+  // карточка показывает прочерки и предупреждение, остальные блоки работают.
+  const { data: finance, isError: financeError, isLoading: financeLoading } = useQuery<BedolagaAnalyticsCustomer>({
+    queryKey: ['bedolaga-customer-analytics', id],
+    queryFn: () => bedolagaApi.getAnalyticsCustomer(Number(id)),
+    enabled: !!id && Number.isFinite(Number(id)),
+    staleTime: 60_000,
+    retry: false,
   })
 
   const { data: txData } = useQuery({
@@ -209,6 +226,7 @@ export default function BedolagaCustomerDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bedolaga-customer', id] })
       queryClient.invalidateQueries({ queryKey: ['bedolaga-customer-transactions', id] })
+      queryClient.invalidateQueries({ queryKey: ['bedolaga-customer-analytics', id] })
       toast.success(t('bedolaga.customerDetail.balanceUpdated'))
       setBalanceDialog(false)
       setBalanceAmount('')
@@ -222,6 +240,7 @@ export default function BedolagaCustomerDetail() {
       client.post(`/bedolaga/customers/subscriptions/${user?.subscription?.id}/extend`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bedolaga-customer', id] })
+      queryClient.invalidateQueries({ queryKey: ['bedolaga-customer-analytics', id] })
       toast.success(t('bedolaga.customerDetail.subscriptionExtended'))
       setExtendDialog(false)
     },
@@ -353,6 +372,40 @@ export default function BedolagaCustomerDetail() {
   const trafficPercent = trafficLimit ? Math.min(100, (trafficUsed / trafficLimit) * 100) : null
   const subDaysLeft = daysUntil(sub?.end_date)
 
+  // ── Tariff (нормализованный источник) ──
+  // Бэкенд добавляет top-level tariff_id/tariff_name/tariff_missing; subscription —
+  // fallback для старых ответов, primary_subscription — из аналитики.
+  const primarySub = finance?.primary_subscription ?? null
+  const tariffId = user.tariff_id ?? sub?.tariff_id ?? primarySub?.tariff_id ?? null
+  const tariffName = user.tariff_name || sub?.tariff_name || primarySub?.tariff_name || ''
+  const tariffMissing = user.tariff_missing === true || (!tariffName && tariffId == null)
+  const tariffDisplay = tariffMissing
+    ? t('bedolaga.customerDetail.tariffMissing')
+    : tariffId != null
+      ? `${tariffName} · #${tariffId}`
+      : tariffName
+
+  // ── Finance (аналитика клиента) ──
+  const money = finance?.money
+  const financePartial = finance?.partial === true
+  const tariffQuote = finance?.tariff ?? null
+  const paidUntil = primarySub?.end_date ?? sub?.end_date ?? null
+  const daysLeft = primarySub?.days_left ?? subDaysLeft
+  const periodDays = tariffQuote?.period_days ?? primarySub?.period_days ?? null
+  const periodPrice = tariffQuote?.period_price_rubles ?? null
+  const monthlyPrice = tariffQuote?.monthly_price_rubles ?? null
+  const pricePeriodText = periodPrice != null
+    ? `${periodPrice.toLocaleString(getLocale())} ₽${periodDays ? ` / ${periodDays} ${t('bedolaga.customerDetail.daysShort')}` : ''}`
+    : '—'
+  const nextPaymentText = money?.next_payment_date
+    ? `${formatDateShort(money.next_payment_date)}${money.next_payment_kopeks != null ? ` · ${formatKopeks(money.next_payment_kopeks)}` : ''}`
+    : money?.next_payment_kopeks != null
+      ? formatKopeks(money.next_payment_kopeks)
+      : '—'
+  const chargeHint = primarySub?.autopay_enabled && money?.expected_charge_date
+    ? `${t('bedolaga.customerDetail.expectedCharge')}: ${formatDateShort(money.expected_charge_date)}`
+    : null
+
   return (
     <div className="space-y-4 md:space-y-6">
       {/* ── Header with avatar ── */}
@@ -404,6 +457,7 @@ export default function BedolagaCustomerDetail() {
           <Button variant="secondary" size="icon" onClick={() => {
             queryClient.invalidateQueries({ queryKey: ['bedolaga-customer', id] })
             queryClient.invalidateQueries({ queryKey: ['bedolaga-customer-transactions', id] })
+            queryClient.invalidateQueries({ queryKey: ['bedolaga-customer-analytics', id] })
           }}>
             <RefreshCw className="w-5 h-5" />
           </Button>
@@ -491,6 +545,12 @@ export default function BedolagaCustomerDetail() {
             <InfoRow icon={User} label="Username" value={user.username || '—'} copyable onCopy={() => user.username && copyToClipboard(user.username, 'username')} copied={copiedField === 'username'} />
             <InfoRow icon={MessageCircle} label="Telegram ID" value={user.telegram_id ? String(user.telegram_id) : '—'} copyable={!!user.telegram_id} onCopy={() => user.telegram_id && copyToClipboard(String(user.telegram_id), 'tg')} copied={copiedField === 'tg'} />
             <InfoRow icon={Hash} label="ID" value={String(user.id)} />
+            <InfoRow
+              icon={Star}
+              label={t('bedolaga.customerDetail.tariff')}
+              value={tariffDisplay}
+              muted={tariffMissing}
+            />
 
             <Separator className="bg-[var(--glass-border)]" />
 
@@ -563,12 +623,12 @@ export default function BedolagaCustomerDetail() {
                   </div>
 
                   {/* Tariff */}
-                  {(user.tariff_id || user.tariff_name) && (
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-dark-300 flex items-center gap-1.5"><Star className="w-3.5 h-3.5" />{t('bedolaga.customerDetail.tariff')}</span>
-                      <span className="font-medium text-primary-400">{user.tariff_name || `#${user.tariff_id}`}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-dark-300 flex items-center gap-1.5"><Star className="w-3.5 h-3.5" />{t('bedolaga.customerDetail.tariff')}</span>
+                    <span className={cn('font-medium truncate max-w-[60%] text-right', tariffMissing ? 'text-dark-400' : 'text-primary-400')}>
+                      {tariffDisplay}
+                    </span>
+                  </div>
 
                   {/* Valid until with countdown */}
                   <div className="flex items-center justify-between text-sm">
@@ -651,6 +711,56 @@ export default function BedolagaCustomerDetail() {
                 <div className="text-center py-4">
                   <Activity className="w-8 h-8 mx-auto text-dark-400 mb-2 opacity-40" />
                   <p className="text-dark-400 text-sm">{t('bedolaga.customerDetail.noSubscription')}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Finance card — источник: /bedolaga/analytics/customers/{id} */}
+          <Card className="glass-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-emerald-400" />
+                {t('bedolaga.customerDetail.finance')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-0">
+              {(financeError || financePartial) && (
+                <div className={cn(
+                  'flex items-start gap-2 rounded-lg border p-2.5 mb-3 text-[11px] leading-snug',
+                  financeError
+                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
+                    : 'border-blue-500/30 bg-blue-500/10 text-blue-300',
+                )}>
+                  <AlertCircle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                  <span>{financeError ? t('bedolaga.customerDetail.financeUnavailable') : t('bedolaga.customerDetail.financePartial')}</span>
+                </div>
+              )}
+              {financeLoading ? (
+                <div className="space-y-2.5">
+                  {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-4 w-full" />)}
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  <MoneyRow
+                    label={t('bedolaga.customerDetail.tariff')}
+                    value={tariffMissing ? t('bedolaga.customerDetail.tariffMissing') : (tariffName || '—')}
+                    muted={tariffMissing}
+                  />
+                  <MoneyRow
+                    label={t('bedolaga.customerDetail.price')}
+                    value={pricePeriodText}
+                    hint={monthlyPrice != null ? `${monthlyPrice.toLocaleString(getLocale())} ${t('bedolaga.customers.perMonth')}` : null}
+                  />
+                  <MoneyRow label={t('bedolaga.customerDetail.paidUntil')} value={paidUntil ? formatDateShort(paidUntil) : '—'} />
+                  <MoneyRow
+                    label={t('bedolaga.customerDetail.daysLeft')}
+                    value={daysLeft != null ? `${daysLeft} ${t('bedolaga.customerDetail.daysShort')}` : '—'}
+                  />
+                  <Separator className="bg-[var(--glass-border)]" />
+                  <MoneyRow label={t('bedolaga.customerDetail.paidTotal')} value={formatKopeks(money?.paid_total_kopeks)} />
+                  <MoneyRow label={t('bedolaga.customerDetail.paidForward')} value={formatKopeks(money?.paid_forward_kopeks)} />
+                  <MoneyRow label={t('bedolaga.customerDetail.nextPayment')} value={nextPaymentText} hint={chargeHint} />
                 </div>
               )}
             </CardContent>
@@ -1048,7 +1158,24 @@ export default function BedolagaCustomerDetail() {
 
 // ── InfoRow component ──
 
-function InfoRow({ icon: Icon, label, value, mono, copyable, onCopy, copied, highlight }: {
+function MoneyRow({ label, value, hint, muted }: {
+  label: string
+  value: string
+  hint?: string | null
+  muted?: boolean
+}) {
+  return (
+    <div className="flex items-start justify-between gap-3 text-sm">
+      <span className="text-dark-300 flex-shrink-0">{label}</span>
+      <div className="text-right min-w-0">
+        <span className={cn('block truncate', muted ? 'text-dark-400' : 'font-medium')}>{value}</span>
+        {hint && <span className="block text-[10px] text-dark-400 truncate">{hint}</span>}
+      </div>
+    </div>
+  )
+}
+
+function InfoRow({ icon: Icon, label, value, mono, copyable, onCopy, copied, highlight, muted }: {
   icon: typeof User
   label: string
   value: string
@@ -1057,6 +1184,7 @@ function InfoRow({ icon: Icon, label, value, mono, copyable, onCopy, copied, hig
   onCopy?: () => void
   copied?: boolean
   highlight?: boolean
+  muted?: boolean
 }) {
   return (
     <div className="flex items-center justify-between group text-sm">
@@ -1069,6 +1197,7 @@ function InfoRow({ icon: Icon, label, value, mono, copyable, onCopy, copied, hig
           'text-right truncate max-w-[160px]',
           mono && 'font-mono text-xs',
           highlight && 'text-emerald-400 font-medium',
+          muted && 'text-dark-400',
         )}>
           {value}
         </span>

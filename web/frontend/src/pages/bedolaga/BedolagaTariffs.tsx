@@ -11,6 +11,7 @@ import {
   BadgeCheck,
   Clock,
   Search,
+  AlertTriangle,
 } from 'lucide-react'
 import client from '@/api/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -53,6 +54,13 @@ interface Tariff {
   servers_count?: number
 }
 
+interface TariffsResponse {
+  items?: Tariff[]
+  total?: number
+  status?: 'ok' | 'disabled' | 'error' | 'timeout'
+  error?: string | null
+}
+
 function rubles(kopeks?: number): string {
   if (kopeks == null) return '—'
   return `${(kopeks / 100).toLocaleString('ru-RU')} ₽`
@@ -67,12 +75,14 @@ export default function BedolagaTariffs() {
   const [search, setSearch] = useState('')
   const [showInactive, setShowInactive] = useState(false)
 
-  const { data, isLoading, refetch } = useQuery<{ items?: Tariff[]; total?: number }>({
+  const { data, isLoading, refetch } = useQuery<TariffsResponse>({
     queryKey: ['bedolaga-tariffs', showInactive],
     queryFn: () => client.get('/bedolaga/tariffs').then((r) => r.data),
     staleTime: 60_000,
   })
 
+  const dbStatus = data?.status
+  const dbUnavailable = dbStatus !== undefined && dbStatus !== 'ok'
   const tariffs: Tariff[] = Array.isArray(data?.items) ? data.items : []
   const filtered = tariffs.filter((tariff) => {
     if (!showInactive && !tariff.is_active) return false
@@ -123,18 +133,35 @@ export default function BedolagaTariffs() {
         />
       </div>
 
+      {/* Bot DB status banner */}
+      {dbUnavailable && (
+        <Card className="border-amber-500/30 bg-amber-500/10">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+            <div className="min-w-0">
+              <p className="text-sm text-amber-200">{t('bedolaga.tariffs.botDbUnavailable')}</p>
+              {data?.error && (
+                <p className="text-[11px] text-amber-300/70 font-mono mt-1 break-all">{data.error}</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Tariff cards */}
       {isLoading && !tariffs.length ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-64 rounded-xl" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <Card className="glass-card">
-          <CardContent className="p-8 text-center text-dark-300">
-            <Ticket className="w-8 h-8 mx-auto mb-2 opacity-40" />
-            {t('bedolaga.tariffs.noResults')}
-          </CardContent>
-        </Card>
+        !dbUnavailable && (
+          <Card className="glass-card">
+            <CardContent className="p-8 text-center text-dark-300">
+              <Ticket className="w-8 h-8 mx-auto mb-2 opacity-40" />
+              {t('bedolaga.tariffs.noResults')}
+            </CardContent>
+          </Card>
+        )
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((tariff) => (

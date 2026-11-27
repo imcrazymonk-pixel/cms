@@ -12,6 +12,38 @@ from sqlalchemy import text
 logger = logging.getLogger(__name__)
 
 _MIGRATION_FILENAME = "004-support-foundation.sql"
+# Inline CHECK in 004 allows only client|agent|system. `/start` records the
+# greeting with author='bot', so widen the existing constraint in place
+# (idempotent: skipped once the definition already mentions 'bot').
+_AUTHOR_CHECK_SQL = """
+DO $$
+DECLARE
+    con record;
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+          FROM pg_constraint
+         WHERE conrelid = 'support_message'::regclass
+           AND contype = 'c'
+           AND pg_get_constraintdef(oid) LIKE '%author%'
+           AND pg_get_constraintdef(oid) LIKE '%''bot''%'
+    ) THEN
+        FOR con IN
+            SELECT conname
+              FROM pg_constraint
+             WHERE conrelid = 'support_message'::regclass
+               AND contype = 'c'
+               AND pg_get_constraintdef(oid) LIKE '%author%'
+               AND pg_get_constraintdef(oid) LIKE '%system%'
+        LOOP
+            EXECUTE format('ALTER TABLE support_message DROP CONSTRAINT %I', con.conname);
+        END LOOP;
+        ALTER TABLE support_message
+            ADD CONSTRAINT support_message_author_check
+            CHECK (author IN ('client', 'agent', 'system', 'bot'));
+    END IF;
+END $$;
+"""
 # web/backend/core/support/schema.py → repo root
 _PROJECT_ROOT = Path(__file__).resolve().parents[4]
 _MIGRATIONS_DIR_CANDIDATES = [
@@ -123,5 +155,6 @@ async def ensure_support_schema() -> None:
     async with factory() as session:
         for statement in statements:
             await session.execute(text(statement))
+        await session.execute(text(_AUTHOR_CHECK_SQL))
         await session.commit()
     logger.info("Support schema applied (%d statements, %s)", len(statements), path)

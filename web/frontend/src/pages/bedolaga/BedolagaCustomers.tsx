@@ -19,8 +19,10 @@ import {
   CreditCard,
   Activity,
   ArrowUpDown,
+  Star,
 } from '@/components/brand/icons'
 import client from '@/api/client'
+import { bedolagaApi, type BedolagaAnalyticsTariffs, type BedolagaAnalyticsTariff } from '@/api/bedolaga'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -55,13 +57,21 @@ interface BedolagaUser {
   balance_rubles?: number
   created_at?: string
   last_activity?: string
+  tariff_id?: number | null
+  tariff_name?: string | null
+  tariff_missing?: boolean
   subscription?: {
     id?: number
     status?: string
+    actual_status?: string
+    start_date?: string
     end_date?: string
     is_trial?: boolean
+    tariff_id?: number | null
+    tariff_name?: string | null
     traffic_used_gb?: number
     traffic_limit_gb?: number
+    device_count?: number
     device_limit?: number
   }
   promo_group?: { id?: number; name?: string }
@@ -86,7 +96,7 @@ const subStatusColors: Record<string, string> = {
   trial: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
 }
 
-type SortField = 'created_at' | 'last_activity' | 'balance' | 'username'
+type SortField = 'created_at' | 'last_activity' | 'balance' | 'username' | 'tariff'
 type SortOrder = 'asc' | 'desc'
 
 const PER_PAGE_OPTIONS = [10, 20, 50, 100]
@@ -150,6 +160,7 @@ export default function BedolagaCustomers() {
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch)
   const [statusFilter, setStatusFilter] = useState('')
   const [subFilter, setSubFilter] = useState('')
+  const [tariffFilter, setTariffFilter] = useState('')
   const [page, setPage] = useState(1)
   const [perPage, setPerPage] = useState(20)
   const [showFilters, setShowFilters] = useState(false)
@@ -157,7 +168,7 @@ export default function BedolagaCustomers() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   // Active filters count
-  const activeFilterCount = [statusFilter, subFilter].filter(Boolean).length
+  const activeFilterCount = [statusFilter, subFilter, tariffFilter].filter(Boolean).length
 
   // Debounce search
   const handleSearch = useCallback((value: string) => {
@@ -177,8 +188,30 @@ export default function BedolagaCustomers() {
     staleTime: 60_000,
   })
 
+  // Каталог тарифов из аналитики: только для названий/цен и опций фильтра.
+  // Недоступная аналитика не должна ломать список — остаётся только имя из карточки.
+  const { data: tariffData } = useQuery<BedolagaAnalyticsTariffs>({
+    queryKey: ['bedolaga-analytics-tariffs'],
+    queryFn: () => bedolagaApi.getAnalyticsTariffs(),
+    staleTime: 60_000,
+    retry: 1,
+  })
+
+  const tariffItems = useMemo<BedolagaAnalyticsTariff[]>(
+    () => (Array.isArray(tariffData?.items) ? tariffData.items : []),
+    [tariffData],
+  )
+
+  const tariffById = useMemo(() => {
+    const map = new Map<number, BedolagaAnalyticsTariff>()
+    for (const item of tariffItems) {
+      if (item.tariff_id != null) map.set(item.tariff_id, item)
+    }
+    return map
+  }, [tariffItems])
+
   const { data, isLoading, refetch } = useQuery<{ items?: BedolagaUser[]; total?: number }>({
-    queryKey: ['bedolaga-customers', page, perPage, debouncedSearch, statusFilter, subFilter, sortField, sortOrder],
+    queryKey: ['bedolaga-customers', page, perPage, debouncedSearch, statusFilter, subFilter, tariffFilter, sortField, sortOrder],
     queryFn: () => {
       const params = new URLSearchParams()
       params.set('limit', String(perPage))
@@ -186,6 +219,11 @@ export default function BedolagaCustomers() {
       if (debouncedSearch) params.set('search', debouncedSearch)
       if (statusFilter) params.set('status', statusFilter)
       if (subFilter) params.set('subscription_status', subFilter)
+      if (tariffFilter === 'missing') {
+        params.set('tariff_missing', 'true')
+      } else if (tariffFilter) {
+        params.set('tariff_id', tariffFilter)
+      }
       if (sortField) params.set('sort', sortField)
       if (sortOrder) params.set('order', sortOrder)
       return client.get(`/bedolaga/customers?${params}`).then((r) => r.data)
@@ -197,6 +235,37 @@ export default function BedolagaCustomers() {
   const users: BedolagaUser[] = Array.isArray(data?.items) ? data.items : []
   const total = data?.total || 0
   const totalPages = Math.max(1, Math.ceil(total / perPage))
+
+  // ── Tariff presentation ──
+
+  const tariffMeta = (user: BedolagaUser) => {
+    const sub = user.subscription
+    const tariffId = user.tariff_id ?? sub?.tariff_id ?? null
+    const info = tariffId != null ? tariffById.get(tariffId) : undefined
+    const name = user.tariff_name || sub?.tariff_name || info?.tariff_name || ''
+    const missing = !sub || user.tariff_missing === true || (!name && tariffId == null)
+    let price: string | null = null
+    if (!missing && info) {
+      if (info.is_free) price = t('bedolaga.customers.tariffFree')
+      else if (info.monthly_price_rubles != null) {
+        price = `${info.monthly_price_rubles.toLocaleString()} ${t('bedolaga.customers.perMonth')}`
+      }
+    }
+    return {
+      label: missing ? t('bedolaga.customers.tariffMissing') : (name || (tariffId != null ? `#${tariffId}` : '')),
+      price,
+      muted: missing,
+      trial: sub?.is_trial === true,
+      hasSubscription: !!sub,
+    }
+  }
+
+  const selectedTariffLabel = (() => {
+    if (!tariffFilter) return ''
+    if (tariffFilter === 'missing') return t('bedolaga.customers.tariffMissing')
+    const item = tariffItems.find((tariff) => String(tariff.tariff_id) === tariffFilter)
+    return item?.tariff_name || `#${tariffFilter}`
+  })()
 
   // ── Sort handler ──
 
@@ -220,28 +289,39 @@ export default function BedolagaCustomers() {
   const clearFilter = (key: string) => {
     if (key === 'status') setStatusFilter('')
     if (key === 'sub') setSubFilter('')
+    if (key === 'tariff') setTariffFilter('')
     setPage(1)
   }
 
   const clearAllFilters = () => {
     setStatusFilter('')
     setSubFilter('')
+    setTariffFilter('')
     setPage(1)
   }
 
   // ── Export ──
 
   const handleExportCSV = () => {
-    const headers = ['ID', 'Username', 'Telegram ID', 'Status', 'Balance (₽)', 'Subscription', 'Last Activity']
-    const rows = users.map((u) => [
-      u.id,
-      u.username || u.first_name || '',
-      u.telegram_id || '',
-      u.status || '',
-      u.balance_rubles ?? 0,
-      u.subscription?.status || 'none',
-      u.last_activity || '',
-    ])
+    const headers = ['ID', 'Username', 'Telegram ID', 'Status', 'Balance (₽)', 'Subscription', 'Tariff', 'Tariff price (RUB/month)', 'Paid until', 'Last Activity']
+    const rows = users.map((u) => {
+      const tariff = tariffMeta(u)
+      const tariffId = u.tariff_id ?? u.subscription?.tariff_id ?? null
+      const info = tariffId != null ? tariffById.get(tariffId) : undefined
+      const price = !tariff.muted && info?.monthly_price_rubles != null ? info.monthly_price_rubles : ''
+      return [
+        u.id,
+        u.username || u.first_name || '',
+        u.telegram_id || '',
+        u.status || '',
+        u.balance_rubles ?? 0,
+        u.subscription?.status || 'none',
+        tariff.hasSubscription ? tariff.label : '—',
+        price,
+        u.subscription?.end_date || '',
+        u.last_activity || '',
+      ]
+    })
     const csv = [headers.join(','), ...rows.map((r) => r.map((v) => `"${v}"`).join(','))].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -354,6 +434,12 @@ export default function BedolagaCustomers() {
               <X className="w-3 h-3 ml-0.5" />
             </Badge>
           )}
+          {tariffFilter && (
+            <Badge className="gap-1 pr-1 bg-[var(--glass-bg-hover)] border-[var(--glass-border)] text-dark-100 cursor-pointer hover:border-red-500/50" onClick={() => clearFilter('tariff')}>
+              {t('bedolaga.customers.tariff')}: {selectedTariffLabel}
+              <X className="w-3 h-3 ml-0.5" />
+            </Badge>
+          )}
           <button onClick={clearAllFilters} className="text-xs text-dark-400 hover:text-red-400 transition-colors">
             {t('common.resetAll')}
           </button>
@@ -385,6 +471,17 @@ export default function BedolagaCustomers() {
                   <option value="none">{t('bedolaga.customers.subNone')}</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-xs text-dark-200 mb-1">{t('bedolaga.customers.tariff')}</label>
+                <select value={tariffFilter} onChange={(e) => { setTariffFilter(e.target.value); setPage(1) }}
+                  className="flex h-10 w-full rounded-md border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50">
+                  <option value="">{t('bedolaga.customers.allTariffs')}</option>
+                  {tariffItems.filter((tariff) => tariff.tariff_id != null).map((tariff) => (
+                    <option key={tariff.tariff_id} value={String(tariff.tariff_id)}>{tariff.tariff_name}</option>
+                  ))}
+                  <option value="missing">{t('bedolaga.customers.tariffMissing')}</option>
+                </select>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -407,6 +504,11 @@ export default function BedolagaCustomers() {
                     {t('bedolaga.customers.balance')} <SortIcon field="balance" />
                   </button>
                 </th>
+                <th className="text-left p-3 font-medium">
+                  <button onClick={() => handleSort('tariff')} className="group flex items-center gap-1 hover:text-white transition-colors">
+                    {t('bedolaga.customers.tariff')} <SortIcon field="tariff" />
+                  </button>
+                </th>
                 <th className="text-left p-3 font-medium">{t('bedolaga.customers.subscription')}</th>
                 <th className="text-left p-3 font-medium">
                   <button onClick={() => handleSort('last_activity')} className="group flex items-center gap-1 hover:text-white transition-colors">
@@ -423,6 +525,7 @@ export default function BedolagaCustomers() {
                     <td className="p-3"><div className="flex items-center gap-2.5"><Skeleton className="h-8 w-8 rounded-full" /><Skeleton className="h-5 w-32" /></div></td>
                     <td className="p-3"><Skeleton className="h-5 w-16" /></td>
                     <td className="p-3"><Skeleton className="h-5 w-20" /></td>
+                    <td className="p-3"><Skeleton className="h-5 w-24" /></td>
                     <td className="p-3"><Skeleton className="h-5 w-32" /></td>
                     <td className="p-3"><Skeleton className="h-5 w-16" /></td>
                     <td className="p-3"><Skeleton className="h-5 w-8" /></td>
@@ -430,7 +533,7 @@ export default function BedolagaCustomers() {
                 ))
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-8 text-center text-dark-300">
+                  <td colSpan={7} className="p-8 text-center text-dark-300">
                     <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
                     {t('bedolaga.customers.noResults')}
                   </td>
@@ -439,6 +542,7 @@ export default function BedolagaCustomers() {
                 users.map((user) => {
                   const tp = trafficPercent(user.subscription)
                   const online = isOnline(user.last_activity)
+                  const tariff = tariffMeta(user)
                   return (
                     <tr
                       key={user.id}
@@ -470,6 +574,26 @@ export default function BedolagaCustomers() {
                         <span className={cn('font-medium tabular-nums', (user.balance_rubles ?? 0) < 0 && 'text-red-400 animate-pulse')}>
                           {(user.balance_rubles ?? 0).toLocaleString()} ₽
                         </span>
+                      </td>
+                      {/* Tariff */}
+                      <td className="p-3">
+                        {tariff.hasSubscription ? (
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className={cn('truncate block max-w-[180px]', tariff.muted ? 'text-dark-400 text-xs' : 'font-medium text-sm')}>
+                                {tariff.label}
+                              </span>
+                              {tariff.trial && (
+                                <Badge className={cn('text-[9px] px-1.5 py-0', subStatusColors.trial)}>
+                                  {t('bedolaga.customers.subTrial')}
+                                </Badge>
+                              )}
+                            </div>
+                            {tariff.price && <span className="text-[10px] text-dark-400">{tariff.price}</span>}
+                          </div>
+                        ) : (
+                          <span className="text-dark-400 text-xs">—</span>
+                        )}
                       </td>
                       {/* Subscription with traffic bar */}
                       <td className="p-3">
@@ -592,6 +716,7 @@ export default function BedolagaCustomers() {
           users.map((user, idx) => {
             const tp = trafficPercent(user.subscription)
             const online = isOnline(user.last_activity)
+            const tariff = tariffMeta(user)
             return (
               <Card
                 key={user.id}
@@ -652,6 +777,21 @@ export default function BedolagaCustomers() {
                         <span className="text-dark-400 text-xs">{t('bedolaga.customers.subNone')}</span>
                       )}
                     </div>
+                  </div>
+
+                  {/* Tariff row */}
+                  <div className="mt-2 flex items-center gap-1.5 text-xs text-dark-400 min-w-0">
+                    <Star className="w-3 h-3 flex-shrink-0" />
+                    <span className="flex-shrink-0">{t('bedolaga.customers.tariff')}:</span>
+                    <span className={cn('truncate', tariff.hasSubscription && !tariff.muted && 'text-dark-100')}>
+                      {tariff.hasSubscription ? tariff.label : '—'}
+                    </span>
+                    {tariff.price && <span className="flex-shrink-0">· {tariff.price}</span>}
+                    {tariff.trial && (
+                      <Badge className={cn('text-[9px] px-1.5 py-0 flex-shrink-0', subStatusColors.trial)}>
+                        {t('bedolaga.customers.subTrial')}
+                      </Badge>
+                    )}
                   </div>
                 </CardContent>
               </Card>

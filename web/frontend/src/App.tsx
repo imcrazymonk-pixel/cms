@@ -25,7 +25,6 @@ const MediaList = lazy(() => import('./pages/MediaList'))
 const MenusList = lazy(() => import('./pages/MenusList'))
 const MenuEdit = lazy(() => import('./pages/MenuEdit'))
 const WidgetsList = lazy(() => import('./pages/WidgetsList'))
-const ThemeManager = lazy(() => import('./pages/ThemeManager'))
 const Finance = lazy(() => import('./pages/Finance'))
 const UsersList = lazy(() => import('./pages/UsersList'))
 const Settings = lazy(() => import('./pages/Settings'))
@@ -40,8 +39,14 @@ const BedolagaPromo = lazy(() => import('./pages/bedolaga/BedolagaPromo'))
 const BedolagaMarketing = lazy(() => import('./pages/bedolaga/BedolagaMarketing'))
 const BedolagaReferrals = lazy(() => import('./pages/bedolaga/BedolagaReferrals'))
 const BedolagaTariffs = lazy(() => import('./pages/bedolaga/BedolagaTariffs'))
+const BedolagaRevenue = lazy(() => import('./pages/bedolaga/BedolagaRevenue'))
 
 const ChangelogViewer = lazy(() => import('./pages/ChangelogViewer'))
+
+// Infrastructure pages
+const BackupsPage = lazy(() => import('./pages/backups/BackupsPage'))
+const InfrastructureNodes = lazy(() => import('./pages/infrastructure/Nodes'))
+const InfrastructurePanel = lazy(() => import('./pages/infrastructure/Panel'))
 
 // Support pages
 const SupportQueue = lazy(() => import('./pages/support/Queue'))
@@ -102,13 +107,12 @@ export default function App() {
               <Route path="/pages/create" element={<RequireAuth><Layout><PageEdit /></Layout></RequireAuth>} />
               <Route path="/pages/:id" element={<RequireAuth><Layout><PageEdit /></Layout></RequireAuth>} />
 
-              {/* Media, menus, widgets, themes */}
+              {/* Media, menus, widgets */}
               <Route path="/media" element={<RequireAuth><Layout><MediaList /></Layout></RequireAuth>} />
               <Route path="/menus" element={<RequireAuth><Layout><MenusList /></Layout></RequireAuth>} />
               <Route path="/menus/create" element={<RequireAuth><Layout><MenuEdit /></Layout></RequireAuth>} />
               <Route path="/menus/:id" element={<RequireAuth><Layout><MenuEdit /></Layout></RequireAuth>} />
               <Route path="/widgets" element={<RequireAuth><Layout><WidgetsList /></Layout></RequireAuth>} />
-              <Route path="/themes" element={<RequireAuth><Layout><ThemeManager /></Layout></RequireAuth>} />
 
               {/* Finance */}
               <Route path="/finance" element={<RequireAuth><Layout><Finance /></Layout></RequireAuth>} />
@@ -127,6 +131,7 @@ export default function App() {
               <Route path="/bedolaga/marketing" element={<RequireAuth><Layout><BedolagaMarketing /></Layout></RequireAuth>} />
               <Route path="/bedolaga/referrals" element={<RequireAuth><Layout><BedolagaReferrals /></Layout></RequireAuth>} />
               <Route path="/bedolaga/tariffs" element={<RequireAuth><Layout><BedolagaTariffs /></Layout></RequireAuth>} />
+              <Route path="/bedolaga/revenue" element={<RequireAuth><Layout><BedolagaRevenue /></Layout></RequireAuth>} />
 
               {/* Support */}
               <Route path="/support" element={<RequireAuth><Layout><SupportQueue /></Layout></RequireAuth>} />
@@ -138,6 +143,11 @@ export default function App() {
               <Route path="/support/team" element={<RequireAuth><Layout><SupportPlaceholder title="Команда" description="Присутствие операторов и аудит действий — фаза 4" /></Layout></RequireAuth>} />
 
               {/* 404 */}
+              {/* Infrastructure */}
+              <Route path="/backups" element={<RequireAuth><Layout><BackupsPage /></Layout></RequireAuth>} />
+              <Route path="/infrastructure/nodes" element={<RequireAuth><Layout><InfrastructureNodes /></Layout></RequireAuth>} />
+              <Route path="/infrastructure/panel" element={<RequireAuth><Layout><InfrastructurePanel /></Layout></RequireAuth>} />
+
               {/* Docs / Changelog */}
               <Route path="/changelog" element={<RequireAuth><Layout><ChangelogViewer /></Layout></RequireAuth>} />
 

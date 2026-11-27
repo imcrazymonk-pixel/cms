@@ -22,7 +22,7 @@ from typing import Any, Mapping
 
 from httpx import HTTPStatusError
 
-from web.backend.core.bedolaga_client import bedolaga_client, ensure_configured
+from web.backend.core.bedolaga_client import bedolaga_client
 from web.backend.core.support.events import EventBus, EventKind
 
 logger = logging.getLogger(__name__)

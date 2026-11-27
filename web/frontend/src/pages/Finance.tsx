@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import {
   Plus, Trash2, Pencil, RefreshCw, BarChart3, History, Download, Settings as SettingsIcon,
+  TrendingUp, ArrowRight,
 } from 'lucide-react'
 import {
   Bar, Line, ComposedChart, LineChart, XAxis, YAxis, CartesianGrid,
@@ -54,6 +56,7 @@ function downloadBlob(blob: Blob, filename: string) {
 export default function Finance() {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   // Tab state
   const [activeTab, setActiveTab] = useState('table')
@@ -291,6 +294,21 @@ export default function Finance() {
           {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-24 rounded-xl" />)}
         </div>
       )}
+
+      <Link to="/bedolaga/revenue" className="block group">
+        <Card className="rounded-xl transition-colors group-hover:border-[var(--glass-border-hover)]">
+          <CardContent className="p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-white">{t('bedolaga.revenue.financeLink')}</p>
+              <p className="text-xs text-dark-400">{t('bedolaga.revenue.financeLinkDesc')}</p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-dark-400 ml-auto group-hover:text-emerald-400 transition-colors" />
+          </CardContent>
+        </Card>
+      </Link>
 
       {error && <QueryError message={error instanceof Error ? error.message : String(error)} />}
 

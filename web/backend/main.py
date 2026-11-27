@@ -15,9 +15,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from web.backend.core.auto_sync import auto_sync_loop
+from web.backend.core.bedolaga_client import bedolaga_client
 from web.backend.core.config import get_cms_settings
 from web.backend.core.database import check_connection, close_engine
-from web.backend.core.bot_db import close_engine as close_bot_db_engine
+from web.backend.core.bot_db import (
+    close_engine as close_bot_db_engine,
+    is_configured as bot_db_configured,
+)
 from web.backend.core import app_log
 from web.backend.core.errors import E
 from web.backend.core.logging_config import setup_logging
@@ -50,11 +54,31 @@ async def lifespan(app: FastAPI):
 
     # Ensure changelog table exists + migrate from file if first run.
     try:
-        from web.backend.api.v1.docs import ensure_changelog_table, migrate_file_to_db
+        from web.backend.api.v1.docs import (
+            ensure_changelog_table,
+            ensure_docs_tables,
+            migrate_file_to_db,
+            seed_history_document,
+        )
         await ensure_changelog_table()
         await migrate_file_to_db()
+        # Docs storage: docs_documents + history_entries, seeded from the file.
+        await ensure_docs_tables()
+        await seed_history_document()
     except Exception:  # noqa: BLE001
-        pass
+        # Не роняем старт, но и не глотаем молча: без таблиц страница
+        # «Ченжлог → Техническая история» останется пустой.
+        logger.exception("Docs storage bootstrap failed (docs_documents/history_entries)")
+
+    # Apply persisted integration settings (proxy, tokens, bot DB) before support.
+    integration_status: dict = {}
+    try:
+        from web.backend.core.integrations import bootstrap as bootstrap_integrations
+        integration_status = await bootstrap_integrations(app)
+        logger.info("Integrations bootstrap: %s", integration_status)
+    except Exception as e:  # noqa: BLE001
+        integration_status = {"error": type(e).__name__}
+        logger.warning("Integrations bootstrap failed: %s", e)
 
     # Support module (phase 0): idempotent schema + service + background workers.
     # Best-effort: a failure disables only the support API, not the whole app.
@@ -66,24 +90,53 @@ async def lifespan(app: FastAPI):
         await ensure_support_schema()
         app.state.support = await init_support()
         support_workers = start_support_workers(app.state.support)
+        app.state.support_workers = support_workers
         logger.info("Support module initialized")
     except Exception as e:  # noqa: BLE001
         app.state.support = None
+        app.state.support_workers = []
         logger.warning("Support module failed to initialize — support API disabled: %s", e)
 
-    # Startup summary: which integrations are configured (readable one-liner).
+    # Backup module: idempotent schema + orchestrator loop (scheduler/retention).
+    backup_task = None
+    try:
+        from web.backend.core.backup.schema import ensure_backup_schema
+        from web.backend.core.backup.orchestrator import run_forever as backup_loop
+
+        await ensure_backup_schema()
+        backup_task = asyncio.create_task(backup_loop())
+        logger.info("Backup schema applied, orchestrator started")
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Backup module bootstrap failed: %s", e)
+
+    # `bootstrap` may have failed on a missing settings table, so resolve both
+    # clients from the registry/ENV once more; failures must not block startup.
+    try:
+        from web.backend.core.bedolaga_client import ensure_configured_async
+        await ensure_configured_async()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Bedolaga ensure_configured failed: %s", e)
+    try:
+        from web.backend.core.bot_db import ensure_config as ensure_bot_db_config
+        await ensure_bot_db_config()
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Bot DB ensure_config failed: %s", e)
+
     try:
         from web.backend.core.auto_sync import _enabled_flags as _sync_enabled
         auto_sync_flags = ",".join(await _sync_enabled()) or "выключен"
     except Exception:  # noqa: BLE001
         auto_sync_flags = "неизвестно"
     logger.info(
-        "Интеграции: bedolaga=%s, bot_db=%s, автосинк=%s, интервал=%sс, tz=%s",
-        "вкл" if settings.bedolaga_api_url else "выкл",
-        "вкл" if settings.bot_db_host else "выкл",
+        "Интеграции: bedolaga=%s, bot_db=%s, автосинк=%s, интервал=%sс, tz=%s, bootstrap=%s",
+        "настроен" if bedolaga_client.is_configured else (
+            "отключён" if bedolaga_client.disabled else "не настроен"
+        ),
+        "настроен" if bot_db_configured() else "не настроен",
         auto_sync_flags,
         os.environ.get("AUTO_SYNC_INTERVAL", "300"),
         os.environ.get("TZ", "UTC"),
+        integration_status,
     )
 
     # Start the in-app auto-sync loop (acts only when a provider has
@@ -100,9 +153,16 @@ async def lifespan(app: FastAPI):
         await auto_sync_task
     except asyncio.CancelledError:
         pass
-    if support_workers:
+    if backup_task is not None:
+        backup_task.cancel()
+        try:
+            await backup_task
+        except asyncio.CancelledError:
+            pass
+    workers = getattr(app.state, "support_workers", support_workers)
+    if workers:
         from web.backend.core.support.workers import stop_support_workers
-        await stop_support_workers(support_workers)
+        await stop_support_workers(workers)
     # Final flush of the log queue before the engine is disposed.
     await app_log.stop()
     await close_engine()
@@ -231,6 +291,8 @@ def create_app() -> FastAPI:
     from web.backend.api.v1.bedolaga import router as bedolaga_router
     from web.backend.api.v1 import docs as docs_api
     from web.backend.api.v1.support import router as support_router
+    from web.backend.api.v1.backups import router as backups_router
+    from web.backend.api.v1 import backup_agent as backup_agent_api
 
     app.include_router(auth_api.router, prefix="/api", tags=["auth"])
     app.include_router(dashboard_api.router, prefix="/api", tags=["dashboard"])
@@ -263,6 +325,10 @@ def create_app() -> FastAPI:
 
     # Support module (phase 0)
     app.include_router(support_router, prefix="/api/support", tags=["support"])
+
+    # Backup module (hosts, storages, tiers, runs, restore) + agent protocol
+    app.include_router(backups_router, prefix="/api/backups", tags=["backups"])
+    app.include_router(backup_agent_api.router, prefix="/api/backup-agent/v1", tags=["backup-agent"])
 
     # ── Health check ────────────────────────────────────────────
     @app.get("/api/health", tags=["health"])

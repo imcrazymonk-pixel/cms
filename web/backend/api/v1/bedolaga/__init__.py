@@ -8,19 +8,29 @@ import logging
 from fastapi import APIRouter, HTTPException
 from httpx import HTTPStatusError, ConnectError, TimeoutException
 
-from web.backend.core.bedolaga_client import ensure_configured as _configure_client
+from web.backend.core.bedolaga_client import (
+    ensure_configured_async as _configure_client_async,
+)
 
 logger = logging.getLogger(__name__)
 
 
-def ensure_configured():
-    """Lazily configure the Bedolaga client from settings."""
-    if not _configure_client():
+async def is_configured() -> bool:
+    """Whether the Bedolaga client is configured (registry first, ENV fallback)."""
+    return await _configure_client_async()
+
+
+async def ensure_configured() -> None:
+    """Lazily configure the Bedolaga client; raise 503 when unavailable."""
+    if not await _configure_client_async():
         raise HTTPException(
             status_code=503,
             detail={
                 "success": False,
-                "error": "Bedolaga API is not configured. Set BEDOLAGA_API_URL and BEDOLAGA_API_TOKEN.",
+                "error": (
+                    "Bedolaga API не настроена: укажите URL и Web API token "
+                    "в Настройки → Интеграции."
+                ),
             },
         )
 
@@ -36,7 +46,7 @@ def upstream_status(code: int) -> int:
 
 async def proxy_request(coro_fn):
     """Execute a Bedolaga API request with error handling."""
-    ensure_configured()
+    await ensure_configured()
     try:
         return await coro_fn()
     except HTTPStatusError as e:
@@ -65,6 +75,7 @@ from .customers import router as customers_router  # noqa: E402
 from .promo import router as promo_router  # noqa: E402
 from .marketing import router as marketing_router  # noqa: E402
 from .referrals import router as referrals_router  # noqa: E402
+from .analytics import router as analytics_router  # noqa: E402
 
 router = APIRouter()
 router.include_router(dashboard_router, tags=["bedolaga-dashboard"])
@@ -72,3 +83,4 @@ router.include_router(customers_router, prefix="/customers", tags=["bedolaga-cus
 router.include_router(promo_router, prefix="/promo", tags=["bedolaga-promo"])
 router.include_router(marketing_router, prefix="/marketing", tags=["bedolaga-marketing"])
 router.include_router(referrals_router, prefix="/referrals", tags=["bedolaga-referrals"])
+router.include_router(analytics_router, prefix="/analytics", tags=["bedolaga-analytics"])

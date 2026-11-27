@@ -1,0 +1,43 @@
+id: remnawave-panel
+title: Remnawave Panel
+version: 1
+detect:
+  any:
+    - docker_image: "^remnawave/backend:"
+    - docker_container: "^remnawave$"
+  min_confidence: high
+artifacts:
+  database:
+    kind: postgres
+    container: remnawave-db
+    env_from_container: [POSTGRES_USER, POSTGRES_DB]
+    password_from: container-env
+    method: pg_dump
+    format: custom
+    consistency: online
+  files:
+    - path: /opt/remnawave
+      exclude: ["*.log", "*.tar.gz", "node_modules"]
+      required: [".env", "docker-compose.yml"]
+    - path: /opt/remnawave/nginx
+      secret: true
+  logs:
+    enabled: false
+    paths: ["/opt/remnawave/logs", "/var/lib/docker/containers/*/*-json.log"]
+    max_size_mb: 500
+  redis:
+    container: remnawave-redis
+    method: none
+    reason: "valkey --save '' --appendonly no"
+manifest:
+  capture: [docker_image_digest, app_version, migrations_table:_prisma_migrations]
+secret_env_keys: [APP_SECRET, POSTGRES_PASSWORD, WEBHOOK_SECRET_HEADER]
+healthcheck:
+  command: "curl -fsS http://127.0.0.1:3000/api/system/health"
+  timeout: 60
+restore:
+  order: 10
+  stop: [remnawave]
+  steps: [restore_database, restore_files, start:remnawave, wait_healthy]
+  destructive: true
+  requires_versions_match: true

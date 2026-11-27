@@ -3,6 +3,7 @@
 Цикл: getUpdates(timeout=30) с offset из support_poll_state `tg:<bot>:offset`;
 классификация _handle_update:
   * private → _handle_private (спам-защита, баны, record_inbound, медиа,
+    /start → приветствие, /myid → только ID,
     форум: ensure_topic + forward_to_topic);
   * staff_group + message_thread_id → _handle_topic (команды /close.., иначе
     copyMessage клиенту → record_outbound → медиа оператора);
@@ -16,7 +17,12 @@ from pathlib import Path
 from typing import Any
 
 from web.backend.core.support.events import EventBus, EventKind
-from web.backend.core.support.tg.api import TelegramAPIError, TelegramClient, TelegramRateLimited
+from web.backend.core.support.tg.api import (
+    TelegramAPIError,
+    TelegramClient,
+    TelegramConflict,
+    TelegramRateLimited,
+)
 from web.backend.core.support.tg.forum import ForumBridge
 from web.backend.core.support.tg.media import MAX_UPLOAD_SIZE, fetch_and_store_media
 from web.backend.core.support.tg.types import Message, Update, parse_update
@@ -25,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 LONG_POLL_TIMEOUT = 30
 MAX_HANDLED_PER_TICK = 200
-_PRIVATE_SKIP_COMMANDS = {"/start", "/myid"}
+GREETING = "Здравствуйте! Опишите ваш вопрос одним сообщением — оператор ответит здесь."
 
 
 class TelegramPoller:
@@ -83,6 +89,18 @@ class TelegramPoller:
                 pause = max(1, e.retry_after)
                 logger.warning("Telegram 429 — пауза %ss: %s", pause, e.description)
                 await asyncio.sleep(pause)
+            except TelegramConflict as e:
+                # Тот же токен уже опрашивает webhook/второй поллер. Долгий
+                # backoff вместо минутного спама; цикл остаётся живым.
+                logger.error(
+                    "Telegram 409 Conflict: тот же токен уже опрашивает другой процесс/бот. "
+                    "Остановите один из поллеров или используйте отдельный токен. (%s)",
+                    e.description,
+                )
+                self.status["last_error"] = "conflict"
+                self._publish_status(event_bus=self.event_bus)
+                await asyncio.sleep(300)
+                continue
             except Exception as e:  # noqa: BLE001 — цикл жив всегда
                 logger.error("Telegram poller loop error: %s", e)
                 self._report_error(e)
@@ -133,6 +151,11 @@ class TelegramPoller:
             self.status["last_error"] = "rate_limited"
             self._publish_status(event_bus=self.event_bus)
             raise
+        except TelegramConflict:
+            # Отдельный статус: offset не двигается, цикл получит длинный backoff.
+            self.status["last_error"] = "conflict"
+            self._publish_status(event_bus=self.event_bus)
+            raise
         except Exception as e:  # noqa: BLE001 — сеть/API: offset не двигаем, цикл жив
             logger.error("Telegram poller pass failed: %s", e)
             self._report_error(e)
@@ -170,13 +193,19 @@ class TelegramPoller:
                 return 0
 
         text_content = message.text or message.caption
-        token = str(text_content or "").strip().split()[0].lower()
-        if token in _PRIVATE_SKIP_COMMANDS:
-            return 0  # /start /myid в личке — не заводим диалог
-
-        media = message.media
+        parts = str(text_content or "").strip().split()
+        token = parts[0].lower().split("@", 1)[0] if parts else ""
         ts = datetime.fromtimestamp(message.date, tz=timezone.utc)
         chat_id = str(message.chat.id)
+
+        if token == "/myid":
+            sent = await self._send_private_text(int(chat_id), f"Ваш Telegram ID: {message.from_user.id}")
+            return 1 if sent is not None else 0
+
+        if token == "/start":
+            return await self._handle_start(message, chat_id=chat_id, created_at=ts)
+
+        media = message.media
 
         result = await self.store.record_inbound(
             channel=self.channel,
@@ -206,17 +235,76 @@ class TelegramPoller:
             conversation_id=result["conversation_id"],
         )
 
-        if self.bridge is not None:
-            try:
-                conv_ref = await self.store.get_conversation_by_external(channel=self.channel, external_id=chat_id)
-                if conv_ref is not None:
-                    await self.bridge.ensure_topic(
-                        conv_ref, message.from_user,
-                        trigger_message_id=message.message_id, from_chat_id=message.chat.id,
-                    )
-            except Exception as e:  # noqa: BLE001 — тема не должна ронять импорт
-                logger.warning("forum ensure_topic failed: %s", e)
+        await self._ensure_topic(message, chat_id)
         return 1
+
+    async def _handle_start(self, message: Message, *, chat_id: str, created_at: datetime) -> int:
+        """/start в личке: диалог + приветствие один раз на новое сообщение."""
+        from_user = message.from_user
+        if from_user is None:
+            return 0
+
+        result = await self.store.record_inbound(
+            channel=self.channel,
+            external_id=chat_id,
+            text="/start",
+            external_msg_id=str(message.message_id),
+            tg_user_id=from_user.id,
+            source_id=self.bot_name,
+            created_at=created_at,
+            subject=_private_subject(message),
+        )
+        if not result["message_created"]:
+            return 0
+
+        self.event_bus.publish(
+            EventKind.MESSAGE_CREATED,
+            {"message_id": result["message_id"], "direction": "in", "text": "/start"},
+            conversation_id=result["conversation_id"],
+        )
+        await self._ensure_topic(message, chat_id)
+
+        sent = await self._send_private_text(int(chat_id), GREETING)
+        if sent is None:
+            return 1
+        sent_id = _as_int(sent.get("message_id"))
+        outbound_id = await self.store.record_outbound(
+            conversation_id=result["conversation_id"],
+            text_value=GREETING,
+            author="bot",
+            external_msg_id=str(sent_id) if sent_id else None,
+            created_at=created_at,
+        )
+        self.event_bus.publish(
+            EventKind.MESSAGE_CREATED,
+            {"message_id": outbound_id, "direction": "out", "text": GREETING},
+            conversation_id=result["conversation_id"],
+        )
+        return 1
+
+    async def _send_private_text(self, chat_id: int, text: str) -> dict | None:
+        """sendMessage в личку; ошибка Bot API — warning, проход не падает."""
+        try:
+            sent = await self.client.send_message(int(chat_id), text)
+        except Exception as e:  # noqa: BLE001 — приветствие не должно ронять тик
+            logger.warning("Telegram sendMessage в личку не удался (chat=%s): %s", chat_id, e)
+            return None
+        return sent if isinstance(sent, dict) else {}
+
+    async def _ensure_topic(self, message: Message, chat_id: str) -> None:
+        if self.bridge is None or message.from_user is None or message.chat is None:
+            return
+        try:
+            conv_ref = await self.store.get_conversation_by_external(
+                channel=self.channel, external_id=chat_id,
+            )
+            if conv_ref is not None:
+                await self.bridge.ensure_topic(
+                    conv_ref, message.from_user,
+                    trigger_message_id=message.message_id, from_chat_id=message.chat.id,
+                )
+        except Exception as e:  # noqa: BLE001 — тема не должна ронять импорт
+            logger.warning("forum ensure_topic failed: %s", e)
 
     # ── Тема форума (оператор) ────────────────────────────────────
     async def _handle_topic(self, message: Message) -> int:

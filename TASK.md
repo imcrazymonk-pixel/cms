@@ -1,311 +1,141 @@
-# TASK — Фаза 0: фундамент «Саппорта» в CMS
+# TASK — Round 3: пустая вкладка «Интеграции» из Саппорта и запуск Telegram-бота
 
-> План согласован владельцем 2026-10-23. Полный контекст: `docs/INTEGRATION-SUPPORT.md`, `docs/AI-SUPPORT.md`.
-> Исполнитель реализует ТОЛЬКО Фазу 0. Фаза 1 (поллер/очередь/WS) — следующими задачами.
-
-## Цель фазы 0
-Заложить схему БД и каркас модуля поддержки в стеке CMS, не ломая существующее API.
-Код — на стиле CMS: FastAPI + SQLAlchemy async (raw SQL через `text()`), Pydantic v2,
-формат ответов `{success,data}`, ошибки `E.*` через `api_error`, auth `get_current_admin`,
-structlog. Идемпотентная схема применяется из lifespan (паттерн `ensure_changelog_table` в `api/v1/docs.py`).
-
-## 1. Миграция `db/postgres/migrations/004-support-foundation.sql` + `ensure_support_schema()`
-
-Один файл, идемпотентный (`CREATE TABLE IF NOT EXISTS`), `timestamptz DEFAULT now()`.
-
-### Живые таблицы (фазы 0-1)
-- `support_conversation`: `id bigint identity PK`, `channel text NOT NULL`, `external_id text NOT NULL`,
-  `UNIQUE(channel, external_id)`, `tg_user_id bigint`, `source_id text`, `status text` CHECK('open','pending','resolved','closed') default 'open',
-  `priority text` CHECK('low','normal','high','urgent') default 'normal', `subject text`, `assignee_id bigint NULL` REFERENCES `users(id)` ON DELETE SET NULL,
-  `claimed_at timestamptz`, `first_inbound_at/last_inbound_at/first_response_at/last_message_at timestamptz`,
-  `unread int not null default 0`, `suspicious bool default false`, `sub_link text`,
-  `customer_profile_id bigint NULL` REFERENCES `support_customer_profile(id)` ON DELETE SET NULL,
-  `created_at/updated_at timestamptz default now()`.
-  Индексы: `(status, last_message_at DESC)`, `(last_message_at DESC)`, `(customer_profile_id)`, `(assignee_id)`.
-- `support_message`: `id identity PK`, `conversation_id bigint NOT NULL` REFERENCES support_conversation ON DELETE CASCADE,
-  `direction text` CHECK('in','out'), `author text` CHECK('client','agent','system'), `text text`, `media_type text`, `media_file_id text`,
-  `external_msg_id text`, `reply_to_external_id text`, `reply_excerpt text`, `is_backfill bool default false`, `created_at timestamptz default now()`.
-  Индексы: **`UNIQUE (conversation_id, external_msg_id) WHERE direction='in' AND external_msg_id IS NOT NULL`** (дедуп входящих),
-  `(conversation_id, id)`, partial `(created_at, conversation_id) WHERE direction='in' AND NOT is_backfill`.
-- `support_customer_profile`: `id identity PK`, `identity_key text UNIQUE` (например 'bedolaga:123'), `tg_user_id bigint`, `username text`, `display_name text`,
-  `email text`, `phone text`, `meta jsonb default '{}'`, `created_at/updated_at`. Индексы `(tg_user_id)`, `(username)`.
-- `support_poll_state`: `key text PK`, `value text`, `updated_at timestamptz`.
-- `support_setting`: `key text PK`, `value text`, `updated_at timestamptz`.
-
-### Каркасы будущих фаз (создать, но не использовать)
-`support_ai_suggestion`, `support_kb_doc`, `support_kb_candidate`, `support_job`, `support_attachment`,
-`support_operator_presence`, `support_customer_note`, `support_source_account`, `support_template`,
-`support_sla_policy` (seed: low 240/2880, normal 60/1440, high 20/480, urgent 5/120 — колонки: name, first_response_minutes, resolution_minutes),
-`support_audit_log` (id, actor_id, action, resource text, resource_id text, payload jsonb, ip text, created_at).
-
-Полнотекстовые индексы НЕ создавать (КБ — фаза 3; будет pg_trgm GIN + tsvector append-only).
-
-## 2. Модули `web/backend/core/support/`
-
-```
-__init__.py        init_support() -> SupportService (store+outbox+eventbus), кладётся в app.state
-schema.py          ensure_support_schema() — идемпотентный DDL (файл 004)
-settings.py        SupportSettings (pydantic, env SUPPORT_*: POLL_INTERVAL_SECONDS=60, WINDOW_HOURS=24…) 
-                   + чтение рантайм-значений из support_setting
-events.py          EventBus: async pub/sub — subscribe(kind) -> asyncio.Queue, publish(kind, payload);
-                   EventKind enum: MESSAGE_CREATED, MESSAGE_UPDATED, CONVERSATION_CHANGED, POLLER_STATUS
-store/conversations.py  record_inbound (дедуп INSERT..ON CONFLICT DO NOTHING + first_inbound_at),
-                        record_outbound (first_response_at), set_status, set_priority, set_assignee, touch_last_message
-store/customers.py      upsert_customer_profile (ON CONFLICT identity_key), get_customer_profile(id/key)
-store/queries.py        list_conversations (фильтры: status/channel/priority/assignee/customer_id/unread_only/q по тексту; пагинация page/per_page; сортировка last_message_at DESC),
-                        get_conversation_with_messages(id), list_messages(conv_id, before_id, limit)
-store/poll_state.py     get_poll_state(key)/set_poll_state(key, value)
-outbox.py               ЕДИНЫЙ выход наружу: reply_window(conversation, now, window_hours) — чистая функция
-                        (открыто/закрыто/граница; WindowClosedError), send(conv,text) через зарегистрированный sender
-channels/base.py        ChannelSender Protocol (send_text) + registry
-channels/telegram.py    заглушка (raise NotImplementedError, фаза 2)
-workers.py              start_support_workers(service)/stop_support_workers — asyncio.create_task циклов (пока пустое: health loop)
-deps.py                 get_support_service (из app.state)
-```
-Доступ к БД — raw SQL `text()` на существующем async engine из `core/database.py` (как `db_helpers.py`).
-Никакого ORM, второго движка, второй БД.
-
-## 3. Роутер `web/backend/api/v1/support/` (папка; префикс `/api/support`)
-
-- `__init__.py` — include_router.
-- `health.py` — `GET /api/support/health` (открытый): `{success:true, data:{status:'ok', db:true, pollers:{}}}`.
-- `status.py` — `GET /api/support/config-status` (за `get_current_admin`): каналы/интервалы/окно (из settings + support_setting).
-- Регистрация в `main.py`: `app.include_router(support_router, prefix="/api/support", tags=["support"])`.
-  В `lifespan`: `await ensure_support_schema()` (try/except best-effort) → `app.state.support = await init_support()` →
-  `start_support_workers(...)` → на shutdown cancel задач.
-
-## 4. Тесты `web/backend/tests/test_support_foundation.py` (без сети и БД)
-- EventBus: публикация → N подписчиков получают, порядок, отписка не ломает шину.
-- `reply_window`: открыто/закрыто/граница (чистая функция), `WindowClosedError`.
-- `SupportSettings` из env (monkeypatch).
-- Pydantic-схемы (ремня?) — минимум: envelope `{success,data}` для health.
-
-## 5. Запуск/проверка
-`cd web/backend && python -m pytest -q tests/test_support_foundation.py` — зелёные.
-`python -m pytest -q` (весь набор, 30+ тестов) — без регрессий.
-
-## НЕ ДЕЛАТЬ в этой фазе
-- Поллер Bedolaga (ф1), эндпоинты conversations/reply/... (ф1), WebSocket (ф1), UI (ф1),
-  ИИ/КБ/SLA/Telegram/форум-мост (ф2+). Только каркасные таблицы и модули-заглушки.
-- Не менять существующие роутеры/API вне добавления support-роутера и lifespan-блока.
+> Статус: **план, к реализации**
+> Дата: 2026-11-21
+> Предыдущий план: `docs/plans/2026-11-21-round2-status-robustness.md`
 
 ---
 
-# ФАЗА 1 — канал Bedolaga + очередь в API (бэкенд). Статус: ⬜ в работе
+## 1. Жалобы
 
-> Фаза 0 завершена: таблицы `support_*` применены, `core/support` каркас готов, `/api/support/health` работает.
-> Детальный план фаз 0-1 (thinker): см. `docs/INTEGRATION-SUPPORT.md` и отчёт thinker (в этом диалоге).
+**A.** «Когда я в Саппорте перехожу в настройки, ничего не отображается в меню Интеграции».
 
-## Цель фазы 1 (бэкенд)
-Наполнить очередь живыми тикетами Bedolaga и дать оператору API: список, переписка, ответы,
-статусы, «взять диалог», карточка клиента; WebSocket для живых обновлений. UI (React) — отдельно (следующая задача).
+**B.** «Вбил настройку токена, но когда в боте написал старт, ничего не произошло. Надо ли добавить канал этого бота? Что нужно сделать, чтобы его запустить?»
 
-## 1. Канал Bedolaga: `web/backend/core/support/channels/bedolaga.py`
+## 2. Диагноз
 
-- Поллер-цикл (интервал из `SupportSettings.poll_interval_seconds`, 60 с), запускается в `workers.py`
-  ТОЛЬКО если канал включён (есть флаг в `support_setting` ключ `bedolaga.enabled`, default = наличие
-  `BEDOLAGA_API_URL`+`BEDOLAGA_API_TOKEN` в env → `core/bedolaga_client.py`) иначе — канал молчит.
-- Используй существующий `core/bedolaga_client.py` (добавь недостающие методы, если их нет:
-  list_tickets(status), get_ticket(id), reply_ticket(id, text), set_ticket_status(id, status),
-  get_priority/set_priority — сверься с реальным стилем клиента и прокси `api/v1/bedolaga/*`).
-- Поведение (проекция `ai-support/src/channels/bedolaga.ts`):
-  - опрос статусов `open/answered/pending`, пагинация 50;
-  - дедуп входящих: `INSERT ... ON CONFLICT (conversation_id, external_msg_id) WHERE direction='in' DO NOTHING`
-    (partial unique уже есть в БД) — 0 затронутых строк → пропуск;
-  - cold-start: `baseline = poll_state['bedolaga:last_poll']`; сообщения старше baseline импортируются
-    с `is_backfill=true` (unread не растёт, событий не шлём), самое свежее входящее — live-событие `MESSAGE_CREATED`;
-  - после baseline всё свежее — live; в конце цикла `set_poll_state('bedolaga:last_poll', now())`;
-  - маппинг статусов: `answered→pending`, `pending→open` (в обе стороны через /status-синк);
-  - `repair`: известные тикеты (наш список) сверяются и при расхождении обновляются;
-  - события поллера `POLLER_STATUS` (last_poll, last_error, ingested) — для WS/health;
-  - ошибки не убивают цикл (try/except + log через app_log), как `core/auto_sync.py`.
-- Sender для reply: регистрируется в `Outbox` (registry) — `send_text(conv, text)` → `bedolaga_client.reply_ticket`
-  **retries=0** (API неидемпотентен), на 5xx/таймаут НЕ повторяем автоматически; фиксируем ответный `external_msg_id`, если HTTP вернул.
+### A. Пустая вкладка
 
-## 2. Эндпоинты `api/v1/support/` (все под `get_current_admin`, формат `{success,data}`, ошибки `E.*`)
+Пункт «Саппорт → Настройки» ведёт на `/settings?tab=integrations&from=support` (`navigation.ts:102`), отдельной страницы настроек Саппорта нет. Вкладка пуста визуально, если:
 
-| Метод | Путь | Логика |
-|---|---|---|
-| GET | `/conversations` | список: фильтры status/channel/priority/assignee/customer_id/unread_only, `q` по тексту, пагинация page/per_page, сортировка `last_message_at DESC` (store/queries уже готовы) |
-| GET | `/conversations/{id}` | переписка: {conversation, messages, customer(кратко)} |
-| POST | `/conversations/{id}/reply` | {text,…} → `outbox.send()`; окно 24ч закрыто → 409 `WindowClosedError` (понятный текст: «Клиент давно не писал, отправка ограничена») |
-| POST | `/conversations/{id}/read` | unread→0 |
-| POST | `/conversations/{id}/state` | {status, priority?} → локально + синк `/status` в Bedolaga (сравнение перед записью, защита от зацикливания) |
-| POST | `/conversations/{id}/assignee` | {assignee_id: int\|null} «взять диалог» (claimed_at при первом назначении) |
-| GET | `/conversations/{id}/customer` | карточка (см. п.4), кэш 60 с |
-| POST | `/conversations/{id}/customer/refresh` | сброс кэша |
-| GET | `/pollers` | статусы поллеров (из EventBus/последнего POLLER_STATUS) |
-| WS | `/ws` | см. п.3 |
+1. **Backend вернул пустой реестр интеграций.** В `HEAD` нет ни одного `SettingDef` с `tab="integrations"` — ключи `support_*`/`bedolaga_*`/`bot_db_*` есть только в рабочем дереве. Если фронт новый, а backend старый/не перезапущен → `byTab.integrations` пуст → только SearchBar (`Settings.tsx:877-886`). **Основная причина.**
+2. **`from` не сопоставился категории** → `focusCategory=''`, `fromParam` truthy → `defaultOpen=false` у всех блоков (`Settings.tsx:681`): видны только свёрнутые заголовки.
+3. **Остался поисковый запрос** с прошлого визита: `search` не сбрасывается при смене `from` → `filtered.length===0` → `return null` для всех категорий (`Settings.tsx:672`).
+4. `GET /api/settings` вернул ошибку → вкладок нет вообще (`Settings.tsx:787-789`).
+5. Устаревший frontend-bundle.
 
-Monтируется: `ws` — отдельный `router` (WebSocketRoute) или в `health.py`/своём `ws.py`; остальное — `__init__.py`.
+Категории посимвольно совпадают (`Telegram / Саппорт` и др.), рассинхрона строк нет.
 
-## 3. WebSocket `/api/support/ws`
+### B. Бот не реагирует на `/start`
 
-- **Auth-кадр**: сервер ждёт до 5 с первый JSON `{"type":"auth","token":"<JWT>"}`; валидирует
-  `decode_token` + user в `users` (как `get_current_admin`), иначе close 4401. Токен не в URL.
-- Кадры данных: `{"type":"message"|"message_updated"|"message_deleted"|"conversation"|"poller","data":{...}}`
-  — события берутся из `EventBus` (подписка при коннекте, отписка при disconnect).
-- Heartbeat: server ping каждые 30 с (текстовый `{"type":"ping"}` или WS ping).
-- Реализация: FastAPI `WebSocket` + `asyncio` задачи на чтение/запись; фабрика менеджера в `core/support/ws.py`.
+Главная причина: `/start` **намеренно игнорируется** — `_PRIVATE_SKIP_COMMANDS = {"/start", "/myid"}` (`tg/poller.py:33`), `_handle_private` при этом возвращает 0 (`:196-197`). Ни диалога, ни приветствия, ни события. Обычный текст создаёт диалог, но автоответа тоже нет — отвечает оператор.
 
-## 4. Карточка клиента (мин. Ф1): `core/support/integrations/bedolaga_customer.py`
+Дополнительно:
+- канал поднимается только при токене и `support_tg_enabled != off` (`support/__init__.py:84-89,136-148`);
+- `auto` не перетирает legacy `support_setting.tg.main.enabled=0` (`support/settings.py:132-137`);
+- при 409 (второй бот/webhook на том же токене) поллер спит 300 с, `last_error="conflict"`;
+- **статус поллера нигде в UI не виден**: `supportApi.getPollers()` объявлен, но не используется (`api/support.ts:189`, `pages/support/Queue.tsx`); `/api/support/config-status` не содержит состояния поллера;
+- Telegram-канал/группа **не нужны** для лички; `support_tg_staff_group_id` + `support_tg_forum` — только для операторских тем форума. «Канал» в UI — это флаг `auto|on|off`.
 
-- Связка поведения (из `ai-support/src/integrations/bedolaga-customer.ts` + `customers.ts`):
-  conversation → `tg_user_id`/`external_id` → `bedolaga_client.get_user`, `list_subscriptions`,
-  `list_tickets(user_id)`, `list_transactions(user_id)` (+ `get_user_activity` если есть).
-- Поля карточки: id, telegram_id, username, имя, баланс (руб/коп), подписка {status,end_date,is_trial,traffic},
-  счётчик тикетов, последняя активность.
-- Кэш 60 с: `support_customer_profile.meta` (jsonb) + `updated_at`; refresh сбрасывает.
-- Remnawave deep — НЕ в этой фазе (только заглушка/пусто, ф5).
+## 3. Границы
 
-## 5. nginx (dev): добавить WS-прокси для `/api/support/ws`
+- Не менять маршруты и формы существующих ответов; только добавлять поля/сообщения.
+- Не добавлять webhook-режим.
+- Не менять поведение Bedolaga-канала.
+- Прод не трогать.
 
-- `.docker/nginx/default.conf` (или где location `/api/`): для этого пути `proxy_http_version 1.1;
-  proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "upgrade";`.
-- Прод-конфиг НЕ трогать (он биндится на сервере) — оставить комментарий/TODO в файле, сообщить координатору.
+## 4. План правок
 
-## 6. Тесты
-- `web/backend/tests/test_support_bedolaga.py`: поллер на заглушке (`httpx.MockTransport` или подменённый
-  client в инъекции): 2 тикета → импорт; повтор → 0 новых; cold-start (всё backfill + одно live); статус-синк.
-- `web/backend/tests/test_support_endpoints.py`: ASGI client + dependency override `get_current_admin`
-  и `get_support_service` (фейковый store): envelope, 404, 409 окно 24ч, reply, state, assignee, ws auth-кадр (bad token → 4401).
-- `cd web/backend && python -m pytest -q` — весь набор зелёный (сейчас 124).
+### A1 — вкладка «Интеграции» не бывает пустой
 
-## НЕ ДЕЛАТЬ в фазе 1
-- React-страницы, меню «Саппорт» (отдельная задача), ИИ/КБ/SLA/уведомления/Telegram/форум-мост, MiniShop.
-- Не трогать `db/postgres/*` (там deny; таблицы уже применены). Миграции НЕ создавать.
-- Не менять существующие роутеры/API вне добавления новых файлов в `api/v1/support/` и локализованных правок `core/support/workers.py`.
+`web/frontend/src/pages/Settings.tsx`:
 
----
+1. `renderIntegrationCategory`: `defaultOpen={!!q || !focusCategory || focusCategory === category || !fromParam}` — если `from` не сопоставлен, раскрывать всё, а не сворачивать.
+2. Сбрасывать `search` при изменении `from`:
+   `useEffect(() => { setSearch('') }, [fromParam])`.
+3. В `TabsContent value="integrations"` при `Object.keys(byTab.integrations || {}).length === 0` рендерить заметную карточку-объяснение вместо пустоты:
+   - заголовок «Настройки интеграций недоступны»;
+   - текст: backend не вернул ни одной категории интеграций; проверьте, что API перезапущен с актуальным реестром настроек и что `GET /api/settings` отвечает `items` с `tab="integrations"`;
+   - кнопка «Повторить» → `load()`.
+   Использовать `EmptyState` (как в `pages/support/Placeholder.tsx`) либо `Card`/`Button` из UI-кита.
 
-# ФАЗА 1 (фронтенд) — React «Очередь» + меню «Саппорт». Статус: ⬜ в работе
+### B1 — `/start` и `/myid` в личке
 
-> Бэкенд фазы 1 готов (поллер+API+WS). Теперь видимая часть в админке (React SPA, стиль Remnawave).
+`web/backend/core/support/tg/poller.py`:
 
-## 1. API-клиенты (изучи стиль `web/frontend/src/api/*.ts`, особенно `bedolaga/*` и `client.ts`)
-- `api/support.ts` — axios-клиент на `/api/support/*`: `listConversations(params)`, `getConversation(id)`,
-  `replyConversation(id, {text})`, `readConversation(id)`, `setState(id, {status,priority?})`,
-  `setAssignee(id, {assignee_id})`, `getCustomer(id)`, `refreshCustomer(id)`, `getPollers()`, `getConfigStatus()`.
-- Следуй стилю обработки `{success,data}` / ошибок (как в api/bedolaga.ts и mutationToast).
+1. Убрать `"/start"` и `"/myid"` из «молчаливого» skip; оставить константу пустой/удалить.
+2. В `_handle_private` до обычной обработки:
+   - `token == "/start"`:
+     - `record_inbound(...)` с текстом `/start` (создаёт диалог, чтобы оператор видел обращение);
+     - если `message_created`: publish `MESSAGE_CREATED`, `ensure_topic` (если bridge), затем `await self.client.send_message(chat_id, GREETING)`;
+     - `record_outbound(conversation_id=..., text_value=GREETING, author="bot", external_msg_id=<id из ответа>)`;
+     - ошибку отправки логировать warning, но не ронять тик.
+   - `token == "/myid"`: ответить `Ваш Telegram ID: <id>` и **не** создавать диалог.
+3. `GREETING` — константа: «Здравствуйте! Опишите ваш вопрос одним сообщением — оператор ответит здесь.»
+4. Если диалог уже существует и `/start` прислан повторно — `record_inbound` вернёт `message_created=true` для нового сообщения; приветствие отправить один раз за сообщение, без спама.
 
-## 2. WebSocket-клиент `lib/supportSocket.ts` (или в `api/`)
-- Подключение к `ws[s]://<host>/api/support/ws` (в dev Vite-проксирует /api → FastAPI; уточни, нужен ли ws-прокси в `vite.config.ts` — добавь, если требуется).
-- Auth-кадр: первый JSON `{"type":"auth","token":<JWT>}` (токен из authStore/localStorage, как client.ts).
-- Reconnect с backoff (2с→5с→10с, кап 30с), переподписка событий.
-- Обработка кадров `message|message_updated|conversation|poller` → колбэки/стор.
-- UE: сброс при 4401 (токен протух — выйти/редирект на /login).
+### B2 — видимый статус поллера
 
-## 3. Страница «Очередь» `pages/support/Queue.tsx` (стиль: `pages/bedolaga/BedolagaCustomers.tsx`, дизайн Remnawave)
-- Левая колонка: список диалогов (TanStack Query: useQuery listConversations; фильтры статус/поиск; активный выделен; live-обновление списка через WS).
-- Правая: переписка (useQuery getConversation): сообщения (входящие/исходящие пузыри: direction in/out, author client/agent/system; время; «история/backfill» помечать бейджем), поля статуса/приоритета сверху, кнопки: «Взять диалог» (setAssignee) / «Решено» (setState resolved), поле ответа (textarea) + Enter/Ctrl+Enter + кнопка «Отправить» (replyConversation; mutationToast; ошибка 409 окна — показать понятно), 
-- Справа (или вкладкой) — карточка клиента (getCustomer: имя, telegram_id, username, баланс, подписка {status,end_date,traffic}, тикеты; кнопка «Обновить»).
-- Live: подписываемся на события для открытого диалога и списка (refetch или локальный аппенд).
-- Empty state: «Диалог не выбран» / «Очередь пуста» (компонент EmptyState).
-- Всё на shadcn-компонентах (Button, Input, Select, Badge, ScrollArea, Skeleton, Avatar) + токены Remnawave.
+`web/frontend/src/pages/support/Queue.tsx`:
 
-## 4. Меню «Саппорт» + заглушки
-- `config/navigation.ts`: новая секция «Саппорт» с группой (паттерн группы «Bedolaga Bot» — посмотри как устроена bedolaga-группа и воспроизведи):
-  - Очередь → `/support` (главный, иконка)
-  - Контроль SLA → `/support/sla`
-  - База знаний → `/support/kb`
-  - ИИ-ассистент → `/support/ai`
-  - Шаблоны → `/support/templates`
-  - Аналитика → `/support/analytics`
-  - Команда → `/support/team`
-- `App.tsx`: lazy-роуты `/support`, `/support/sla|kb|ai|templates|analytics|team` (под RequireAuth+Layout, как остальные).
-- `pages/support/Placeholder.tsx` — красивый экран «Раздел в разработке» (иконка, заголовок, описание) для 6 подпунктов.
+- добавить `useQuery({ queryKey: ['support-pollers'], queryFn: supportApi.getPollers, refetchInterval: 30_000, refetchOnWindowFocus: true })`;
+- над очередью — компактная панель:
+  - `telegram`: `enabled`, `running`, `last_poll`, `last_error`;
+  - `bedolaga`: то же;
+- если `last_error === 'conflict'` — явный текст «Тот же токен опрашивает другой бот/webhook: остановите второй поллер или используйте отдельный токен»;
+- если поллера `telegram` нет — «Telegram-канал не запущен: проверьте токен и `support_tg_enabled` в Настройки → Интеграции»;
+- остальное — нейтральный бейдж.
 
-## 5. Проверка (обязательно, верни вывод)
-- Если `web/frontend/node_modules` отсутствует: `cd web/frontend && npm ci` (затем `npm run build`).
-- `cd web/frontend && npm run build` — сборка без ошибок типов.
-- Не ломать существующую сборку (build полностью).
+`web/frontend/src/api/support.ts`: типизировать ответ `getPollers` (`{ pollers: Record<string, PollerStatus> }`), без `any`.
 
-## НЕ ДЕЛАТЬ
-- Не трогать бэкенд (поллер/API — готов), ИИ/КБ/SLA наполнение, db/postgres, PHP.
-- Не добавлять новые npm-зависимости (только shadcn-компоненты — можно скопировать из `components/ui/`, они есть).
+### B3 — тест интеграции support информативнее
 
----
+`web/backend/core/integrations.py` → `_test_support`:
 
-# ФАЗА 2 — Telegram-канал «личка» (бэкенд+тесты). Статус: ⬜ в работе
+- после успешного `getMe` добавить в сообщение `@username` и предупреждение, если канал не запущен/`last_error` (если доступен runtime) — не обязательно, но желательно;
+- минимально: включить `bot_username` в ответ, чтобы UI показывал, какой бот проверен.
 
-> Дизайн (thinker) готов. Детали в отчёте: пакет `core/support/tg/` (types, api, poller),
-> канал channels/telegram.py, медиа через support_attachment, эндпоинты attachments, окно 24ч не для лички.
+### Тесты
 
-## Фактические колонки `support_attachment` (из 004 — сверять с ними!)
-`id, message_id (FK support_message, NOT NULL), media_type, file_ref (NOT NULL), local_path, bytes,
-downloaded_at, created_at, attempts int default 0, width, height, original_name, mime_type, sha256,
-next_attempt_at, last_error`. ОБРАТИ внимание: НЕТ колонки conversation_id — привязка только через message_id.
+- `/start` создаёт диалог, отправляет приветствие и пишет outbound (mock client/store);
+- `/myid` отвечает и не создаёт диалог;
+- повторный `/start` не дублирует приветствие при `message_created=false`;
+- Settings: пустой `byTab.integrations` → empty-state (если есть frontend-тесты — иначе ручная проверка);
+- Queue: `last_error='conflict'` → предупреждение (ручная проверка).
 
-## Объём (см. полный дизайн в отчёте thinker):
-1. `core/support/tg/` (`__init__.py`, `types.py` датаклассы+parse_update, `api.py` TelegramClient на httpx:
-   get_updates/send_message/send_photo/send_document/get_file/download_file; ошибки TelegramAPIError/TelegramRateLimited(429,
-   retry_after); без ретраев; `poller.py` — long-poll (timeout 30), offset в `support_poll_state` ключ `tg:<bot>:offset`,
-   локальный last_update_id гард, только private chat, только message; media: getFile+downloadFile → сохранить в
-   `{upload_dir}/support/{token_hex(8)}.{ext}` (allowlist: jpg jpeg png webp gif ogg mp3 mp4 pdf doc docx txt, БЕЗ svg/html;
-   лимит MAX_UPLOAD_SIZE) → insert support_attachment (с message_id из record_inbound/record_outbound) → POLLER_STATUS;
-   ошибки не двигают offset, цикл жив; 429 → sleep retry_after).
-2. `channels/telegram.py` — заменить стаб: `TelegramChannelSender` (send_text → send_message, send_media →
-   send_photo для image/* (caption≤1024, длинный текст отдельным sendMessage) / send_document иначе); регистрация в
-   `__init__.py` как у Bedolaga; `channels/base.py` — опциональный `send_media` (runtime_checkable); `outbox.py` —
-   `no_window_channels: set` («telegram»), в send() пропускать reply_window для них.
-3. `settings.py` — `tg_token` (env SUPPORT_TG_TOKEN), `tg_bot_name` (env SUPPORT_TG_BOT_NAME); `.env.example` —
-   закомментированные дефолты. `init_support()`: канал включается при `tg.main.enabled` или наличии токена; регистрация
-   поллера в service.pollers.
-4. `store/attachments.py` (raw SQL, стиль conversations.py): insert_attachment, get_attachment, claim_for_message;
-   проброс в SupportStore.
-5. Эндпоинты `api/v1/support/attachments.py`: GET /attachments/{id} (JWT, FileResponse, ?download=1), POST /attachments
-   (multipart, allowlist, лимит, {success,data}); в `conversations.py` ReplyIn + attachment_ids (max 10), reply: send_media
-   если есть (иначе 501), record_outbound с media_* + claim_for_message.
-6. Тесты: `test_support_tg.py` (поллер: текст/фото/повтор/ошибки/группа-игнор; сендер: send_message/send_media;
-   outbox без окна для telegram) + `test_support_tg_endpoints.py` (attachments 404/200/download, POST лимит/тип,
-   reply с attachment_ids).
+## 5. Что НЕ нужно пользователю (ответ на вопрос)
 
-ПРОВЕРКА: `cd web/backend && python -m pytest -q` — весь набор зелёный (база 147 + новые), без регрессий;
-`docker compose exec -T db psql -U cms -d cms -c "\d support_attachment"` для сверки колонок (при необходимости).
+- **Telegram-канал добавлять не нужно.** Модуль работает с личными сообщениями; канал/группа не используется.
+- **Staff group + темы форума** нужны только для ответов операторов из Telegram; для лички и веб-очереди не обязательны.
+- Для запуска достаточно: валидный токен в «Настройки → Интеграции → Telegram / Саппорт», `support_tg_enabled = auto|on`, поллер `telegram` в `/api/support/pollers` с `running=true`, отсутствие 409, и сообщение **обычным текстом** (после правки — и `/start`).
+- На одном токене с прод-ботом CMS работать не может: нужен отдельный бот или выключенный Telegram-канал CMS.
 
-## НЕ ДЕЛАТЬ
-- Форум-темы/бизнес-режим/голос-расшифровку/MiniShop (ф2b/ф3+); React (меню/композер — отдельно); db/postgres (deny);
-  но `schema.py`/lifespan best-effort НЕ ломать.
+## 6. Проверка
 
----
+- `python -m pytest tests -q` в `web/backend`.
+- `npm run typecheck`, `npm run build` в `web/frontend`.
+- Ручные шаги:
+  1. «Саппорт → Настройки» → вкладка «Интеграции» показывает блоки; при старом backend — понятное объяснение, а не пустота.
+  2. Написать боту `/start` → в очереди появляется диалог, в Telegram приходит приветствие.
+  3. Написать обычный текст → диалог появляется (как раньше).
+  4. `/myid` → приходит ID, диалог не создаётся.
+  5. Панель статуса на «Очереди» показывает `telegram` и `bedolaga`; при двух ботах на одном токене — предупреждение `conflict`.
 
-# ФАЗА 2c — форум-мост (замена Node-бота). Статус: дизайн готов (thinker), реализация ⬜
+## 7. Документация (DoD)
 
-> Дизайн (thinker, 2026-10-24) — детальный; сводка здесь. Полный текст — в отчёте thinker (в диалоге).
-> ЦЕЛЬ: один токен, одна conversation на клиента; тема форума = операторский интерфейс параллельно вебу.
+`docs/CODEBASE_INDEX.md`:
 
-## Модель и маппинг
-- Conversation та же, что у лички: `(channel='telegram', external_id=личный chat_id)`. `source_id` репоузинг: **source_id = topic_id (число-строка)**; НЕ число → «темы нет». Бот-имя живёт в poll_state ключе, в conversation не нужен.
-- Новый read `queries.get_conversation_by_source_id(channel, source_id)` + `store/conversations.set_source_id(conv_id, topic_id)`.
-- Бан: `support_setting` ключ `tg.main.bans` = JSON-список int (store/settings.py get/set). Мью: in-memory dict в ForumBridge {user_id: muted_until} (10/20с→60с, паритет Node).
-- Двойной записи нет: входящие → record_inbound, исходящие (из темы и из веба) → record_outbound(author='agent'); карточка показывает обе стороны (решение 2.2).
+- `tg/poller`: обработка `/start` и `/myid`, приветствие, `record_outbound`;
+- `Settings.tsx`: fallback `defaultOpen`, сброс поиска, empty-state вкладки «Интеграции»;
+- `pages/support/Queue.tsx`: панель статуса поллеров;
+- `api/support.ts`: тип `PollerStatus` и `getPollers`;
+- `integrations._test_support`: `bot_username` в ответе.
 
-## Поллер/классификация (расширение tg/poller.py _handle_update)
-1. private → _handle_private (как сейчас: is_bot skip, text/медиа, record_inbound, медиа→attachment) + форум: bridge.ensure_topic + forward_to_topic.
-2. chat.id == staff_group_id AND message_thread_id → _handle_topic: skip is_bot (свои копии), нет контента (service); text с `/` → bridge.handle_command; иначе ответ оператора: copyMessage(клиенту) → record_outbound(external_msg_id=id копии) → медиа оператора скачать через helper `tg/media.py:fetch_and_store_media(...)` (вынести из poller).
-3. Прочее → skip.
-- `Message` в types.py: добавить `message_thread_id: int|None`.
-- `api.py`: добавить create_forum_topic, forward_message, copy_message, close_forum_topic, reopen_forum_topic, get_chat_administrators; message_thread_id в send_message/send_photo/send_document (+upload).
+`PROJECT.md` — без изменений.
 
-## ForumBridge (новый `tg/forum.py`)
-- ensure_topic(conv, from_user): source_id не число → createForumTopic(имя "First Last (@user)" ≤127) → set_source_id → инфо-сообщение в тему → forward_to_topic.
-- forward_to_topic: forwardMessage(staff_group, from_chat=личка, message_id, message_thread_id) ; ошибка → reopen → повтор; опять → source_id=NULL + ensure_topic заново. НИКАКИХ deleteMessage (инвариант).
-- handle_command: /close (resolve+closeForumTopic+клиенту «✅…»+в тему), /reopen, /ban (ban+close+«🚫»), /unban. Доступ: только админы группы (getChatAdministrators, TTL-кеш 300с; иначе «⛔ только администраторам»).
-- Спам в _handle_private до record_inbound; баны — молчаливый дроп; `/start`,`/myid` в личке — skip.
+## 8. Риски
 
-## Двусторонняя синхронизация
-- Хук в conversations.py reply: после outbox.send / send_media → _mirror_to_forum (bridge.mirror_text/mirror_media: sendMessage/sendPhoto в тему с message_thread_id; caption≤1024, длинный текст отдельным сообщением). Всё в try/except — ошибка темы НЕ роняет ответ клиенту. reply endpoint: добавить except TelegramAPIError → 502 (сейчас текстовый путь 500-ит).
-- Закрытая тема → reopen → повтор; удалена → новая тема + set_source_id. Не удалять.
-- Из темы → клиенту: окна нет (no_window_channels). state=resolved → opt. closeForumTopic — вне скоупа 2c.
-
-## Настройки/запуск
-- settings: tg_staff_group_id (env SUPPORT_TG_STAFF_GROUP_ID), tg_forum (SUPPORT_TG_FORUM), tg_archive_days (7). Runtime: tg.main.staff_group_id / tg.main.forum / tg.main.archive_days.
-- __init__.py _wire_telegram: форум = токен && tg.main.forum && staff_group_id; собрать ForumBridge → поллер. Если forum вкл, а группы нет — warn, личка остаётся. Включённый форум → warn «убедитесь, что Node-бот остановлен» (getUpdates один consumer на токен!).
-- workers: _forum_archive_loop (скан channel='telegram' AND source_id цифровой AND status open/pending AND last_message_at < now()-days; → privacy-текст клиенту, closeForumTopic(игнор 400), set_status('closed'), CONVERSATION_CHANGED).
-
-## Тесты (web/backend/tests/test_support_tg_forum.py)
-- TgTransport расширить (createForumTopic/forwardMessage/copyMessage/reopen/close/getChatAdministrators), FakeStore с get_conversation_by_source_id/set_source_id.
-- Кейсы: тема→conv→copy клиенту+record_outbound; /close; первая личка→create+forward (порядок), повтор→без create; спам 11-е; веб-ответ→клиенту+в тему; /ban→дроп; archive; команда не-админа→отказ.
-
-## Порядок перехода (Node-бот жив)
-1) Деплой 2c с tg.main.forum=off (поведение не меняется). 2) Smoke на тестовой группе. 3) Cutover: стоп Node (bot/ docker compose down). 4) tg.main.staff_group_id + tg.main.forum=true (+ enabled=true) → рестарт воркеров. 5) Проверка клиент→тема, тема→клиент, веб→оба края, /close. 6) Старые темы НЕ импортируем (Б1 — архив в Telegram; операторам: клиент пишет заново). 7) Удалить bot/ из деплоя, обновить INTEGRATION.md. Fallback: выключить форум — личка остаётся.
+1. Автоответ на `/start` может дублироваться, если `record_inbound` вернёт `message_created=true` при повторной доставке — проверять `message_created` и `external_msg_id`.
+2. Прямой `send_message` в обход Outbox не учитывает окно ответа — для приветствия это допустимо (ответ на входящее сообщение).
+3. Панель статуса добавляет запрос раз в 30 с — приемлемо.
+4. Empty-state не должен показываться при загрузке (`isPending`) и при ошибке API (там уже `QueryError`).

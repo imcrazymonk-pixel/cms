@@ -26,8 +26,10 @@ services:
         condition: service_healthy
     volumes:
       - ./web/backend:/app/web/backend
+      - ./backup-agent:/app/backup-agent:ro
       - .:/var/www/html
       - uploads_data:/var/www/html/public/uploads
+      - backup_data:/var/lib/hexaveil/backups
     networks:
       - cms-network
     healthcheck:
@@ -92,6 +94,7 @@ services:
 volumes:
   pgdata:
   uploads_data:
+  backup_data:
 
 networks:
   cms-network:

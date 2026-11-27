@@ -94,8 +94,26 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
     })
   }
 
+  const isActiveHref = (href: string) => {
+    if (href.includes('?')) {
+      if (location.pathname + location.search === href) return true
+      const [hrefPath, hrefQuery] = href.split('?')
+      if (hrefPath !== '/settings' || location.pathname !== '/settings') return false
+      const hrefParams = new URLSearchParams(hrefQuery)
+      const currentParams = new URLSearchParams(location.search)
+      const currentTab = currentParams.get('tab') || (currentParams.get('from') ? 'integrations' : null)
+      if (hrefParams.get('tab') !== currentTab) return false
+      return hrefParams.get('from') === currentParams.get('from')
+    }
+    if (href === '/settings') {
+      const params = new URLSearchParams(location.search)
+      return location.pathname === '/settings' && !params.has('tab') && !params.has('from')
+    }
+    return location.pathname === href
+  }
+
   const isGroupActive = (group: NavGroup) =>
-    group.items.some((item) => location.pathname === item.href)
+    group.items.some((item) => isActiveHref(item.href))
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
@@ -155,7 +173,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                 return (
                   <div key={`g-${idx}`} className="space-y-0.5">
                     {entry.items.map((item) => {
-                      const isActive = location.pathname === item.href
+                      const isActive = isActiveHref(item.href)
                       return (
                         <Tooltip key={item.name} delayDuration={0}>
                           <TooltipTrigger asChild>
@@ -203,10 +221,10 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
                     <ChevronDown className={cn("sidebar-group-chevron w-4 h-4 text-dark-300 transition-transform duration-200", isExpanded && "rotate-180")} />
                   </button>
 
-                  <div className={cn("overflow-hidden transition-all duration-200", isExpanded ? "max-h-96 opacity-100" : "max-h-0 opacity-0")}>
+                  <div className={cn("overflow-hidden transition-all duration-200", isExpanded ? "max-h-[32rem] opacity-100" : "max-h-0 opacity-0")}>
                     <div className="sidebar-group-items ml-3 pl-3 border-l border-[var(--glass-border)] space-y-0.5">
                       {entry.items.map((item) => {
-                        const isActive = location.pathname === item.href
+                        const isActive = isActiveHref(item.href)
                         return (
                           <Tooltip key={item.name} delayDuration={0}>
                             <TooltipTrigger asChild>
@@ -240,7 +258,7 @@ export default function Sidebar({ mobileOpen, onClose }: SidebarProps) {
             }
 
             const item = entry as NavItem
-            const isActive = location.pathname === item.href
+            const isActive = isActiveHref(item.href)
             return (
               <Tooltip key={item.name} delayDuration={0}>
                 <TooltipTrigger asChild>

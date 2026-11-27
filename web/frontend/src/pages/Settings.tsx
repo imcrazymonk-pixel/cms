@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { settingsApi, type RegistryItem } from '../api/settings'
 import { themesApi, type ThemeListItem, type ThemeGroup } from '../api/themes'
 import { authApi } from '../api/auth'
@@ -15,8 +16,9 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { QueryError } from '@/components/QueryError'
+import { EmptyState } from '@/components/EmptyState'
 import { toast } from 'sonner'
-import { ChevronDown, ChevronRight, Save, RefreshCw, Database, Zap, Check, X, Search } from 'lucide-react'
+import { ChevronDown, ChevronRight, Save, RefreshCw, Database, Zap, Check, X, Search, HardDrive } from 'lucide-react'
 
 type Values = Record<string, string>
 
@@ -28,31 +30,52 @@ const CATEGORY_DESC: Record<string, string> = {
   'Финансы': 'Валюта, точность и расчёт средних',
   'Platega': 'Синхронизация платежей Platega',
   'YooKassa': 'Синхронизация платежей YooKassa',
+  'Сайт': 'Название, адрес и оформление публичного сайта',
+  'Bedolaga Bot': 'Bot Web API: токен, таймаут и прокси',
+  'Telegram / Саппорт': 'Бот поддержки, поллер и прокси',
+  'Bedolaga БД': 'Read-only PostgreSQL с тарифами (TCP, прокси не применим)',
+  'Бэкапы': 'Хранилища и уровни резервного копирования',
+  'Прокси по умолчанию': 'Общий прокси для интеграций и исключения',
 }
 
 /** Collapsible settings block — Remnawave-style accordion card. */
 function Section({
+  id,
   title,
   description,
   defaultOpen = false,
+  action,
   children,
 }: {
+  id?: string
   title: string
   description?: string
   defaultOpen?: boolean
+  action?: ReactNode
   children: ReactNode
 }) {
   const [open, setOpen] = useState(defaultOpen)
+  const generatedId = useId()
+  const sectionId = id ?? generatedId
+  const headerId = `${sectionId}-header`
+  const panelId = `${sectionId}-panel`
   const count = Array.isArray(children) ? children.filter(Boolean).length : 1
 
+  useEffect(() => {
+    if (defaultOpen) setOpen(true)
+  }, [defaultOpen])
+
   return (
-    <Card className="p-0 overflow-hidden animate-fade-in-up">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-4 p-4 md:p-5 hover:bg-[var(--glass-bg)] transition-colors text-left"
-      >
-        <div className="flex items-center gap-3 min-w-0">
+    <Card id={sectionId} className="p-0 overflow-hidden animate-fade-in-up">
+      <div className="w-full flex items-center gap-3 p-4 md:p-5 hover:bg-[var(--glass-bg)] transition-colors text-left">
+        <button
+          type="button"
+          id={headerId}
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={() => setOpen((v) => !v)}
+          className="flex items-center gap-3 min-w-0 flex-1 text-left"
+        >
           {open ? (
             <ChevronDown className="w-5 h-5 text-dark-200 shrink-0 transition-transform duration-200" />
           ) : (
@@ -62,11 +85,17 @@ function Section({
             <h2 className="text-base font-semibold text-white truncate">{title}</h2>
             {description && <p className="text-xs text-dark-300 mt-0.5">{description}</p>}
           </div>
-        </div>
+        </button>
+        {action && <div className="shrink-0">{action}</div>}
         <span className="text-xs text-dark-300 shrink-0">{count}</span>
-      </button>
+      </div>
       {open && (
-        <div className="px-4 md:px-5 pb-4 md:pb-5 border-t border-[var(--glass-border)]/50 animate-fade-in-down">
+        <div
+          id={panelId}
+          role="region"
+          aria-labelledby={headerId}
+          className="px-4 md:px-5 pb-4 md:pb-5 border-t border-[var(--glass-border)]/50 animate-fade-in-down"
+        >
           <div className="divide-y divide-dark-700/50">{children}</div>
         </div>
       )}
@@ -164,6 +193,72 @@ function MetaBadges({ item, isSaving, wasSaved, onReset }: {
   )
 }
 
+const SELECT_LABELS: Record<string, string> = {
+  inherit: 'Как по умолчанию',
+  direct: 'Напрямую',
+  custom: 'Свой прокси',
+  auto: 'Авто',
+  on: 'Включено',
+  off: 'Выключено',
+}
+
+/** Категории вкладки «Интеграции» → id эндпоинта проверки. */
+const INTEGRATION_TEST_IDS: Record<string, string> = {
+  'Bedolaga Bot': 'bedolaga',
+  'Telegram / Саппорт': 'support',
+  'Bedolaga БД': 'bot_db',
+  Platega: 'platega',
+  YooKassa: 'yookassa',
+  'Прокси по умолчанию': 'global',
+}
+
+/** Deep-link `from` (Sidebar) → категория вкладки «Интеграции». */
+const FROM_TO_CATEGORY: Record<string, string> = {
+  bedolaga: 'Bedolaga Bot',
+  support: 'Telegram / Саппорт',
+  bot_db: 'Bedolaga БД',
+  platega: 'Platega',
+  yookassa: 'YooKassa',
+  proxy: 'Прокси по умолчанию',
+}
+
+/** Категория → ASCII-якорь DOM (без кириллицы и пробелов). */
+const CATEGORY_ANCHOR: Record<string, string> = {
+  'Bedolaga Bot': 'settings-cat-bedolaga',
+  'Telegram / Саппорт': 'settings-cat-support',
+  'Bedolaga БД': 'settings-cat-bot-db',
+  Platega: 'settings-cat-platega',
+  YooKassa: 'settings-cat-yookassa',
+  'Прокси по умолчанию': 'settings-cat-proxy',
+}
+
+/** Ключи интеграций, после изменения которых кэш Bedolaga / support устаревает. */
+const isIntegrationKey = (key: string) =>
+  key.startsWith('bedolaga_') ||
+  key.startsWith('bot_db_') ||
+  key.startsWith('support_') ||
+  key.startsWith('outbound_proxy_')
+
+/** Префиксы react-query, которые зависят от живой конфигурации интеграций. */
+const BEDOLAGA_QUERY_KEYS: string[][] = [
+  ['bedolaga-status'],
+  ['bedolaga-overview'],
+  ['bedolaga-full'],
+  ['bedolaga-health'],
+  ['bedolaga-tariffs'],
+  ['bedolaga-capabilities'],
+  ['bedolaga-maintenance'],
+  ['bedolaga-customers'],
+  ['bedolaga-analytics-overview'],
+  ['bedolaga-analytics-forecast'],
+  ['bedolaga-analytics-tariffs'],
+  ['support-pollers'],
+  ['support-config-status'],
+]
+
+/** После теста этих интеграций кэши инвалидируются и при ошибке тоже. */
+const TEST_INVALIDATES: ReadonlySet<string> = new Set(['bedolaga', 'bot_db', 'support', 'global'])
+
 function SettingItem({
   item, value, isSaving, wasSaved, themes, onSave, onReset, onChange,
 }: {
@@ -199,7 +294,7 @@ function SettingItem({
 
   if (item.type === 'select') {
     const opts = item.options
-      ? item.options.map((o) => ({ value: o, label: o }))
+      ? item.options.map((o) => ({ value: o, label: SELECT_LABELS[o] ?? o }))
       : item.options_source === 'themes'
         ? themes.map((t) => ({ value: t.value, label: t.label }))
         : []
@@ -266,8 +361,13 @@ function SettingItem({
 }
 
 export default function Settings() {
-  const [searchParams] = useSearchParams()
-  const initialTab = searchParams.get('tab') || 'basic'
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const fromParam = searchParams.get('from') || ''
+  const initialTab = searchParams.get('tab') || (fromParam ? 'integrations' : 'basic')
+  const [tab, setTab] = useState(initialTab)
+  const focusCategory = tab === 'integrations' ? (FROM_TO_CATEGORY[fromParam] || '') : ''
   const [isPending, setIsPending] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -277,6 +377,7 @@ export default function Settings() {
   const [savedKeys, setSavedKeys] = useState<Set<string>>(new Set())
   const [savingTab, setSavingTab] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [testing, setTesting] = useState<string | null>(null)
 
   const [docker, setDocker] = useState<Values>({})
   const [loki, setLoki] = useState<Values>({})
@@ -349,6 +450,26 @@ export default function Settings() {
 
   useEffect(() => { load() }, [])
 
+  useEffect(() => {
+    setTab(searchParams.get('tab') || (searchParams.get('from') ? 'integrations' : 'basic'))
+  }, [searchParams])
+
+  // Deep-link из другого раздела не должен наследовать старый поиск:
+  // иначе `from` фокусирует категорию, а прежний запрос скрывает все блоки.
+  useEffect(() => {
+    setSearch('')
+  }, [fromParam])
+
+  useEffect(() => {
+    if (!focusCategory || isPending) return
+    const anchor = CATEGORY_ANCHOR[focusCategory]
+    if (!anchor) return
+    const frame = requestAnimationFrame(() => {
+      document.getElementById(anchor)?.scrollIntoView({ block: 'start', behavior: 'smooth' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [focusCategory, isPending, items.length])
+
   const byTab = useMemo(() => {
     const res: Record<string, Record<string, RegistryItem[]>> = {}
     for (const it of items) {
@@ -370,6 +491,12 @@ export default function Settings() {
     setTimeout(() => setSavedKeys((prev) => { const n = new Set(prev); n.delete(key); return n }), 2000)
   }
 
+  const invalidateBedolagaRuntime = () => {
+    for (const queryKey of BEDOLAGA_QUERY_KEYS) {
+      queryClient.invalidateQueries({ queryKey })
+    }
+  }
+
   const onSave = async (key: string, value: string) => {
     setSavingKeys((prev) => new Set(prev).add(key))
     try {
@@ -385,6 +512,7 @@ export default function Settings() {
       if (key === 'active_theme') {
         await loadThemeOptions()
       }
+      if (isIntegrationKey(key)) invalidateBedolagaRuntime()
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string } } }
       toast.error(e?.response?.data?.error || 'Ошибка сохранения')
@@ -403,6 +531,7 @@ export default function Settings() {
       if (key === 'admin_title' || key === 'browser_title' || key === 'title_separator' || key === 'favicon_url') {
         useBrandingStore.getState().load()
       }
+      if (isIntegrationKey(key)) invalidateBedolagaRuntime()
     } catch {
       toast.error('Ошибка сброса')
     } finally {
@@ -448,14 +577,19 @@ export default function Settings() {
     try {
       const flat: Record<string, string> = {}
       for (const it of items) {
+        const value = effective(it)
         // Skip masked secrets on bulk save (empty = keep existing).
-        if (it.is_secret) continue
-        flat[it.key] = effective(it)
+        if (it.is_secret && value === '') continue
+        // Send only changed values: avoids needless client/support reloads.
+        if (value === (it.value ?? '')) continue
+        flat[it.key] = value
       }
       flat.docker_config = JSON.stringify(docker)
       flat.loki_config = JSON.stringify(loki)
+      const integrationChanged = Object.keys(flat).some(isIntegrationKey)
       const res = await settingsApi.update(flat) as { success?: boolean; error?: string }
       if (res.success === false) { toast.error(res.error || 'Не удалось сохранить'); return }
+      if (integrationChanged) invalidateBedolagaRuntime()
       toast.success('Настройки сохранены')
       await load()
       useBrandingStore.getState().load()
@@ -506,6 +640,66 @@ export default function Settings() {
     if (q && filtered.length === 0) return null
     return (
       <Section key={category} title={category} description={CATEGORY_DESC[category]}>
+        {filtered.map((it) => (
+          <SettingItem
+            key={it.key}
+            item={it}
+            value={effective(it)}
+            isSaving={savingKeys.has(it.key)}
+            wasSaved={savedKeys.has(it.key)}
+            themes={themes}
+            onSave={onSave}
+            onReset={onReset}
+            onChange={onChange}
+          />
+        ))}
+      </Section>
+    )
+  }
+
+  const runTest = async (id: string) => {
+    setTesting(id)
+    try {
+      const res = id === 'global'
+        ? await settingsApi.testProxy()
+        : await settingsApi.testIntegration(id)
+      const data = res.data
+      const extra = data.egress_ip ? ` · внешний IP ${data.egress_ip}` : ''
+      if (data.ok) {
+        toast.success(data.message + extra)
+      } else toast.error(data.message)
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Не удалось проверить подключение')
+    } finally {
+      // Статусы могли измениться и при неудачной проверке — кэш всё равно устарел.
+      if (TEST_INVALIDATES.has(id)) invalidateBedolagaRuntime()
+      setTesting(null)
+    }
+  }
+
+  const renderIntegrationCategory = (category: string, catItems: RegistryItem[]) => {
+    const filtered = catItems.filter(match)
+    if (q && filtered.length === 0) return null
+    const id = INTEGRATION_TEST_IDS[category]
+    return (
+      <Section
+        key={category}
+        id={CATEGORY_ANCHOR[category]}
+        title={category}
+        description={CATEGORY_DESC[category]}
+        defaultOpen={!!q || !focusCategory || focusCategory === category || !fromParam}
+        action={id ? (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => runTest(id)}
+            disabled={testing !== null}
+          >
+            <Zap className={`w-4 h-4 mr-1.5 ${testing === id ? 'animate-pulse' : ''}`} />
+            {testing === id ? 'Проверка…' : 'Проверить'}
+          </Button>
+        ) : undefined}
+      >
         {filtered.map((it) => (
           <SettingItem
             key={it.key}
@@ -586,7 +780,7 @@ export default function Settings() {
         <div>
           <h1 className="page-header-title">Настройки</h1>
           <p className="text-dark-200 mt-1 text-sm md:text-base">
-            Управление сайтом, темой, финансами и логами
+            Управление сайтом, темой, интеграциями, финансами и логами
           </p>
         </div>
         <div className="page-header-actions">
@@ -602,13 +796,21 @@ export default function Settings() {
       {error && <QueryError message={error} />}
 
       {!error && (
-        <Tabs defaultValue={initialTab} onValueChange={() => setSearch('')}>
+        <Tabs
+          value={tab}
+          onValueChange={(v) => {
+            setTab(v)
+            setSearch('')
+            setSearchParams({ tab: v }, { replace: true })
+          }}
+        >
           <TabsList>
             <TabsTrigger value="basic">Основные</TabsTrigger>
             <TabsTrigger value="seo">SEO</TabsTrigger>
-            <TabsTrigger value="theme">Тема</TabsTrigger>
+            <TabsTrigger value="theme">Сайт</TabsTrigger>
             <TabsTrigger value="security">Безопасность</TabsTrigger>
             <TabsTrigger value="finance">Финансы</TabsTrigger>
+            <TabsTrigger value="integrations">Интеграции</TabsTrigger>
             <TabsTrigger value="logs">Логи</TabsTrigger>
           </TabsList>
 
@@ -677,6 +879,57 @@ export default function Settings() {
             <SearchBar value={search} onChange={setSearch} count={countMatches(Object.entries(byTab.finance || {}))} />
             {Object.entries(byTab.finance || {}).map(([cat, catItems]) =>
               renderCategory(cat, catItems)
+            )}
+          </TabsContent>
+
+          {/* ── Интеграции ── */}
+          <TabsContent value="integrations" className="space-y-2 mt-4">
+            {!isPending && !error && Object.keys(byTab.integrations || {}).length === 0 ? (
+              <Card className="animate-fade-in-up">
+                <EmptyState
+                  icon={Database}
+                  size="lg"
+                  title="Настройки интеграций недоступны"
+                  description={'Backend не вернул ни одной категории интеграций. Проверьте, что API перезапущен с актуальным реестром настроек и что GET /api/settings отвечает items с tab="integrations".'}
+                  action={
+                    <Button variant="secondary" onClick={() => { void load() }}>
+                      <RefreshCw className="w-4 h-4 mr-1.5" /> Повторить
+                    </Button>
+                  }
+                />
+              </Card>
+            ) : (
+              <>
+                <SearchBar
+                  value={search}
+                  onChange={setSearch}
+                  count={countMatches(Object.entries(byTab.integrations || {}))}
+                />
+                <Section
+                  title="Бэкапы"
+                  description="Хранилища, уровни, восстановление и уведомления — в разделе «Инфраструктура → Бэкапы»"
+                  action={
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => runTest('backups')} disabled={testing !== null}>
+                        <Zap className={`w-4 h-4 mr-1.5 ${testing === 'backups' ? 'animate-pulse' : ''}`} />
+                        {testing === 'backups' ? 'Проверка…' : 'Проверить'}
+                      </Button>
+                      <Button size="sm" onClick={() => navigate('/backups?tab=storages')}>
+                        <HardDrive className="w-4 h-4 mr-1.5" />
+                        Управлять
+                      </Button>
+                    </div>
+                  }
+                >
+                  <div className="py-3 text-sm text-dark-200">
+                    Хранилища (CMS, S3, SFTP, rclone) добавляются на странице бэкапов. Здесь — только
+                    быстрый переход и проверка доступности всех хранилищ.
+                  </div>
+                </Section>
+                {Object.entries(byTab.integrations || {}).map(([cat, catItems]) =>
+                  renderIntegrationCategory(cat, catItems)
+                )}
+              </>
             )}
           </TabsContent>
 

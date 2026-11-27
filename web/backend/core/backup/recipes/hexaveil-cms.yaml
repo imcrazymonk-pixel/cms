@@ -1,0 +1,30 @@
+id: hexaveil-cms
+title: HexaVeil CMS
+version: 1
+transport: inline
+detect:
+  any: []
+  min_confidence: high
+artifacts:
+  database:
+    kind: postgres
+    db: hexacms
+    method: pg_dump
+    format: custom
+    consistency: online
+  files:
+    - path: /var/lib/hexaveil/uploads
+      volume: uploads_data
+      exclude: ["*.tmp"]
+manifest:
+  capture: [app_version, migrations_list]
+secret_env_keys: [APP_ENCRYPTION_KEY]
+healthcheck:
+  command: "curl -fsS http://127.0.0.1:8000/api/health"
+  timeout: 30
+restore:
+  order: 5
+  stop: [cms]
+  steps: [restore_database, restore_files, start:cms, wait_healthy]
+  destructive: true
+  requires_versions_match: true

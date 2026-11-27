@@ -24,6 +24,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from web.backend.api.deps import AdminUser, get_current_admin
+from web.backend.core import outbound_proxy
 from web.backend.core.crypto import decrypt, encrypt
 from web.backend.core.database import get_db
 from web.backend.core.errors import E, api_error
@@ -32,6 +33,19 @@ from web.backend.core.settings_registry import REGISTRY_BY_KEY
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+
+async def _proxy_kwargs_for(db: AsyncSession, integration: str, host: str) -> Dict[str, Any]:
+    """httpx kwargs for an outbound finance call (never raises, never logs secrets)."""
+    try:
+        resolution = await outbound_proxy.resolve_proxy(db, integration)
+        return outbound_proxy.client_kwargs(resolution, host)
+    except Exception as e:  # noqa: BLE001 — прокси не должен ломать синхронизацию
+        logger.warning(
+            "%s: не удалось определить прокси (%s) — запрос напрямую",
+            integration, type(e).__name__,
+        )
+        return {"trust_env": False}
 
 PLATEGA_PARTICIPANT = "Platega пополнение"
 YOOKASSA_PARTICIPANT = "YooKassa"
@@ -214,7 +228,13 @@ def _sync_lock_ok(settings: dict, key: str) -> bool:
 _PLATEGA_URL = "https://app.platega.io/transaction/export/csv"
 
 
-async def _fetch_platega_csv(merchant_id: str, secret: str, days_back: int) -> List[dict]:
+async def _fetch_platega_csv(
+    merchant_id: str,
+    secret: str,
+    days_back: int,
+    *,
+    client_kwargs: Optional[Dict[str, Any]] = None,
+) -> List[dict]:
     now = datetime.now(timezone.utc)
     frm = (now - timedelta(days=days_back)).strftime("%Y-%m-%dT%H:%M:%SZ")
     to = now.strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -223,7 +243,7 @@ async def _fetch_platega_csv(merchant_id: str, secret: str, days_back: int) -> L
         "paymentMethods": ["2", "10", "11", "12", "13"],
         "from": frm, "to": to, "timeZoneId": "Europe/Moscow",
     }
-    async with httpx.AsyncClient(timeout=30) as c:
+    async with httpx.AsyncClient(timeout=30, **(client_kwargs or {})) as c:
         r = await c.post(_PLATEGA_URL, json=payload, headers={
             "Content-Type": "application/json",
             "X-MerchantId": merchant_id,
@@ -262,7 +282,8 @@ def _parse_platega_csv(text_: str) -> List[dict]:
 async def _platega_preview(db: AsyncSession, merchant_id: str, secret: str, days_back: int) -> List[dict]:
     existing_keys = await _existing_keys(db, PLATEGA_PARTICIPANT)
     existing_ids = await _existing_record_ids(db, PLATEGA_PARTICIPANT)
-    rows = await _fetch_platega_csv(merchant_id, secret, days_back)
+    proxy_kwargs = await _proxy_kwargs_for(db, "platega", "app.platega.io")
+    rows = await _fetch_platega_csv(merchant_id, secret, days_back, client_kwargs=proxy_kwargs)
     preview = []
     for row in rows:
         record_id = str(row.get("RecordId") or "")
@@ -511,10 +532,17 @@ async def platega_settings_save(request: Request, admin: AdminUser = Depends(get
 _YK_BASE = "https://api.yookassa.ru/v3"
 
 
-async def _yk_fetch_all(shop_id: str, secret: str, since: str, until: str) -> List[dict]:
+async def _yk_fetch_all(
+    shop_id: str,
+    secret: str,
+    since: str,
+    until: str,
+    *,
+    client_kwargs: Optional[Dict[str, Any]] = None,
+) -> List[dict]:
     all_items: List[dict] = []
     cursor = None
-    async with httpx.AsyncClient(timeout=30, auth=(shop_id, secret)) as c:
+    async with httpx.AsyncClient(timeout=30, auth=(shop_id, secret), **(client_kwargs or {})) as c:
         while True:
             params = {"created_at.gte": since, "created_at.lte": until, "limit": "100"}
             if cursor:
@@ -579,7 +607,8 @@ async def _yk_preview(db: AsyncSession, shop_id: str, secret: str, days_back: in
     now = datetime.now(timezone.utc)
     since = (now - timedelta(days=days_back)).strftime("%Y-%m-%dT%H:%M:%S.000Z")
     until = now.strftime("%Y-%m-%dT%H:%M:%S.000Z")
-    payments = await _yk_fetch_all(shop_id, secret, since, until)
+    proxy_kwargs = await _proxy_kwargs_for(db, "yookassa", "api.yookassa.ru")
+    payments = await _yk_fetch_all(shop_id, secret, since, until, client_kwargs=proxy_kwargs)
 
     commissions = _commissions(_g(await _get_all(db), "yookassa_commissions"))
     existing_keys = await _existing_keys(db, YOOKASSA_PARTICIPANT)
