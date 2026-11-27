@@ -627,24 +627,34 @@ remove_admin_password_from_env() {
     fi
 }
 
-# Admin password: the decision needs the database (was the admin user created?),
-# so it runs after migrations instead of before the stack starts. This keeps a
-# re-run after a failed install from skipping the password just because .env
-# already exists.
-admin_user_exists() {
-    local out=""
-    out=$(compose exec -T db psql -U "$DB_USER" -d "$DB_NAME" \
+# Admin password: the decision needs the database, so it runs after migrations.
+# A seeded admin with the placeholder bcrypt counts as "no password" — checking
+# only for the row would skip the prompt on every fresh install.
+ADMIN_PLACEHOLDER='$2y$10$change_this_to_a_real_bcrypt_hash'
+
+admin_password_state() {
+    local state=""
+    state=$(compose exec -T db psql -U "$DB_USER" -d "$DB_NAME" \
         -v login="$ADMIN_LOGIN" -tAc \
-        "SELECT 1 FROM users WHERE login = :'login' LIMIT 1" 2>/dev/null \
-        | tr -d '[:space:]' || true)
-    [ "$out" = "1" ]
+        "SELECT COALESCE((SELECT password FROM users WHERE login = :'login' LIMIT 1), '__missing__')" \
+        2>/dev/null | tr -d '\r' || true)
+    # Trim surrounding whitespace only (bcrypt hashes have none inside).
+    state="${state#"${state%%[![:space:]]*}"}"
+    state="${state%"${state##*[![:space:]]}"}"
+    printf '%s' "$state"
+}
+
+admin_needs_password() {
+    local state
+    state=$(admin_password_state)
+    [ -z "$state" ] || [ "$state" = "__missing__" ] || [ "$state" = "$ADMIN_PLACEHOLDER" ]
 }
 
 ensure_admin_password() {
     local needs_password=0
     if [ "$RESET_ADMIN_PASSWORD" = 1 ]; then
         needs_password=1
-    elif ! admin_user_exists; then
+    elif admin_needs_password; then
         needs_password=1
     fi
 
@@ -672,7 +682,7 @@ ensure_admin_password() {
 }
 
 bootstrap_admin() {
-    local code=0 out="" args=()
+    local code=0 out="" args=() retried=0
     args=(-T -e "ADMIN_LOGIN=$ADMIN_LOGIN")
     if [ -n "${ADMIN_EMAIL-}" ]; then args+=(-e "ADMIN_EMAIL=$ADMIN_EMAIL"); fi
     if [ -n "${ADMIN_PASSWORD-}" ]; then args+=(-e "ADMIN_PASSWORD=$ADMIN_PASSWORD"); fi
@@ -680,8 +690,29 @@ bootstrap_admin() {
         args+=(-e "FORCE_RESET=1")
     fi
 
-    out=$(compose exec "${args[@]}" app php /var/www/html/deploy/bootstrap_admin.php 2>&1) || code=$?
-    printf '%s\n' "$out"
+    # bootstrap_admin.php exits 2 when a password is required (new user or a
+    # placeholder hash). Ask once here instead of failing the whole install,
+    # so a re-run after a partially failed install still completes.
+    while :; do
+        code=0
+        out=$(compose exec "${args[@]}" app php /var/www/html/deploy/bootstrap_admin.php 2>&1) || code=$?
+        printf '%s\n' "$out"
+
+        if [ "$code" -eq 2 ] && [ "$retried" = 0 ] \
+            && [ -z "${ADMIN_PASSWORD-}" ] \
+            && [ "$NON_INTERACTIVE" != 1 ] && [ "$TTY_OK" = 1 ]; then
+            ask_secret "Пароль администратора $ADMIN_LOGIN (Enter — сгенерировать): "
+            ADMIN_PASSWORD="$ANSWER"
+            if [ -z "$ADMIN_PASSWORD" ]; then
+                ADMIN_PASSWORD=$(gen_password)
+                PASSWORD_GENERATED=1
+            fi
+            args+=(-e "ADMIN_PASSWORD=$ADMIN_PASSWORD")
+            retried=1
+            continue
+        fi
+        break
+    done
 
     case "$out" in
         *"Created admin"*|*"Set password"*|*"Reset password"*) PASSWORD_APPLIED=1 ;;
