@@ -161,3 +161,14 @@ def test_missing_directory_rejected(tmp_path):
 def test_empty_directory_rejected(tmp_path):
     with pytest.raises(parser.TgexportParseError):
         parser.parse_export(tmp_path)
+
+def test_cross_page_reply_link_resolves_topic(tmp_path):
+    page = TOPIC_PAGE.replace('#go_to_message36', 'messages.html#go_to_message36')
+    export = tmp_path / "ChatExport_cross"
+    export.mkdir()
+    (export / "messages.html").write_text(page, encoding="utf-8")
+
+    payload = parser.parse_export(export)
+
+    assert payload["topics"][0]["topic_id"] == "36"
+    assert payload["topics"][0]["messages"][0]["text"] == "Здравствуйте! Не работает VPN"

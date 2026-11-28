@@ -118,7 +118,7 @@ def _clean_text(element: Tag | None) -> str:
 
 
 def _reply_target(block: Tag) -> str | None:
-    link = block.select_one('div.reply_to a[href^="#go_to_message"]')
+    link = block.select_one('div.reply_to a[href*="go_to_message"]')
     if link is None:
         return None
     match = _GO_TO_RE.search(str(link.get("href") or ""))
