@@ -388,5 +388,13 @@ SLA и уведомления:
 - 🧹 Поиск сбрасывается при смене вкладки и не скрывает настройки
 - ✅ `tsc` и `vite build` — зелёные
 
+[Сб.28.11.2026 15:20:00] Администратор: 🛠 Саппорт: почин приёма сообщений из Telegram
+
+- 🐍 `record_inbound(text=...)` больше не перекрывает `sqlalchemy.text` (было `TypeError: 'str' object is not callable`)
+- 🔢 Явные `CAST` для nullable-параметров `UPDATE support_conversation` — asyncpg больше не падает на `could not determine data type of parameter $4`
+- 🩺 Карточка клиента: `CAST(:meta AS jsonb)` вместо `:meta::jsonb`
+- 🚀 Важно: backend-фиксы требуют **пересборки образа `api`** (`docker compose up -d --build api`), `restart` код из `/app` не обновляет
+- ✅ Проверено на живом диалоге: `/start` записан, приветствие отправлено, диалог `id=38` открыт, тема `2285`, карточка клиента — HTTP 200
+
 ---
 *Лента составлена 15.11.2026 по истории git и дополняется вручную (автор: ImCrazyMonk).*

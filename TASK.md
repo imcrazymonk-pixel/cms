@@ -61,7 +61,7 @@ cd web/frontend; npm run build              → успешно (dist обнов�
 8. [x] **D-4b. `is_backfill`**: `record_outbound(..., is_backfill=False)` — INSERT колонки, при `True` не пишет `first_response_at`, `last_message_at=GREATEST`.
 
 Осталось (прод/решение владельца):
-9. [ ] **D-3. Активация CMS-бота (D1)**: ключи `support_tg_*`, стоп `vpn_support_bot` на окно cutover, смоук `/start`, зеркало в обе стороны, `/myid`, «Решено». Только с подтверждением владельца.
+9. [ ] **D-3. Активация CMS-бота (D1)** — в процессе: панельный `vpn_support_bot` остановлен (не удалён, бэкап `/home/kilo/support-bot-backup-20261128-174238/`), CMS настроен на тот же токен + staff `-1003994836554` + forum + SOCKS5 `hexaveil-socks`, mapping 24 пар импортирован. Починены `sql_text`, `CAST(:meta AS jsonb)` и nullable-`CAST` в `record_inbound`; API пересобран. Проверено: диалог `id=38` (`/start`), приветствие клиенту, тема `2285`, карточка клиента 200. Остался реальный смоук: сообщение→тема, ответ веба→клиент, ответ темы→веб.
 10. [ ] **D-5. Остановка старого `vpn_support_bot`** (не `ai-support`) — только после смоука и недели наблюдения, с бэкапом `topics.json`/`.env`.
 11. [ ] **D-4c. Тела истории** — только по явному решению владельца: Desktop export (stdlib) или MTProto (новая зависимость), обновление `PRIVACY_CLEANUP_MSG` + ADR retention.
 
