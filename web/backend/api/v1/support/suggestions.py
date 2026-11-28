@@ -17,8 +17,10 @@ from web.backend.api.deps import AdminUser, get_current_admin
 from web.backend.api.v1.support.conversations import _guard_lease
 from web.backend.core.errors import E
 from web.backend.core.support import SupportService
-from web.backend.core.support.ai.config import AiConfig
-from web.backend.core.support.ai.gate import confidence_level
+from web.backend.core.support.ai.public import (
+    config_for as _config,
+    public_suggestion as _public_suggestion,
+)
 from web.backend.core.support.deps import get_support_service
 from web.backend.core.support.events import EventKind
 from web.backend.core.support.outbox import WindowClosedError
@@ -31,7 +33,6 @@ _STATUSES = ("pending", "sent", "edited", "rejected", "superseded")
 _STATUS_QUERY_RE = "^(pending|sent|edited|rejected|superseded|all)$"
 _DECISION_RE = "^(send|edit|reject)$"
 REJECT_REASONS = ("wrong_facts", "unclear", "off_topic", "too_formal", "sensitive", "other")
-_PASSED_ACTIONS = ("auto", "shadow", "suggest")
 
 
 class DecideIn(BaseModel):
@@ -61,72 +62,6 @@ def _invalid(message: str) -> HTTPException:
         status_code=400,
         detail={"success": False, "error": message, "code": E.INVALID_INPUT.value},
     )
-
-
-def _config(service: SupportService) -> AiConfig:
-    runtime = getattr(service, "ai", None)
-    config = getattr(runtime, "config", None)
-    if isinstance(config, AiConfig):
-        return config
-    return AiConfig.from_settings(getattr(service, "settings", None))
-
-
-def _used_items(raw: Any) -> list[dict[str, Any]]:
-    """`used` JSONB → [{doc_id,title}] (без тяжёлого `chunk`)."""
-    if not isinstance(raw, (list, tuple)):
-        return []
-    result: list[dict[str, Any]] = []
-    for item in raw:
-        if not isinstance(item, dict):
-            continue
-        doc_id = item.get("doc_id")
-        try:
-            doc_id = int(doc_id) if doc_id is not None else None
-        except (TypeError, ValueError):
-            doc_id = None
-        result.append({"doc_id": doc_id, "title": str(item.get("title") or "")})
-    return result
-
-
-def _level(suggestion: dict[str, Any], config: AiConfig) -> str:
-    action = str(suggestion.get("gate_action") or "")
-    text = suggestion.get("final_text") or suggestion.get("text") or ""
-    used = suggestion.get("used")
-    try:
-        score = float(suggestion.get("confidence") or 0.0)
-    except (TypeError, ValueError):
-        score = 0.0
-    return confidence_level(
-        score,
-        config.min_confidence,
-        bool(used),
-        bool(suggestion.get("needs_human")),
-        bool(str(text).strip()),
-        passed=action in _PASSED_ACTIONS,
-    )
-
-
-def _public_suggestion(suggestion: dict[str, Any], config: AiConfig) -> dict[str, Any]:
-    """Публичная форма (план §5.2) — питает карточку и «Почему так?»."""
-    return {
-        "id": suggestion.get("id"),
-        "conversation_id": suggestion.get("conversation_id"),
-        "message_id": suggestion.get("message_id"),
-        "text": suggestion.get("text"),
-        "final_text": suggestion.get("final_text"),
-        "operator_note": suggestion.get("operator_note"),
-        "confidence": suggestion.get("confidence"),
-        "level": _level(suggestion, config),
-        "used": _used_items(suggestion.get("used")),
-        "reason": suggestion.get("reason"),
-        "gate": {
-            "action": suggestion.get("gate_action"),
-            "reason": suggestion.get("gate_reason"),
-        },
-        "model": suggestion.get("model"),
-        "status": suggestion.get("status"),
-        "created_at": suggestion.get("created_at"),
-    }
 
 
 # ── list / detail ──────────────────────────────────────────────────────────

@@ -55,6 +55,8 @@ class SupportService:
     # ИИ-ассистент (Этап B): runtime хранит immutable-снимок + ленивый провайдер.
     ai: Any = field(default=None)
     ai_worker: Any = field(default=None)
+    # SLA-наблюдатель (Этап C, C2); задача стартует из workers.py.
+    sla_watcher: Any = field(default=None)
     # Активные фоновые импорты (B2c); задачи снимаются по завершении.
     import_tasks: set = field(default_factory=set)
 
@@ -198,6 +200,7 @@ async def _wire_telegram(service: SupportService, runtime: dict[str, str]) -> bo
         bridge=bridge,
         staff_group_id=staff_group_id if forum_enabled else None,
         archive_days=archive_days,
+        greeting=service.settings.tg_greeting,
         enabled=True,
     )
     sender = TelegramChannelSender(client=client)

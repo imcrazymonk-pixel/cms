@@ -33,6 +33,7 @@ const CATEGORY_DESC: Record<string, string> = {
   'Сайт': 'Название, адрес и оформление публичного сайта',
   'Bedolaga Bot': 'Bot Web API: токен, таймаут и прокси',
   'Telegram / Саппорт': 'Бот поддержки, поллер и прокси',
+  'ИИ / Саппорт': 'Режим ответов, порог уверенности, пауза помощника',
   'Bedolaga БД': 'Read-only PostgreSQL с тарифами (TCP, прокси не применим)',
   'Бэкапы': 'Хранилища и уровни резервного копирования',
   'Прокси по умолчанию': 'Общий прокси для интеграций и исключения',
@@ -216,6 +217,7 @@ const INTEGRATION_TEST_IDS: Record<string, string> = {
 const FROM_TO_CATEGORY: Record<string, string> = {
   bedolaga: 'Bedolaga Bot',
   support: 'Telegram / Саппорт',
+  support_ai: 'ИИ / Саппорт',
   bot_db: 'Bedolaga БД',
   platega: 'Platega',
   yookassa: 'YooKassa',
@@ -226,6 +228,7 @@ const FROM_TO_CATEGORY: Record<string, string> = {
 const CATEGORY_ANCHOR: Record<string, string> = {
   'Bedolaga Bot': 'settings-cat-bedolaga',
   'Telegram / Саппорт': 'settings-cat-support',
+  'ИИ / Саппорт': 'support-ai',
   'Bedolaga БД': 'settings-cat-bot-db',
   Platega: 'settings-cat-platega',
   YooKassa: 'settings-cat-yookassa',

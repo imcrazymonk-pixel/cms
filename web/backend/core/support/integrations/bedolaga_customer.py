@@ -146,14 +146,28 @@ def _subscription_summary(subscriptions: list[dict]) -> dict[str, Any]:
     if not subscriptions:
         return {}
     sub = subscriptions[0]
+    used_bytes = _num(_first(sub, "traffic_used_bytes", "used_traffic"))
+    limit_bytes = _num(_first(sub, "traffic_limit_bytes", "traffic_limit"))
+    used_gb = _num_float(_first(sub, "traffic_used_gb"))
+    limit_gb = _num_float(_first(sub, "traffic_limit_gb"))
+    if used_gb is None and used_bytes is not None:
+        used_gb = round(used_bytes / 1024 ** 3, 2)
+    if limit_gb is None and limit_bytes is not None:
+        limit_gb = round(limit_bytes / 1024 ** 3, 2)
     return {
         "status": _first(sub, "status", "subscription_status") or "unknown",
         "end_date": _first(sub, "end_date", "expires_at", "expire_at"),
         "is_trial": bool(_first(sub, "is_trial", "trial")),
         "traffic": {
-            "used_bytes": _num(_first(sub, "traffic_used_bytes", "used_traffic")),
-            "limit_bytes": _num(_first(sub, "traffic_limit_bytes", "traffic_limit")),
+            "used_bytes": used_bytes,
+            "limit_bytes": limit_bytes,
         },
+        "subscription_url": _first(sub, "subscription_url", "sub_url", "url"),
+        "tariff_name": _first(sub, "tariff_name", "tariff", "plan_name"),
+        "device_limit": _num(_first(sub, "device_limit", "devices_limit", "hwid_device_limit")),
+        "device_count": _num(_first(sub, "device_count", "devices_count")),
+        "traffic_used_gb": used_gb,
+        "traffic_limit_gb": limit_gb,
     }
 
 
@@ -193,6 +207,15 @@ def _num(value: Any) -> int | None:
         return None
     try:
         return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _num_float(value: Any) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
     except (TypeError, ValueError):
         return None
 

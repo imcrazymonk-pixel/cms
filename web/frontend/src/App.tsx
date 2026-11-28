@@ -51,7 +51,11 @@ const InfrastructurePanel = lazy(() => import('./pages/infrastructure/Panel'))
 // Support pages
 const SupportQueue = lazy(() => import('./pages/support/Queue'))
 const SupportKb = lazy(() => import('./pages/support/Kb'))
-const SupportPlaceholder = lazy(() => import('./pages/support/Placeholder'))
+const SupportAssistant = lazy(() => import('./pages/support/Assistant'))
+const SupportSla = lazy(() => import('./pages/support/Sla'))
+const SupportTemplates = lazy(() => import('./pages/support/Templates'))
+const SupportAnalytics = lazy(() => import('./pages/support/Analytics'))
+const SupportTeam = lazy(() => import('./pages/support/Team'))
 
 const NotFound = lazy(() => import('./pages/NotFound'))
 
@@ -136,12 +140,12 @@ export default function App() {
 
               {/* Support */}
               <Route path="/support" element={<RequireAuth><Layout><SupportQueue /></Layout></RequireAuth>} />
-              <Route path="/support/sla" element={<RequireAuth><Layout><SupportPlaceholder title="Контроль SLA" description="Политики SLA, просрочки первого ответа и времени решения появятся в фазе 4" /></Layout></RequireAuth>} />
+              <Route path="/support/sla" element={<RequireAuth><Layout><SupportSla /></Layout></RequireAuth>} />
               <Route path="/support/kb" element={<RequireAuth><Layout><SupportKb /></Layout></RequireAuth>} />
-              <Route path="/support/ai" element={<RequireAuth><Layout><SupportPlaceholder title="ИИ-ассистент" description="Черновики ответов, ворота и настройки модели — фаза 3" /></Layout></RequireAuth>} />
-              <Route path="/support/templates" element={<RequireAuth><Layout><SupportPlaceholder title="Шаблоны ответов" description="Быстрые заготовки ответов операторов — фаза 4" /></Layout></RequireAuth>} />
-              <Route path="/support/analytics" element={<RequireAuth><Layout><SupportPlaceholder title="Аналитика" description="Метрики очереди, SLA и операторов — фаза 4" /></Layout></RequireAuth>} />
-              <Route path="/support/team" element={<RequireAuth><Layout><SupportPlaceholder title="Команда" description="Присутствие операторов и аудит действий — фаза 4" /></Layout></RequireAuth>} />
+              <Route path="/support/ai" element={<RequireAuth><Layout><SupportAssistant /></Layout></RequireAuth>} />
+              <Route path="/support/templates" element={<RequireAuth><Layout><SupportTemplates /></Layout></RequireAuth>} />
+              <Route path="/support/analytics" element={<RequireAuth><Layout><SupportAnalytics /></Layout></RequireAuth>} />
+              <Route path="/support/team" element={<RequireAuth><Layout><SupportTeam /></Layout></RequireAuth>} />
 
               {/* 404 */}
               {/* Infrastructure */}

@@ -74,6 +74,8 @@ Self-hosted центр поддержки для VPN-сервиса. Едина�
 
 **Что это значит для CMS.** Все фичи фаз 3–5 из `docs/INTEGRATION-SUPPORT.md` уже реализованы в апстриме — переносить нужно не «с нуля», а портировать готовую логику: `attention`, `conversation-order`, `confidence`, `gate`, `links`, `repair`, `chunks`, `examples`, `drafts`, `pause`, `sla`. Заменить при переносе: FTS5/`bm25` → PostgreSQL `tsvector`/`ts_rank_cd`; `PRAGMA user_version` → миграции CMS; `MAX(x+1, ?)` → `GREATEST`; `INSERT OR IGNORE` → `ON CONFLICT DO NOTHING`; in-memory `RepeatGuard`/`Job`-локи → Postgres/Redis при нескольких воркерах.
 
+**Статус переноса в CMS (2026-11-28).** Этап B закрыт: в `web/backend/core/support/ai/` портированы `gate`, `scrub`, `outbound`, `links`, `repair`, `chunks`, `examples` и `confidence_level` (`gate.py:89`). Конвейер `responder.py`/`worker.py` собирает их так: `prompt.py` берёт `examples`, `provider.py` — `repair`, сам `responder` — `gate`/`scrub`/`links`/`chunks`/`outbound`. FTS5/`bm25` заменён на PostgreSQL `tsvector` + `GIN` и `websearch_to_tsquery('russian', …)` (`core/support/kb/fts.py`; решение — `docs/decisions/ADR-007-support-ai-gate-and-fts.md`). `ai/interface-kb.ts` не переносим — справочника интерфейса кабинета в CMS нет. Live-протокол апстрима (`seq`/`epoch`, `GET /events`) и матрица прав `viewer|agent|lead|admin` в Этап B не входили — отложены (см. `docs/plans/2026-11-28-support-completion.md` §5, Этап C, и §7). Node-сервис `ai-support/` остаётся только референсом и в проде не используется: в `deploy/` его нет.
+
 ## 3. Архитектура (правила, которые нельзя нарушать)
 
 Слои в одну сторону: `channels`/`ai` → `core`; `core` не знает про каналы; панель знает всех.

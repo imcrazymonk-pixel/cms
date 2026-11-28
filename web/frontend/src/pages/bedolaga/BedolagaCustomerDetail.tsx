@@ -208,16 +208,6 @@ export default function BedolagaCustomerDetail() {
     staleTime: 60_000,
   })
 
-  const { data: remnawaveUser } = useQuery({
-    queryKey: ['remnawave-user-by-tg', user?.telegram_id],
-    queryFn: () => client.get(`/users?search=${user.telegram_id}&limit=1`).then((r) => {
-      const items = r.data?.items || r.data?.users || []
-      return Array.isArray(items) && items.length > 0 ? items[0] : null
-    }),
-    enabled: !!user?.telegram_id,
-    staleTime: 60_000,
-  })
-
   // ── Mutations ──
 
   const balanceMutation = useMutation({
@@ -446,13 +436,13 @@ export default function BedolagaCustomerDetail() {
           </div>
         </div>
         <div className="page-header-actions">
-          {remnawaveUser?.uuid && (
-            <Link to={`/users/${remnawaveUser.uuid}`}>
+          {user.subscription?.subscription_url && (
+            <a href={user.subscription.subscription_url} target="_blank" rel="noreferrer">
               <Button variant="secondary" className="gap-2 text-xs">
                 <ExternalLink className="w-4 h-4" />
-                <span className="hidden sm:inline">Remnawave</span>
+                <span className="hidden sm:inline">Подписка</span>
               </Button>
-            </Link>
+            </a>
           )}
           <Button variant="secondary" size="icon" onClick={() => {
             queryClient.invalidateQueries({ queryKey: ['bedolaga-customer', id] })

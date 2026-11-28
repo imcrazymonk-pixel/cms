@@ -10,29 +10,41 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from web.backend.core.support.store import (
     ai as ai_store,
+    analytics as analytics_store,
     attachments,
+    audit as audit_store,
     conversations,
     customers,
     jobs as jobs_store,
     kb as kb_store,
+    notes as notes_store,
     poll_state,
+    presence as presence_store,
     qa as qa_store,
     queries,
     settings as support_settings,
+    sla as sla_store,
+    templates as templates_store,
 )
 
 __all__ = [
     "SupportStore",
     "ai_store",
+    "analytics_store",
     "attachments",
+    "audit_store",
     "conversations",
     "customers",
     "jobs_store",
     "kb_store",
+    "notes_store",
+    "poll_state",
+    "presence_store",
     "qa_store",
     "queries",
-    "poll_state",
+    "sla_store",
     "support_settings",
+    "templates_store",
     "open_session",
 ]
 
@@ -478,3 +490,148 @@ class SupportStore:
     async def claim_for_message(self, attachment_id: int, message_id: int) -> bool:
         async with open_session() as db:
             return await attachments.claim_for_message(db, attachment_id, message_id)
+
+    # ── шаблоны ответов (Этап C, C1) ───────────────────────────────
+    async def list_templates(self, **filters: Any) -> dict[str, Any]:
+        async with open_session() as db:
+            return await templates_store.list_templates(db, **filters)
+
+    async def get_template(self, template_id: int) -> dict[str, Any] | None:
+        async with open_session() as db:
+            return await templates_store.get_template(db, template_id)
+
+    async def create_template(self, **kwargs: Any) -> dict[str, Any]:
+        async with open_session() as db:
+            return await templates_store.create_template(db, **kwargs)
+
+    async def update_template(self, template_id: int, **fields: Any) -> dict[str, Any] | None:
+        async with open_session() as db:
+            return await templates_store.update_template(db, template_id, **fields)
+
+    async def delete_template(self, template_id: int) -> bool:
+        async with open_session() as db:
+            return await templates_store.delete_template(db, template_id)
+
+    async def bump_template_use(self, template_id: int) -> dict[str, Any] | None:
+        async with open_session() as db:
+            return await templates_store.bump_template_use(db, template_id)
+
+    # ── заметки о клиенте (Этап C, C1) ─────────────────────────────
+    async def list_notes(self, customer_id: int) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await notes_store.list_notes(db, customer_id)
+
+    async def create_note(self, customer_id: int, actor_key: str, text: str) -> dict[str, Any]:
+        async with open_session() as db:
+            return await notes_store.create_note(db, customer_id, actor_key, text)
+
+    async def delete_note(self, note_id: int) -> int | None:
+        async with open_session() as db:
+            return await notes_store.delete_note(db, note_id)
+
+    # ── присутствие операторов (Этап C, C1) ────────────────────────
+    async def touch_presence(
+        self,
+        actor_key: str,
+        conversation_id: int,
+        state: str,
+        min_interval_seconds: int = 5,
+    ) -> bool:
+        async with open_session() as db:
+            return await presence_store.touch_presence(
+                db,
+                actor_key,
+                conversation_id,
+                state,
+                min_interval_seconds=min_interval_seconds,
+            )
+
+    async def list_presence(
+        self, conversation_id: int, ttl_seconds: int = 120
+    ) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await presence_store.list_presence(
+                db, conversation_id, ttl_seconds=ttl_seconds
+            )
+
+    # ── аудит (Этап C, C1) ─────────────────────────────────────────
+    async def insert_audit(self, **kwargs: Any) -> int:
+        async with open_session() as db:
+            return await audit_store.insert_audit(db, **kwargs)
+
+    async def list_audit(self, **filters: Any) -> dict[str, Any]:
+        async with open_session() as db:
+            return await audit_store.list_audit(db, **filters)
+
+    async def distinct_audit_actions(self) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await audit_store.distinct_actions(db)
+
+    # ── аналитика и команда (Этап C, C3) ───────────────────────────
+    async def analytics_totals(self, days: int) -> dict[str, Any]:
+        async with open_session() as db:
+            return await analytics_store.totals(db, days)
+
+    async def analytics_by_day(self, days: int) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await analytics_store.by_day(db, days)
+
+    async def analytics_by_channel(self, days: int) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await analytics_store.by_channel(db, days)
+
+    async def analytics_by_priority(self, days: int) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await analytics_store.by_priority(db, days)
+
+    async def analytics_first_response(self, days: int) -> dict[str, Any]:
+        async with open_session() as db:
+            return await analytics_store.first_response(db, days)
+
+    async def analytics_by_operator(self, days: int) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await analytics_store.by_operator(db, days)
+
+    async def analytics_ai_usage(self, days: int) -> dict[str, Any]:
+        async with open_session() as db:
+            return await analytics_store.ai_usage(db, days)
+
+    async def operators(self) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await analytics_store.operators(db)
+
+    # ── SLA (Этап C, C2) ───────────────────────────────────────────
+    async def list_policies(self) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await sla_store.list_policies(db)
+
+    async def get_policy(self, name: str) -> dict[str, Any] | None:
+        async with open_session() as db:
+            return await sla_store.get_policy(db, name)
+
+    async def update_policy(
+        self,
+        name: str,
+        first_response_minutes: int,
+        resolution_minutes: int,
+    ) -> dict[str, Any] | None:
+        async with open_session() as db:
+            return await sla_store.update_policy(
+                db, name, first_response_minutes, resolution_minutes
+            )
+
+    async def sync_events(self, *, now: Any = None) -> int:
+        async with open_session() as db:
+            return await sla_store.sync_events(db, now=now)
+
+    async def claim_due_alerts(self, *, limit: int = 5) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await sla_store.claim_due_alerts(db, limit=limit)
+
+    async def sla_overview(self) -> list[dict[str, Any]]:
+        async with open_session() as db:
+            return await sla_store.list_overview(db)
+
+    async def count_breaches(self) -> dict[str, int]:
+        async with open_session() as db:
+            return await sla_store.count_breaches(db)

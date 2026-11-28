@@ -163,6 +163,7 @@ async def record_outbound(
     text_value: str,
     external_msg_id: str | None = None,
     author: str = "agent",
+    author_id: int | None = None,
     media_type: str | None = None,
     media_file_id: str | None = None,
     reply_to_external_id: str | None = None,
@@ -173,16 +174,17 @@ async def record_outbound(
     res = await db.execute(
         text("""
             INSERT INTO support_message
-                (conversation_id, direction, author, text, media_type, media_file_id,
-                 external_msg_id, reply_to_external_id, created_at)
+                (conversation_id, direction, author, author_id, text, media_type,
+                 media_file_id, external_msg_id, reply_to_external_id, created_at)
             VALUES
-                (:conversation_id, 'out', :author, :text, :media_type, :media_file_id,
-                 :external_msg_id, :reply_to_external_id, :created_at)
+                (:conversation_id, 'out', :author, :author_id, :text, :media_type,
+                 :media_file_id, :external_msg_id, :reply_to_external_id, :created_at)
             RETURNING id
         """),
         {
             "conversation_id": conversation_id,
             "author": author,
+            "author_id": author_id,
             "text": text_value,
             "media_type": media_type,
             "media_file_id": media_file_id,

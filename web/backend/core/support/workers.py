@@ -16,10 +16,11 @@ from web.backend.core.support.events import EventKind
 logger = logging.getLogger(__name__)
 
 ARCHIVE_INTERVAL_SECONDS = 3600
+SLA_INTERVAL_SECONDS = 60
 
 
 def start_support_workers(service: SupportService) -> list[asyncio.Task]:
-    """Start health beat, every enabled poller and the AI worker; returns the tasks."""
+    """Start health beat, every enabled poller, the AI worker and the SLA watcher."""
     tasks = [asyncio.create_task(_health_loop(service), name="support-health-loop")]
     for channel, poller in service.pollers.items():
         if getattr(poller, "enabled", False):
@@ -30,7 +31,22 @@ def start_support_workers(service: SupportService) -> list[asyncio.Task]:
     ai_task = _start_ai_worker(service)
     if ai_task is not None:
         tasks.append(ai_task)
+
+    from web.backend.core.support.sla import SlaWatcher
+
+    service.sla_watcher = SlaWatcher(
+        service, interval=SLA_INTERVAL_SECONDS, batch=5
+    )
+    tasks.append(asyncio.create_task(_sla_loop(service), name="support-sla-loop"))
     return tasks
+
+
+async def _sla_loop(service: SupportService) -> None:
+    """Цикл SLA-наблюдателя (интервал 60 с); watcher создаётся в start_support_workers."""
+    watcher = getattr(service, "sla_watcher", None)
+    if watcher is None:
+        return
+    await watcher.run_loop()
 
 
 def _start_ai_worker(service: SupportService) -> asyncio.Task | None:

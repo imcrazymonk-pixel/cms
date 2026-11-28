@@ -17,6 +17,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from web.backend.core.support.defaults import DEFAULT_TG_GREETING
+
 logger = logging.getLogger(__name__)
 
 # Ключи support_setting, переопределяющие env-дефолты
@@ -44,6 +46,7 @@ class SupportSettings(BaseSettings):
     # Telegram-канал «личка» (фаза 2) — env SUPPORT_TG_TOKEN / SUPPORT_TG_BOT_NAME
     tg_token: str | None = Field(default=None, description="Токен Telegram-бота (личка)")
     tg_bot_name: str | None = Field(default=None, description="Короткое имя бота для ключей состояния поллера")
+    tg_greeting: str = Field(default=DEFAULT_TG_GREETING, description="Приветствие в боте на /start")
     # Форум-мост (фаза 2c) — env SUPPORT_TG_STAFF_GROUP_ID / SUPPORT_TG_FORUM / SUPPORT_TG_ARCHIVE_DAYS
     tg_staff_group_id: int | None = Field(default=None, description="Id группы-форума (операторская тема)")
     tg_forum: bool = Field(default=False, description="Включить форум-мост (тема на клиента)")
@@ -85,6 +88,7 @@ class SupportSettings(BaseSettings):
 SUPPORT_OVERRIDES: Dict[str, Tuple[str, str]] = {
     "support_tg_token": ("field", "tg_token"),
     "support_tg_bot_name": ("field", "tg_bot_name"),
+    "support_tg_greeting": ("field", "tg_greeting"),
     "support_tg_staff_group_id": ("runtime", "tg.main.staff_group_id"),
     "support_tg_forum": ("runtime", "tg.main.forum"),
     "support_tg_archive_days": ("runtime", "tg.main.archive_days"),

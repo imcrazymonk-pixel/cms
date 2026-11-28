@@ -12,6 +12,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 
+from web.backend.core.support.defaults import DEFAULT_TG_GREETING
+
 
 @dataclass(frozen=True)
 class SettingDef:
@@ -269,6 +271,12 @@ REGISTRY: List[SettingDef] = [
         default="", env_var="SUPPORT_TG_BOT_NAME",
         description="Короткое имя для ключей offset (tg:<name>:offset). Пусто — main",
         sort_order=30,
+    ),
+    SettingDef(
+        "support_tg_greeting", "Приветствие на /start", "Telegram / Саппорт", tab="integrations",
+        type="textarea", default=DEFAULT_TG_GREETING, env_var="SUPPORT_TG_GREETING",
+        description="Текст, который клиент получает при первом /start. Пустое значение вернёт текст по умолчанию.",
+        sort_order=35,
     ),
     SettingDef(
         "support_tg_staff_group_id", "Id группы операторов", "Telegram / Саппорт", tab="integrations",

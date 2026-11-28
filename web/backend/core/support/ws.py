@@ -29,6 +29,8 @@ _EVENT_TYPE_BY_KIND = {
     EventKind.CONVERSATION_CHANGED: "conversation",
     EventKind.POLLER_STATUS: "poller",
     EventKind.AI_SUGGESTION: "ai_suggestion",
+    EventKind.PRESENCE: "presence",
+    EventKind.SLA_ALERT: "sla_alert",
 }
 
 

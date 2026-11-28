@@ -1,4 +1,4 @@
-"""Support schema — apply db/postgres/migrations/004-support-foundation.sql (idempotent).
+"""Support schema — apply support migrations 004–008 (idempotent).
 
 Same pattern as ensure_changelog_table in api/v1/docs.py: executed from the
 lifespan (best-effort) so the CMS starts even when the DDL fails.
@@ -15,6 +15,7 @@ _MIGRATION_FILENAMES = (
     "004-support-foundation.sql",
     "005-support-reply-idempotency.sql",
     "006-support-ai-kb.sql",
+    "008-support-stage-c.sql",
 )
 # Inline CHECK in 004 allows only client|agent|system. `/start` records the
 # greeting with author='bot', so widen the existing constraint in place
@@ -166,8 +167,8 @@ def _split_statements(sql: str) -> list[str]:
 async def ensure_support_schema() -> None:
     """Create support tables if missing — idempotent, mirrors ensure_changelog_table.
 
-    Applies 004 (foundation), 005 (reply idempotency) and 006 (AI/KB) in
-    order, then the
+    Applies 004 (foundation), 005 (reply idempotency), 006 (AI/KB) and
+    008 (этап C: author_id, шаблоны, SLA-события) in order, then the
     in-place author CHECK widening.
     """
     from web.backend.core.database import get_session_factory

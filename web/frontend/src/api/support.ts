@@ -74,6 +74,12 @@ export interface SupportCustomerCard {
     end_date?: string
     is_trial?: boolean
     traffic?: { used_bytes?: number | null; limit_bytes?: number | null }
+    subscription_url?: string | null
+    tariff_name?: string | null
+    device_limit?: number | null
+    device_count?: number | null
+    traffic_used_gb?: number | null
+    traffic_limit_gb?: number | null
   }
   tickets_total: number
   last_activity: string | null
@@ -182,6 +188,8 @@ export type SupportErrorCode =
   | 'AI_KEY_MISSING'
   | 'PROVIDER_ERROR'
   | 'CONFLICT'
+  | 'TEMPLATE_EXISTS'
+  | 'SLA_POLICY_NOT_FOUND'
 
 export interface SupportErrorDetail {
   code: SupportErrorCode | string
@@ -216,12 +224,22 @@ export function getSupportErrorCode(err: unknown): SupportErrorCode | string | u
   return undefined
 }
 
+/** Понятные пользователю тексты для прикладных кодов (иначе — текст бэкенда). */
+const SUPPORT_FRIENDLY_ERRORS: Record<string, string> = {
+  TEMPLATE_EXISTS: 'Шаблон с таким ярлыком уже существует',
+  SLA_POLICY_NOT_FOUND: 'Политика SLA не найдена',
+}
+
 /** Человекочитаемый текст ошибки для тела ответа (detail.error / error.message). */
 export function getSupportErrorMessage(err: unknown): string | undefined {
   const data = (err as { response?: { data?: unknown } } | null)?.response?.data as
     | { detail?: unknown; error?: unknown }
     | undefined
   if (!data || typeof data !== 'object') return undefined
+
+  const friendly = SUPPORT_FRIENDLY_ERRORS[getSupportErrorCode(err) ?? '']
+  if (friendly) return friendly
+
   const detail = data.detail
   if (detail && typeof detail === 'object' && 'error' in detail) {
     const text = (detail as { error?: unknown }).error
@@ -593,6 +611,109 @@ export interface SupportFeedbackResult {
   qa_pair_id: number | null
 }
 
+// ── SLA (Этап C, C2) ───────────────────────────────────────────────────────
+
+export type SupportSlaKind = 'first_response' | 'resolution'
+
+/** Политика SLA по приоритету (`GET /support/sla/policies`). */
+export interface SupportSlaPolicy {
+  name: string
+  first_response_minutes: number
+  resolution_minutes: number
+}
+
+/** Активное SLA-событие; `overdue_minutes` отрицательный до дедлайна. */
+export interface SupportSlaEvent {
+  id: number
+  conversation_id: number
+  kind: SupportSlaKind
+  due_at: string
+  notified_at: string | null
+  breached_at: string | null
+  subject: string | null
+  priority: ConversationPriority
+  status: ConversationStatus
+  assignee_id: number | null
+  overdue_minutes: number | null
+}
+
+export interface SupportSlaBreaches {
+  first_response: number
+  resolution: number
+}
+
+export interface SupportSlaOverview {
+  policies: SupportSlaPolicy[]
+  breaches: SupportSlaBreaches
+  events: SupportSlaEvent[]
+}
+
+// ── Шаблоны ответов (Этап C, C1) ───────────────────────────────────────────
+
+/** Шаблон ответа оператора (`GET /support/templates`). */
+export interface SupportTemplate {
+  id: number
+  shortcut: string
+  title: string
+  body: string
+  category: string | null
+  uses: number
+  created_by: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface SupportTemplateInput {
+  shortcut: string
+  title: string
+  body: string
+  category?: string | null
+}
+
+export interface SupportTemplateListResult {
+  items: SupportTemplate[]
+  total: number
+  page: number
+  per_page: number
+}
+
+export interface ListTemplatesParams {
+  q?: string
+  category?: string
+  page?: number
+  per_page?: number
+}
+
+// ── Заметки о клиенте и присутствие (Этап C, C4) ──────────────────────────
+
+/** Внутренняя заметка оператора о клиенте (`GET /support/customers/{id}/notes`). */
+export interface SupportNote {
+  id: number
+  text: string
+  actor_id: number | null
+  actor_name: string
+  created_at: string | null
+}
+
+export type SupportPresenceState = 'viewing' | 'typing'
+
+/** Свежая отметка присутствия оператора в диалоге (TTL 120 с). */
+export interface SupportPresenceItem {
+  actor_id: number | null
+  actor_name: string
+  state: SupportPresenceState
+  seen_at: string
+}
+
+export interface SupportPresencePing {
+  conversation_id: number
+  state: SupportPresenceState
+}
+
+export interface SupportPresencePingResult {
+  ok: boolean
+  throttled: boolean
+}
 
 export interface ListKbParams {
   status?: 'draft' | 'published' | 'archived' | 'all'
@@ -603,6 +724,120 @@ export interface ListKbParams {
 
 export interface ListKbCandidatesParams {
   status?: KbCandidateStatus | 'all'
+  page?: number
+  per_page?: number
+}
+
+// ── Аналитика и команда (Этап C, C3) ──────────────────────────────────────
+
+/** Сводные счётчики за окно (`totals` в `GET /support/analytics`). */
+export interface SupportAnalyticsTotals {
+  conversations_created: number
+  conversations_resolved: number
+  messages_in: number
+  messages_out: number
+  open_now: number
+  unassigned_now: number
+}
+
+/** Один день непрерывного ряда; пропущенные дни приходят нулями. */
+export interface SupportAnalyticsDay {
+  date: string
+  created: number
+  resolved: number
+  incoming: number
+  outgoing: number
+}
+
+export interface SupportAnalyticsChannel {
+  channel: string
+  conversations: number
+  messages: number
+}
+
+export interface SupportAnalyticsPriority {
+  priority: string
+  conversations: number
+  breached_first_response: number
+}
+
+/** Медиана и P90 первого ответа в минутах; `null` при отсутствии данных. */
+export interface SupportAnalyticsFirstResponse {
+  median_minutes: number | null
+  p90_minutes: number | null
+  count: number
+}
+
+export interface SupportAnalyticsOperator {
+  actor_id: number
+  login: string
+  display_name: string
+  replies: number
+  conversations: number
+  last_reply_at: string | null
+}
+
+export interface SupportAnalyticsAi {
+  generated: number
+  sent: number
+  edited: number
+  rejected: number
+  auto_sent: number
+  suggest_sent: number
+  shadow: number
+}
+
+/** Полный снимок аналитики (`GET /support/analytics?days=`). */
+export interface SupportAnalytics {
+  range_days: number
+  totals: SupportAnalyticsTotals
+  by_day: SupportAnalyticsDay[]
+  by_channel: SupportAnalyticsChannel[]
+  by_priority: SupportAnalyticsPriority[]
+  first_response: SupportAnalyticsFirstResponse
+  by_operator: SupportAnalyticsOperator[]
+  ai: SupportAnalyticsAi
+}
+
+/** Админ как оператор: нагрузка и присутствие (`GET /support/operators`). */
+export interface SupportOperator {
+  id: number
+  login: string
+  display_name: string
+  status: string
+  active_dialogs: number
+  replies_30d: number
+  present: boolean
+}
+
+/** Запись журнала аудита (`GET /support/audit`). */
+export interface SupportAuditItem {
+  id: number
+  actor_id: number | null
+  actor_name: string | null
+  action: string
+  resource: string
+  resource_id: string | null
+  payload: Record<string, unknown>
+  ip: string | null
+  created_at: string
+}
+
+export interface SupportAuditListResult {
+  items: SupportAuditItem[]
+  total: number
+  page: number
+  per_page: number
+}
+
+export interface SupportAuditActionCount {
+  action: string
+  count: number
+}
+
+export interface ListAuditParams {
+  action?: string
+  actor_id?: number
   page?: number
   per_page?: number
 }
@@ -770,4 +1005,87 @@ export const supportApi = {
     api
       .post(`/support/messages/${messageId}/feedback`, data)
       .then((r) => unwrap<SupportFeedbackResult>(r.data)),
+
+  // ── SLA ───────────────────────────────────────────────────────────
+
+  listSlaPolicies: () =>
+    api
+      .get('/support/sla/policies')
+      .then((r) => unwrap<{ items: SupportSlaPolicy[] }>(r.data)),
+
+  updateSlaPolicy: (name: string, data: { first_response_minutes: number; resolution_minutes: number }) =>
+    api
+      .put(`/support/sla/policies/${encodeURIComponent(name)}`, data)
+      .then((r) => unwrap<SupportSlaPolicy>(r.data)),
+
+  getSlaOverview: (days = 7) =>
+    api
+      .get(`/support/sla/overview?${toParams({ days })}`)
+      .then((r) => unwrap<SupportSlaOverview>(r.data)),
+
+  // ── Шаблоны ответов ───────────────────────────────────────────────
+
+  listTemplates: (params: ListTemplatesParams = {}) =>
+    api
+      .get(`/support/templates?${toParams({ ...params })}`)
+      .then((r) => unwrap<SupportTemplateListResult>(r.data)),
+
+  createTemplate: (data: SupportTemplateInput) =>
+    api.post('/support/templates', data).then((r) => unwrap<SupportTemplate>(r.data)),
+
+  updateTemplate: (id: number, data: SupportTemplateInput) =>
+    api.put(`/support/templates/${id}`, data).then((r) => unwrap<SupportTemplate>(r.data)),
+
+  deleteTemplate: (id: number) =>
+    api.delete(`/support/templates/${id}`).then((r) => unwrap<{ deleted: boolean }>(r.data)),
+
+  useTemplate: (id: number) =>
+    api
+      .post(`/support/templates/${id}/use`, {})
+      .then((r) => unwrap<{ id: number; uses: number }>(r.data)),
+
+  // ── Заметки о клиенте и присутствие ─────────────────────────────────
+
+  listNotes: (customerId: number) =>
+    api
+      .get(`/support/customers/${customerId}/notes`)
+      .then((r) => unwrap<{ items: SupportNote[] }>(r.data)),
+
+  createNote: (customerId: number, data: { text: string }) =>
+    api
+      .post(`/support/customers/${customerId}/notes`, data)
+      .then((r) => unwrap<SupportNote>(r.data)),
+
+  deleteNote: (noteId: number) =>
+    api.delete(`/support/notes/${noteId}`).then((r) => unwrap<{ deleted: boolean }>(r.data)),
+
+  pingPresence: (data: SupportPresencePing) =>
+    api.post('/support/presence', data).then((r) => unwrap<SupportPresencePingResult>(r.data)),
+
+  getPresence: (conversationId: number) =>
+    api
+      .get(`/support/presence/${conversationId}`)
+      .then((r) => unwrap<{ items: SupportPresenceItem[] }>(r.data)),
+
+  // ── Аналитика и команда ───────────────────────────────────────────
+
+  getAnalytics: (days = 30) =>
+    api
+      .get(`/support/analytics?${toParams({ days })}`)
+      .then((r) => unwrap<SupportAnalytics>(r.data)),
+
+  listOperators: () =>
+    api
+      .get('/support/operators')
+      .then((r) => unwrap<{ items: SupportOperator[] }>(r.data)),
+
+  listAudit: (params: ListAuditParams = {}) =>
+    api
+      .get(`/support/audit?${toParams({ ...params })}`)
+      .then((r) => unwrap<SupportAuditListResult>(r.data)),
+
+  listAuditActions: () =>
+    api
+      .get('/support/audit/actions')
+      .then((r) => unwrap<{ items: SupportAuditActionCount[] }>(r.data)),
 }

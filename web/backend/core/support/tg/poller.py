@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from web.backend.core.support.defaults import DEFAULT_TG_GREETING
 from web.backend.core.support.events import EventBus, EventKind
 from web.backend.core.support.tg.api import (
     TelegramAPIError,
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 LONG_POLL_TIMEOUT = 30
 MAX_HANDLED_PER_TICK = 200
-GREETING = "Здравствуйте! Опишите ваш вопрос одним сообщением — оператор ответит здесь."
+GREETING = DEFAULT_TG_GREETING
 
 
 class TelegramPoller:
@@ -53,6 +54,7 @@ class TelegramPoller:
         bridge: ForumBridge | None = None,
         staff_group_id: int | None = None,
         archive_days: int = 7,
+        greeting: str | None = None,
     ):
         self.store = store
         self.event_bus = event_bus
@@ -66,6 +68,7 @@ class TelegramPoller:
         self.bridge = bridge
         self.staff_group_id = int(staff_group_id) if staff_group_id else None
         self.archive_days = max(1, int(archive_days))
+        self.greeting = (greeting or "").strip() or GREETING
         self._last_update_id = 0
         self._running = False
         self.status: dict[str, Any] = {
@@ -264,20 +267,20 @@ class TelegramPoller:
         )
         await self._ensure_topic(message, chat_id)
 
-        sent = await self._send_private_text(int(chat_id), GREETING)
+        sent = await self._send_private_text(int(chat_id), self.greeting)
         if sent is None:
             return 1
         sent_id = _as_int(sent.get("message_id"))
         outbound_id = await self.store.record_outbound(
             conversation_id=result["conversation_id"],
-            text_value=GREETING,
+            text_value=self.greeting,
             author="bot",
             external_msg_id=str(sent_id) if sent_id else None,
             created_at=created_at,
         )
         self.event_bus.publish(
             EventKind.MESSAGE_CREATED,
-            {"message_id": outbound_id, "direction": "out", "text": GREETING},
+            {"message_id": outbound_id, "direction": "out", "text": self.greeting},
             conversation_id=result["conversation_id"],
         )
         return 1

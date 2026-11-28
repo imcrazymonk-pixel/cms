@@ -349,7 +349,9 @@ GET  /api/support/config-status              req: AUTH -> W<{channels[],poll_int
 GET  /api/support/conversations              req: AUTH + q{status:^(open|pending|resolved|closed)$, channel:^[a-z0-9_]{1,32}$, priority:^(low|normal|high|urgent)$,
                                                assignee_id:int, customer_id:int, unread_only=false, q<=200, page=1 (>=1), per_page=50 (1..200)}
                                              -> W<{items[],total,page,per_page}>  # неверные status/channel/priority -> 422
-GET  /api/support/conversations/{id}         req: AUTH -> W<{conversation,messages[],customer}>  # messages <=200, пагинации в API нет
+GET  /api/support/conversations/{id}         req: AUTH -> W<{conversation,messages[],customer,suggestion}>  # messages <=200, пагинации в API нет
+                                             # suggestion — pending-предложка в публичной форме §5.2 (level/gate/used без chunk)
+                                             # или null; shadow тоже попадает в ответ — скрывает фронт
 POST /api/support/conversations/{id}/reply   req: AUTH + ReplyIn{text<=4000, attachment_ids[]<=10, client_msg_id?, force=false}
                                              -> W<{message_id,conversation_id,external_msg_id,repeated?}|{conversation_id,message_ids[],count}>
                                              # client_msg_id (^[A-Za-z0-9_-]{8,64}$) — идемпотентность текстового ответа:
@@ -380,6 +382,29 @@ POST /api/support/messages/{id}/feedback     req: AUTH + {verdict:correct|partia
                                              # correct/partial -> support_qa_pair(source='feedback', answer=correct_answer|текст сообщения)
                                              # wrong -> кандидат source='feedback' (тема из вопроса, occurrences++);
                                              #          + qa_pair, если передан correct_answer; нет сообщения -> 404 NOT_FOUND
+GET  /api/support/suggestions                req: AUTH + q{status:^(pending|sent|edited|rejected|superseded|all)$=all,
+                                               conversation_id?>=1, page>=1, per_page 1..100=50}
+                                             -> W<{items:[SupportAiSuggestion],total,page,per_page}>  # публичная форма §5.2
+GET  /api/support/suggestions/{id}           req: AUTH -> W<SupportAiSuggestion>  # level/gate/used без chunk; нет -> 404
+POST /api/support/suggestions/{id}/decide    req: AUTH + DecideIn{decision:send|edit|reject, final_text?<=4000, reason?<=64}
+                                             -> W<{status:'sent',message_id}|{status:'edited',text}|{status:'rejected'}>
+                                             # не pending -> 409 CONFLICT; send проходит lease-проверку и Outbox
+                                             # (окно 24ч -> 409 REPLY_WINDOW_CLOSED); reject требует reason из
+                                             # REJECT_REASONS (wrong_facts|unclear|off_topic|too_formal|sensitive|other), иначе 400
+GET  /api/support/assistant/settings         req: AUTH -> W<SupportAiSettings>  # без api_key; без ключа effective_mode='off'
+PUT  /api/support/assistant/settings         req: AUTH + {mode?, min_confidence? 0..1, require_kb?, auto_per_hour?>=0,
+                                               debounce_seconds? 3..60} -> W<SupportAiSettings> + runtime{}
+                                             # пишет support_ai_* в регистр и перезагружает runtime без рестарта
+POST /api/support/assistant/pause            req: AUTH + {hours? 1..744 | until?, note?<=500} -> W<{until,by,note}>
+                                             # ровно одно из hours/until; until не дальше +31 дня; иначе 400
+DELETE /api/support/assistant/pause          req: AUTH -> W<{paused:false}>  # режим ИИ не меняется
+GET  /api/support/assistant/activity         req: AUTH + q{since?, before?>=1, limit 1..100=50} -> W<{items:[SupportAiActivityItem]}>
+GET  /api/support/assistant/stats            req: AUTH + q{days 1..90=30} -> W<SupportAiStats>  # + by_day[]
+POST /api/support/assistant/try              req: AUTH + {text 1..2000, assume_auto=false}
+                                             -> W<{draft:{reply,operator_note,used[],confidence,clarify,needs_human},
+                                                   gate:{action,reason,level?}}>
+                                             # без записи в БД; нет ключа -> 409 AI_KEY_MISSING; нет провайдера -> 409 AI_DISABLED;
+                                             # ошибка провайдера -> 502 PROVIDER_ERROR
 POST /api/support/kb/import                  req: AUTH + ImportIn{kind:'text'|'result_json', text?, payload?:object|string,
                                                operator_names?[]<=50 (каждое <=80), dry_run=false}
                                              -> W<{job_id}>  # HTTP 200, 202-семантика в теле; запускает support_job kind='kb_import'
@@ -403,9 +428,41 @@ POST /api/support/attachments                req: AUTH + multipart file -> W<{to
                                              # allowlist расширений/mime, 8 МБ; upload-токен живёт 24ч (env SUPPORT_UPLOAD_TOKEN_TTL_HOURS)
 GET  /api/support/attachments/{id}           req: AUTH + q{download=false,conversation_id?} -> FileResponse
                                              # ACL: attachment → message → conversation (INNER JOIN); битая связка или чужой conversation_id -> 404
+GET  /api/support/sla/policies               req: AUTH -> W<{items:[{name,first_response_minutes,resolution_minutes}]}>
+PUT  /api/support/sla/policies/{name}        req: AUTH + {first_response_minutes 1..100000, resolution_minutes 1..100000}
+                                             -> W<{name,first_response_minutes,resolution_minutes}>; нет политики -> 404 SLA_POLICY_NOT_FOUND;
+                                             аудит sla.policy_update (resource support_sla_policy)
+GET  /api/support/sla/overview               req: AUTH + q{days 7..90=7} -> W<{policies:[...],breaches:{first_response,resolution},
+                                             events:[{id,conversation_id,kind,due_at,notified_at,breached_at,subject,priority,status,
+                                             assignee_id,overdue_minutes}]}>  # overdue_minutes < 0 — «до дедлайна»
+GET  /api/support/templates                  req: AUTH + q{q?<=200, category?<=64, page>=1=1, per_page 1..100=50}
+                                             -> W<{items:[{id,shortcut,title,body,category,uses,created_by,created_at,updated_at}],total,page,per_page}>
+POST /api/support/templates                  req: AUTH + {shortcut ^[a-z0-9][a-z0-9_-]{0,31}$, title 1..120, body 1..4000, category?<=64}
+                                             -> W<template>; дубль shortcut -> 409 TEMPLATE_EXISTS; аудит template.create
+PUT  /api/support/templates/{id}             req: AUTH + TemplateIn -> W<template>; нет шаблона -> 404 NOT_FOUND; дубль -> 409 TEMPLATE_EXISTS
+DELETE /api/support/templates/{id}           req: AUTH -> W<{deleted:true}>; нет шаблона -> 404 NOT_FOUND; аудит template.delete
+POST /api/support/templates/{id}/use         req: AUTH -> W<{id,uses}>  # uses = uses + 1, updated_at не меняется
+GET  /api/support/customers/{customer_id}/notes req: AUTH -> W<{items:[{id,text,actor_id,actor_name,created_at}]}>  # новые сверху
+                                             # нет клиента -> 404 NOT_FOUND
+POST /api/support/customers/{customer_id}/notes req: AUTH + {text 1..2000} -> W<note>
+                                             # автор — текущий админ (actor_key=str(id)); аудит note.create
+DELETE /api/support/notes/{note_id}          req: AUTH -> W<{deleted:true}>; нет заметки -> 404 NOTE_NOT_FOUND; аудит note.delete
+POST /api/support/presence                   req: AUTH + {conversation_id, state:viewing|typing} -> W<{ok:true,throttled:boolean}>
+                                             # heartbeat не чаще 1 раза в 5 с на пару (оператор, диалог);
+                                             # запись публикует WS-кадр presence; нет диалога -> 404 NOT_FOUND
+GET  /api/support/presence/{conversation_id} req: AUTH -> W<{items:[{actor_id,actor_name,state,seen_at}]}>  # TTL 120 с; нет диалога -> 404
+GET  /api/support/analytics                  req: AUTH + q{days 7..365=30} -> W<{range_days,totals,by_day[],by_channel[],by_priority[],
+                                             first_response,by_operator[],ai}>  # единый снимок; ошибка любого блока -> 5xx
+GET  /api/support/operators                  req: AUTH -> W<{items:[{id,login,display_name,status,active_dialogs,replies_30d,present}]}>
+GET  /api/support/audit                      req: AUTH + q{action?<=64, actor_id?>=1, page>=1=1, per_page 1..100=50}
+                                             -> W<{items:[{id,actor_id,actor_name,action,resource,resource_id,payload,ip,created_at}],
+                                                   total,page,per_page}>  # новые сверху
+GET  /api/support/audit/actions              req: AUTH -> W<{items:[{action,count}]}>  # уникальные действия, частые сверху
 WS   /api/support/ws                         auth-кадр обрабатывает SupportWebSocketManager; без app.state.support — close(NOT_READY)
 Ошибки: HTTPException(detail = ERR); прикладные коды CLIENT_WROTE, LOCKED_BY_OTHER, REPLY_WINDOW_CLOSED,
-        NOT_FOUND, INVALID_INPUT, NOT_IMPLEMENTED, UPSTREAM_ERROR
+        NOT_FOUND, INVALID_INPUT, NOT_IMPLEMENTED, UPSTREAM_ERROR, CONFLICT,
+        KB_VERSION_CONFLICT, KB_DOC_PUBLISHED, IMPORT_TOO_LARGE, IMPORT_PARSE_FAILED, JOB_BUSY,
+        AI_KEY_MISSING, AI_DISABLED, AI_PAUSED, PROVIDER_ERROR, SLA_POLICY_NOT_FOUND, TEMPLATE_EXISTS
 ```
 
 ## 1.27 `api/v1/bedolaga/analytics.py` — prefix `/api/bedolaga/analytics`
@@ -834,7 +891,9 @@ TelegramConflict(TelegramAPIError)                   # HTTP 409 / error_code=409
 #   sendMessage(GREETING) → record_outbound(author="bot"); только при message_created=true,
 #   ошибка отправки → logger.warning (тик живёт)
 # /myid в личке: sendMessage("Ваш Telegram ID: <id>"), диалог/сообщения не создаются
-GREETING = "Здравствуйте! Опишите ваш вопрос одним сообщением — оператор ответит здесь."
+GREETING = DEFAULT_TG_GREETING          # core/support/defaults.py — дефолт
+# TelegramPoller(greeting=settings.tg_greeting) — текст из настройки support_tg_greeting
+# (textarea, env SUPPORT_TG_GREETING, hot reload через SUPPORT_TRIGGER_KEYS)
 # core/support/schema.py
 ensure_support_schema()  # применяет по порядку 004-support-foundation.sql, 005-support-reply-idempotency.sql,
                          # 006-support-ai-kb.sql, затем idempotent ALTER: support_message.author CHECK расширен
@@ -845,6 +904,9 @@ ensure_support_schema()  # применяет по порядку 004-support-fo
                          #   FK conversation/message ON DELETE CASCADE; idx_support_reply_key_message(message_id))
                          # 006-support-ai-kb.sql: KB/suggestion/qa_pair/operator_draft/candidate/job поля, partial unique
                          #   uq_support_ai_suggestion_pending(conversation_id) WHERE status='pending'
+                         # 008-support-stage-c.sql (Этап C): support_message.author_id, support_template.category/created_by/
+                         #   updated_at, support_sla_event(id,conversation_id,kind,due_at,breached_at,notified_at,closed_at;
+                         #   UNIQUE(conversation_id,kind); partial idx due WHERE notified_at IS NULL AND closed_at IS NULL)
 ```
 
 ## Support: ИИ-ядро и store (Этап B, B1b-2a)
@@ -883,6 +945,13 @@ similar_examples(store, query, *, limit=3, exclude_conversation_id=None)  # об
 store_examples(store) -> async search            # привязка для AiRuntime.examples
 # core/support/ai/chunks.py
 KbChunk(title, body, rank, position, score, section=None, doc_id=None)  # doc_id → used[].doc_id
+# core/support/ai/public.py  (публичная форма предложки; без I/O, один источник истины)
+used_items(raw) -> [{doc_id:int|null,title}]        # из JSONB used; chunk отбрасывается, doc_id → int|None
+level(suggestion, config) -> 'sure'|'check'|'unsure'  # confidence_level от min_confidence
+public_suggestion(suggestion, config) -> {id,conversation_id,message_id,text,final_text,operator_note,
+                                          confidence,level,used,reason,gate{action,reason},model,status,created_at}
+config_for(service) -> AiConfig                     # runtime.config, иначе AiConfig.from_settings(service.settings)
+                                                    # используется в api/v1/support/{suggestions,conversations}.py
 # core/support/store/qa.py  (raw SQL, без commit)
 normalize(text) / external_key(question, answer) # lower, ё→е, пунктуация/пробелы, сортировка слов; sha256(q \x1f a)
 clean_example(text, max=600) / is_meaningful(text)  # scrub, [номер], filler «ок/спасибо» отбрасывается
@@ -900,6 +969,22 @@ claim_job(db, id) -> job|None                    # queued -> running + started_a
 update_job(db, id, *, progress?, total?, result?, error?) -> job|None
 finish_job(db, id, *, status='done'|'error', result?, error?) -> job|None  # + finished_at
 cancel_job(db, id) -> job|None                   # active -> status='error', error='cancelled'; иначе текущее состояние
+# core/support/store/sla.py  (raw SQL, без commit; Этап C, C2)
+list_policies(db) / get_policy(db, name) / update_policy(db, name, first_response_minutes, resolution_minutes)
+sync_events(db, *, now=None) -> int              # upsert first_response|resolution по priority; due=first_inbound_at+N мин;
+                                                 # reopen: closed_at=NULL, notified_at/breached_at=NULL если due изменился
+                                                 # ИЛИ событие было closed_at IS NOT NULL; закрывает resolved/closed и
+                                                 # first_response при first_response_at IS NOT NULL; вернуть active count
+claim_due_alerts(db, *, limit=5) -> [alert]      # UPDATE … FOR UPDATE SKIP LOCKED; notified_at=now() (ровно один раз);
+                                                 # alert={id,conversation_id,kind,due_at,overdue_minutes}
+list_overview(db) -> [event]                     # closed_at IS NULL и due_at <= now()+1h; join conversation; overdue_minutes
+count_breaches(db) -> {first_response:int, resolution:int}  # breached_at IS NOT NULL AND closed_at IS NULL
+# SupportStore: list_policies/get_policy/update_policy/sync_events(now?)/claim_due_alerts(limit=5)/sla_overview/count_breaches
+# core/support/sla.py
+SlaWatcher(service, *, interval=60, batch=5)     # run_loop: sleep → pass_once; исключения логируются; stop() идемпотентен
+pass_once(now=None) -> int                        # sync_events → claim_due_alerts(limit=batch) → SLA_ALERT + staff TG + audit
+                                                 # текст staff: «⏰ SLA: диалог #ID, <kind>, просрочка N мин, приоритет X»
+# core/support/workers.py: start_support_workers добавляет _sla_loop (интервал 60 с); watcher → service.sla_watcher
 # core/support/imports/*  (каталог назван imports: `import` — зарезервированное слово Python,
 #                           обычный `from ... import ...` с таким пакетом невозможен)
 # imports/errors.py
@@ -951,6 +1036,7 @@ class ErrorCode(str, Enum): INVALID_CREDENTIALS, TOKEN_REQUIRED, INVALID_TOKEN, 
   REPLY_WINDOW_CLOSED, CLIENT_WROTE, LOCKED_BY_OTHER,
   AI_DISABLED, AI_PAUSED, AI_KEY_MISSING, AI_UPSTREAM_ERROR, PROVIDER_ERROR,
   KB_VERSION_CONFLICT, KB_DOC_PUBLISHED, IMPORT_TOO_LARGE, IMPORT_PARSE_FAILED, JOB_BUSY,
+  TEMPLATE_EXISTS, SLA_POLICY_NOT_FOUND, NOTE_NOT_FOUND,
   INTERNAL_ERROR, NOT_IMPLEMENTED, RATE_LIMITED     # каждый member = собственное имя
 E = ErrorCode
 def api_error(status_code: int, code: ErrorCode, detail: Optional[str] = None) -> JSONResponse   # ERR
@@ -1364,11 +1450,16 @@ interface SupportCustomerProfileBrief { id:number; identity_key:string; tg_user_
   display_name:string|null; email:string|null; phone:string|null }
 interface SupportCustomerCard { provider:string; id:number|null; telegram_id:number|null; username:string; display_name:string;
   balance_kopeks:number|null; balance_rub:number|null;
-  subscription:{status?:string; end_date?:string; is_trial?:boolean; traffic?:{used_bytes?:number|null; limit_bytes?:number|null}};
+  subscription:{status?:string; end_date?:string; is_trial?:boolean; tariff_name?:string|null;
+    device_limit?:number|null; device_count?:number|null; subscription_url?:string|null;
+    traffic_used_gb?:number|null; traffic_limit_gb?:number|null;
+    traffic?:{used_bytes?:number|null; limit_bytes?:number|null}};
   tickets_total:number; last_activity:string|null; recent_transactions:number;
   remnawave:{available?:boolean; note?:string}; fetched_at:string }
 interface SupportListResult { items:SupportConversation[]; total:number; page:number; per_page:number }
-interface SupportConversationDetail { conversation:SupportConversation; messages:SupportMessage[]; customer:SupportCustomerProfileBrief|null }
+interface SupportConversationDetail { conversation:SupportConversation; messages:SupportMessage[]; customer:SupportCustomerProfileBrief|null;
+  /** Последняя pending-предложка (публичная форма `core/support/ai/public.py`); shadow тоже приходит — скрывает фронт. */
+  suggestion?:SupportAiSuggestion|null }
 interface PollerStatus { enabled?:boolean; running?:boolean; last_poll?:string|null; last_offset?:number;
   last_error?:string|null; ingested?:number }
 interface SupportPollersResult { pollers:Record<string,PollerStatus> }
@@ -1385,9 +1476,131 @@ type PrioritySyncResult = 'synced'|'unchanged'|'skipped'|'error'
 interface StateResult { conversation_id:number; status:ConversationStatus; priority?:ConversationPriority|null;
   synced?:string; priority_synced?:PrioritySyncResult|string }
 type SupportErrorCode = 'CLIENT_WROTE'|'LOCKED_BY_OTHER'|'REPLY_WINDOW_CLOSED'
+  |'KB_VERSION_CONFLICT'|'KB_DOC_PUBLISHED'|'IMPORT_TOO_LARGE'|'IMPORT_PARSE_FAILED'|'JOB_BUSY'
+  |'AI_DISABLED'|'AI_PAUSED'|'AI_KEY_MISSING'|'PROVIDER_ERROR'|'CONFLICT'
+  // объявлены в core/errors.py:47-61; прочие (INVALID_INPUT, NOT_FOUND, NOT_IMPLEMENTED, UPSTREAM_ERROR,
+  // AI_UPSTREAM_ERROR) приходят как string — getSupportErrorCode возвращает union со string
 interface SupportErrorDetail { code:SupportErrorCode|string; error?:string; message?:string }
 function getSupportErrorCode(err:unknown): SupportErrorCode|string|undefined  // detail.code | detail:str | error.code
 function getSupportErrorMessage(err:unknown): string|undefined                // detail.error | error.message | error:str
+
+// База знаний (B3a)
+type KbDocStatus = 'draft'|'published'|'archived'
+type KbDocSource = 'manual'|'import'|'candidate'|'faq'
+type KbCandidateStatus = 'new'|'accepted'|'rejected'
+interface SupportKbListItem { id:number; slug:string|null; title:string; source:string; status:KbDocStatus; version:number;
+  updated_at:string; updated_by:number|null; excerpt:string }
+interface SupportKbListResult { items:SupportKbListItem[]; total:number; page:number; per_page:number }
+interface SupportKbDoc { id:number; slug:string|null; title:string; body:string; status:KbDocStatus; version:number; tags:string[];
+  source:string; updated_by:number|null; published_at:string|null; archived_at:string|null; updated_at:string; created_at?:string|null }
+interface SupportKbDocInput { title:string; body:string; slug?:string|null; tags?:string[]; source?:KbDocSource }
+interface SupportKbDocCreateResult { id:number; slug:string|null; version:number; status:KbDocStatus }
+interface SupportKbDocUpdateResult { id:number; slug:string|null; version:number; status:KbDocStatus; updated_at:string }
+interface SupportKbPublishResult { id:number; status:'published'; published_at:string|null }
+interface SupportKbArchiveResult { id:number; status:'archived'; archived_at:string|null }
+interface SupportKbRestoreResult { id:number; status:'draft' }
+interface SupportKbSearchItem { id:number; slug:string|null; title:string; rank:number; snippet:string }
+interface SupportKbCandidate { id:number; topic:string|null; question:string|null; answer:string|null; occurrences:number;
+  source:string; status:KbCandidateStatus; created_at:string; doc_id:number|null }
+interface SupportKbCandidateListResult { items:SupportKbCandidate[]; total:number; page:number; per_page:number }
+interface SupportKbCandidateDecision { decision:'accept'|'reject'; reason?:string; title?:string; body?:string }
+interface SupportKbCandidateDecisionResult { id:number; status:KbCandidateStatus; doc_id?:number }
+interface ListKbParams { status?:'draft'|'published'|'archived'|'all'; q?:string; page?:number; per_page?:number }
+interface ListKbCandidatesParams { status?:KbCandidateStatus|'all'; page?:number; per_page?:number }
+
+// Импорт базы знаний
+type SupportImportKind = 'text'|'result_json'
+type SupportImportJobStatus = 'queued'|'running'|'done'|'error'
+interface SupportImportRequest { kind:SupportImportKind; text?:string; payload?:Record<string,unknown>|string;
+  operator_names?:string[]; dry_run?:boolean }
+interface SupportImportStartResult { job_id:number }
+interface SupportImportResult { questions:number; pairs_created:number; skipped_duplicates:number; candidates_created:number;
+  errors:string[]; dry_run?:boolean; would_create?:number; would_skip?:number; would_create_candidates?:number }
+interface SupportImportJob { id:number; kind:SupportImportKind; status:SupportImportJobStatus; progress:number; total:number|null;
+  result:SupportImportResult|null; error:string|null; started_at:string|null; finished_at:string|null }
+interface SupportImportCancelResult { status:SupportImportJobStatus|null; error:string|null }
+
+// ИИ: предложки, настройки, статистика, песочница
+type SupportAiMode = 'off'|'shadow'|'suggest'|'auto'
+type SupportAiLevel = 'sure'|'check'|'unsure'
+type SupportSuggestionStatus = 'pending'|'sent'|'edited'|'rejected'|'superseded'
+type SupportSuggestionDecision = 'send'|'edit'|'reject'
+interface SupportAiGate { action:string|null; reason:string|null }
+interface SupportAiUsedDoc { doc_id:number|null; title:string }
+interface SupportAiSuggestion { id:number; conversation_id:number|null; message_id:number|null; text:string|null; final_text:string|null;
+  operator_note:string|null; confidence:number|null; level:SupportAiLevel; used:SupportAiUsedDoc[]; reason:string|null;
+  gate:SupportAiGate; model:string|null; status:SupportSuggestionStatus|null; created_at:string|null }
+interface SupportAiSuggestionListResult { items:SupportAiSuggestion[]; total:number; page:number; per_page:number }
+interface SupportSuggestionDecisionPayload { decision:SupportSuggestionDecision; final_text?:string; reason?:string }
+type SupportSuggestionDecisionResult = {status:'sent'; message_id:number}|{status:'edited'; text:string}|{status:'rejected'}
+interface SupportAiPause { until:string; by:string; note:string }
+interface SupportAiSettings { mode:SupportAiMode; effective_mode:SupportAiMode; has_key:boolean; paused:SupportAiPause|null;
+  model:string; fallback_model:string; base_url:string; min_confidence:number; require_kb:boolean; auto_per_hour:number;
+  human_hold_minutes:number; debounce_seconds:number; kb_budget_chars:number; language:string; brand:string; allowed_domains:string[] }
+interface SupportAiSettingsUpdate { mode?:SupportAiMode; min_confidence?:number; require_kb?:boolean; auto_per_hour?:number;
+  debounce_seconds?:number }
+interface SupportAiPauseRequest { hours?:number; until?:string; note?:string }
+interface SupportAiActivityParams { since?:string; before?:number; limit?:number }
+interface SupportAiActivityItem { id:number; conversation_id:number|null; action:string|null; gate_reason:string|null;
+  confidence:number|null; model:string|null; tokens_in:number|null; tokens_out:number|null; status:string|null;
+  created_at:string; gate_action:string|null }
+interface SupportAiStatsDay { date:string; generated:number; sent:number }
+interface SupportAiStats { generated:number; sent:number; edited:number; rejected:number; superseded:number; auto_sent:number;
+  suggest_sent:number; shadow:number; sent_rate:number; avg_confidence:number; tokens_in:number; tokens_out:number;
+  by_day:SupportAiStatsDay[] }
+interface SupportAiTryRequest { text:string; assume_auto?:boolean }
+interface SupportAiTryResult { draft:{ reply:string; operator_note:string; used:SupportAiUsedDoc[]; confidence:number|null;
+  clarify:boolean; needs_human:boolean }; gate:{ action:string; reason:string; level?:SupportAiLevel } }
+
+// Фидбек по ответу
+type SupportFeedbackVerdict = 'correct'|'partial'|'wrong'
+interface SupportFeedbackPayload { verdict:SupportFeedbackVerdict; note?:string; correct_answer?:string }
+interface SupportFeedbackResult { qa_pair_id:number|null }
+
+// SLA (C2)
+type SupportSlaKind = 'first_response'|'resolution'
+interface SupportSlaPolicy { name:string; first_response_minutes:number; resolution_minutes:number }
+interface SupportSlaEvent { id:number; conversation_id:number; kind:SupportSlaKind; due_at:string; notified_at:string|null;
+  breached_at:string|null; subject:string|null; priority:ConversationPriority; status:ConversationStatus;
+  assignee_id:number|null; overdue_minutes:number|null }
+interface SupportSlaBreaches { first_response:number; resolution:number }
+interface SupportSlaOverview { policies:SupportSlaPolicy[]; breaches:SupportSlaBreaches; events:SupportSlaEvent[] }
+
+// Шаблоны ответов (C1)
+interface SupportTemplate { id:number; shortcut:string; title:string; body:string; category:string|null; uses:number;
+  created_by:number|null; created_at:string; updated_at:string }
+interface SupportTemplateInput { shortcut:string; title:string; body:string; category?:string|null }
+interface SupportTemplateListResult { items:SupportTemplate[]; total:number; page:number; per_page:number }
+interface ListTemplatesParams { q?:string; category?:string; page?:number; per_page?:number }
+
+// Заметки о клиенте и присутствие (C4)
+interface SupportNote { id:number; text:string; actor_id:number|null; actor_name:string; created_at:string|null }
+type SupportPresenceState = 'viewing'|'typing'
+interface SupportPresenceItem { actor_id:number|null; actor_name:string; state:SupportPresenceState; seen_at:string }
+interface SupportPresencePing { conversation_id:number; state:SupportPresenceState }
+interface SupportPresencePingResult { ok:boolean; throttled:boolean }
+
+// Аналитика и команда (C3)
+interface SupportAnalyticsTotals { conversations_created:number; conversations_resolved:number; messages_in:number;
+  messages_out:number; open_now:number; unassigned_now:number }
+interface SupportAnalyticsDay { date:string; created:number; resolved:number; incoming:number; outgoing:number }
+interface SupportAnalyticsChannel { channel:string; conversations:number; messages:number }
+interface SupportAnalyticsPriority { priority:string; conversations:number; breached_first_response:number }
+interface SupportAnalyticsFirstResponse { median_minutes:number|null; p90_minutes:number|null; count:number }
+interface SupportAnalyticsOperator { actor_id:number; login:string; display_name:string; replies:number;
+  conversations:number; last_reply_at:string|null }
+interface SupportAnalyticsAi { generated:number; sent:number; edited:number; rejected:number; auto_sent:number;
+  suggest_sent:number; shadow:number }
+interface SupportAnalytics { range_days:number; totals:SupportAnalyticsTotals; by_day:SupportAnalyticsDay[];
+  by_channel:SupportAnalyticsChannel[]; by_priority:SupportAnalyticsPriority[]; first_response:SupportAnalyticsFirstResponse;
+  by_operator:SupportAnalyticsOperator[]; ai:SupportAnalyticsAi }
+interface SupportOperator { id:number; login:string; display_name:string; status:string; active_dialogs:number;
+  replies_30d:number; present:boolean }
+interface SupportAuditItem { id:number; actor_id:number|null; actor_name:string|null; action:string; resource:string;
+  resource_id:string|null; payload:Record<string,unknown>; ip:string|null; created_at:string }
+interface SupportAuditListResult { items:SupportAuditItem[]; total:number; page:number; per_page:number }
+interface SupportAuditActionCount { action:string; count:number }
+interface ListAuditParams { action?:string; actor_id?:number; page?:number; per_page?:number }
 
 supportApi.listConversations(params?: ListConversationParams): Promise<SupportListResult>   // GET /api/support/conversations
 supportApi.getConversation(id): Promise<SupportConversationDetail>                          // GET  /api/support/conversations/{id}
@@ -1401,7 +1614,93 @@ supportApi.uploadAttachment(file): Promise<SupportUploadResult>                 
 supportApi.getAttachmentBlob(id, download=false): Promise<Blob>                             // GET /api/support/attachments/{id}
 supportApi.getPollers(): Promise<SupportPollersResult>                                      // GET /api/support/pollers
 supportApi.getConfigStatus(): Promise<SupportConfigStatus>                                  // GET /api/support/config-status
+supportApi.listKb(params?: ListKbParams): Promise<SupportKbListResult>                      // GET /api/support/kb
+supportApi.getKb(id): Promise<{doc: SupportKbDoc}>                                          // GET /api/support/kb/{id}
+supportApi.createKb(data: SupportKbDocInput): Promise<SupportKbDocCreateResult>             // POST /api/support/kb
+supportApi.updateKb(id, data & {expected_version:number}): Promise<SupportKbDocUpdateResult> // PUT /api/support/kb/{id}
+supportApi.publishKb(id, expected_version): Promise<SupportKbPublishResult>                 // POST /api/support/kb/{id}/publish
+supportApi.archiveKb(id): Promise<SupportKbArchiveResult>                                   // POST /api/support/kb/{id}/archive
+supportApi.restoreKb(id): Promise<SupportKbRestoreResult>                                   // POST /api/support/kb/{id}/restore
+supportApi.deleteKb(id): Promise<{deleted:boolean}>                                         // DELETE /api/support/kb/{id}
+supportApi.searchKb(q, limit=10): Promise<{items: SupportKbSearchItem[]}>                   // GET /api/support/kb/search
+supportApi.listCandidates(params?: ListKbCandidatesParams): Promise<SupportKbCandidateListResult> // GET /api/support/kb/candidates
+supportApi.decideCandidate(id, data: SupportKbCandidateDecision): Promise<SupportKbCandidateDecisionResult> // POST /api/support/kb/candidates/{id}
+supportApi.importKb(data: SupportImportRequest): Promise<SupportImportStartResult>          // POST /api/support/kb/import
+supportApi.getImportJob(jobId): Promise<SupportImportJob>                                   // GET /api/support/kb/import/{jobId}
+supportApi.cancelImport(jobId): Promise<SupportImportCancelResult>                          // POST /api/support/kb/import/{jobId}/cancel
+supportApi.getSuggestion(id): Promise<SupportAiSuggestion>                                  // GET /api/support/suggestions/{id}
+supportApi.decideSuggestion(id, data): Promise<SupportSuggestionDecisionResult>             // POST /api/support/suggestions/{id}/decide
+supportApi.getAssistantSettings(): Promise<SupportAiSettings>                               // GET /api/support/assistant/settings
+supportApi.updateAssistantSettings(data: SupportAiSettingsUpdate): Promise<SupportAiSettings> // PUT /api/support/assistant/settings
+supportApi.pauseAssistant(data: SupportAiPauseRequest): Promise<SupportAiPause>             // POST /api/support/assistant/pause
+supportApi.resumeAssistant(): Promise<{paused:false}>                                      // DELETE /api/support/assistant/pause
+supportApi.assistantActivity(params?): Promise<{items: SupportAiActivityItem[]}>            // GET /api/support/assistant/activity
+supportApi.assistantStats(days=30): Promise<SupportAiStats>                                 // GET /api/support/assistant/stats
+supportApi.tryAssistant(data: SupportAiTryRequest): Promise<SupportAiTryResult>             // POST /api/support/assistant/try
+supportApi.messageFeedback(messageId, data: SupportFeedbackPayload): Promise<SupportFeedbackResult> // POST /api/support/messages/{id}/feedback
+supportApi.listSlaPolicies(): Promise<{items: SupportSlaPolicy[]}>                          // GET /api/support/sla/policies
+supportApi.updateSlaPolicy(name, data): Promise<SupportSlaPolicy>                            // PUT /api/support/sla/policies/{name}
+supportApi.getSlaOverview(days=7): Promise<SupportSlaOverview>                               // GET /api/support/sla/overview
+supportApi.listTemplates(params?: ListTemplatesParams): Promise<SupportTemplateListResult>   // GET /api/support/templates
+supportApi.createTemplate(data: SupportTemplateInput): Promise<SupportTemplate>              // POST /api/support/templates
+supportApi.updateTemplate(id, data: SupportTemplateInput): Promise<SupportTemplate>          // PUT /api/support/templates/{id}
+supportApi.deleteTemplate(id): Promise<{deleted:boolean}>                                    // DELETE /api/support/templates/{id}
+supportApi.useTemplate(id): Promise<{id, uses}>                                              // POST /api/support/templates/{id}/use
+supportApi.listNotes(customerId): Promise<{items: SupportNote[]}>                             // GET /api/support/customers/{customerId}/notes
+supportApi.createNote(customerId, {text}): Promise<SupportNote>                               // POST /api/support/customers/{customerId}/notes
+supportApi.deleteNote(noteId): Promise<{deleted:boolean}>                                     // DELETE /api/support/notes/{noteId}
+supportApi.pingPresence({conversation_id, state}): Promise<SupportPresencePingResult>         // POST /api/support/presence
+supportApi.getPresence(conversationId): Promise<{items: SupportPresenceItem[]}>               // GET /api/support/presence/{conversationId}
+supportApi.getAnalytics(days=30): Promise<SupportAnalytics>                                  // GET /api/support/analytics?days=
+supportApi.listOperators(): Promise<{items: SupportOperator[]}>                              // GET /api/support/operators
+supportApi.listAudit(params?: ListAuditParams): Promise<SupportAuditListResult>              // GET /api/support/audit
+supportApi.listAuditActions(): Promise<{items: SupportAuditActionCount[]}>                   // GET /api/support/audit/actions
+// getSupportErrorMessage: TEMPLATE_EXISTS -> «Шаблон с таким ярлыком уже существует»; SLA_POLICY_NOT_FOUND -> «Политика SLA не найдена»
 ```
+
+## 3.16a Support: страницы и компоненты ИИ/КБ
+
+```
+pages/support/Queue.tsx          // очередь: каналы/pollers, список, тред (MessageThread с AiDraftCard над композером), композер
+pages/support/Kb.tsx             // `/support/kb`: табы «Статьи»/«Черновики»/«Идеи», поиск (debounce 300 мс), редактор справа
+pages/support/Assistant.tsx      // `/support/ai`: настройки + статистика (7/30 дней) + песочница; query-keys support-assistant-settings/-stats
+pages/support/Sla.tsx            // `/support/sla`: 4 политики (low/normal/high/urgent) с PUT по строке, счётчики просрочек, события с дедлайнами
+pages/support/Templates.tsx      // `/support/templates`: поиск (debounce 300 мс), список, редактор (shortcut /..., title, category, body), use/delete
+pages/support/Analytics.tsx      // `/support/analytics`: 7/30/90 дней; 6 метрик, первый ответ (медиана/P90/count), CSS-бары by_day,
+                                 // таблицы by_channel / by_priority / by_operator, блок ИИ; query-key ['support','analytics',days]
+pages/support/Team.tsx           // `/support/team`: карточки операторов (status, present → «в панели»/«не в сети», active_dialogs,
+                                 // replies_30d) + журнал аудита с фильтром action, per_page=25 и пагинацией; только чтение
+pages/support/Placeholder.tsx    // не смонтирован: `/support/analytics` и `/support/team` заменены на Analytics/Team
+pages/support/components/AiDraftCard.tsx      // карточка предложки: уровень, used[], «Почему так?», operator_note, Отправить/Править/Отклонить, «Это неверно»
+                                             // при suggestion.gate.action === 'shadow' не рендерится
+pages/support/components/MessageThread.tsx    // переписка, цитата reply_excerpt, фидбек по исходящему; присутствие «Смотрит: … / печатает: …»,
+                                             // пинг viewing при открытии и typing при вводе (троттлинг 5 с), `/shortcut`-подсказка (до 5)
+pages/support/components/TemplatePicker.tsx   // попап «Шаблоны» над композером (поиск, debounce 250 мс) + экспорт useSupportTemplates(q, enabled)
+                                             // query-key ['support','templates','picker',q], per_page=50, staleTime 30 с; выбор → onPick(body) + useTemplate(id)
+pages/support/components/ConversationList.tsx // список диалогов + фильтры
+pages/support/components/CustomerCard.tsx     // карточка клиента Bedolaga (refresh) + внутренние заметки;
+                                             // props: card, isLoading, isRefreshing, onRefresh, customerProfileId?, currentUserId?
+
+components/kb/KbList.tsx         // список статей/идей, excerpt и total (без пагинации)
+components/kb/KbEditor.tsx       // форма статьи + кнопки Сохранить/Опубликовать/В архив/Восстановить/Удалить (мутации и диалоги — в Kb.tsx)
+components/kb/CandidateList.tsx  // идеи статей: принять (→ draft-статья) / отклонить
+components/kb/ImportPanel.tsx    // импорт текста чата или result.json: dry-run по умолчанию, прогресс support_job, отмена
+
+pages/support/components/assistant/ModeCard.tsx    // off|shadow|suggest|auto + «фактически: …»; без ключа suggest/auto заблокированы
+pages/support/components/assistant/PauseCard.tsx   // пауза 1 ч / 4 ч / 24 ч / «до утра», снятие паузы (режим не меняется)
+pages/support/components/assistant/ParamsCard.tsx  // порог уверенности, require_kb, автоответов в час, debounce 3..60 с
+pages/support/components/assistant/StatsCard.tsx   // агрегаты + CSS-бары by_day (без chart-библиотек)
+pages/support/components/assistant/TryPanel.tsx    // песочница «Проверить»: draft + gate, в БД не пишет
+
+lib/supportSocket.ts
+  type SupportEventPayload = { type:'message'|'message_updated'|'conversation'|'poller'|'ai_suggestion'|'presence'|'sla_alert'|'ping'; data? }
+  handlers: onMessage, onMessageUpdated, onConversation, onPoller, onAiSuggestion, onPresence, onSlaAlert, onAuthExpired, onStatusChange
+  кадр ai_suggestion.data = { conversation_id, suggestion_id, status }   // ws.py:127 + suggestions.py:208-262
+  кадр presence.data = { conversation_id, actor_id, state:'viewing'|'typing' }   // presence.py:52-61; только при реальной записи (не throttled)
+  кадр sla_alert.data = { conversation_id, kind:'first_response'|'resolution', due_at:ISO, overdue_minutes }  // ws.py mapping + core/support/sla.py:106
+  useSupportSocket(handlers): реконнект 2→5→10→30 с; close 4401 → /admin/login
+```
+Компоненты КБ физически лежат в `src/components/kb/` (план Этапа B §9 B3 указывал `pages/support/components/kb/` — фактический путь другой).
 
 ## 3.17 `notifications.ts` — фронтенд шире бэкенда
 
@@ -1541,12 +1840,12 @@ src/store/useWebSocket.ts
 | `/bedolaga/tariffs` | `pages/bedolaga/BedolagaTariffs` | да | да |
 | `/bedolaga/revenue` | `pages/bedolaga/BedolagaRevenue` | да | да |
 | `/support` | `pages/support/Queue` (`SupportQueue`) | да | да |
-| `/support/sla` | `pages/support/Placeholder` (`SupportPlaceholder`) | да | да |
-| `/support/kb` | `SupportPlaceholder` | да | да |
-| `/support/ai` | `SupportPlaceholder` | да | да |
-| `/support/templates` | `SupportPlaceholder` | да | да |
-| `/support/analytics` | `SupportPlaceholder` | да | да |
-| `/support/team` | `SupportPlaceholder` | да | да |
+| `/support/sla` | `pages/support/Sla` (`SupportSla`) | да | да |
+| `/support/kb` | `pages/support/Kb` (`SupportKb`) | да | да |
+| `/support/ai` | `pages/support/Assistant` (`SupportAssistant`) | да | да |
+| `/support/templates` | `pages/support/Templates` (`SupportTemplates`) | да | да |
+| `/support/analytics` | `pages/support/Analytics` (`SupportAnalytics`) | да | да |
+| `/support/team` | `pages/support/Team` (`SupportTeam`) | да | да |
 | `/changelog` | `pages/ChangelogViewer` | да | да |
 | `*` | `pages/NotFound` | нет | да |
 
@@ -1589,7 +1888,7 @@ WS-инвалидация `['support-pollers']` сохраняется.
 `integrations`, `logs`; controlled `Tabs` синхронизируются с `?tab=`; вкладка «Интеграции»
 рендерится из реестра (`tab="integrations"`), у HTTP-блоков — кнопки
 `settingsApi.testIntegration`, у прокси — `settingsApi.testProxy`. Deep-link `?from=`
-(`bedolaga|support|bot_db|platega|yookassa|proxy`) маппится в категорию вкладки «Интеграции»
+(`bedolaga|support|support_ai|bot_db|platega|yookassa|proxy`) маппится в категорию вкладки «Интеграции»
 (`FROM_TO_CATEGORY`), при отсутствии `tab` открывает `integrations`, после загрузки выполняет
 `scrollIntoView` к блоку с ASCII-якорем `settings-cat-*` (`CATEGORY_ANCHOR`). Блоки «Интеграций»
 раскрыты по умолчанию; при заданном `from` — только целевой (при поиске — все совпавшие), а если

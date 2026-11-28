@@ -252,3 +252,23 @@ def test_tri_auto_leaves_runtime_untouched():
     _apply_registry_overrides(settings, runtime, {"support_tg_enabled": "auto"})
 
     assert runtime == {}
+
+
+# ── Приветствие бота (Stage D) ─────────────────────────────────────────────
+
+def test_greeting_key_registered_and_mapped():
+    """Ключ приветствия рендерится textarea и попадает в SupportSettings."""
+    definition = REGISTRY_BY_KEY["support_tg_greeting"]
+    assert definition.type == "textarea"
+    assert definition.is_secret is False
+    assert definition.env_var == "SUPPORT_TG_GREETING"
+    assert SUPPORT_OVERRIDES["support_tg_greeting"] == ("field", "tg_greeting")
+
+    settings = SupportSettings()
+    runtime: dict[str, str] = {}
+    _apply_registry_overrides(
+        settings,
+        runtime,
+        {"support_tg_greeting": "Свой текст"},
+    )
+    assert settings.tg_greeting == "Свой текст"

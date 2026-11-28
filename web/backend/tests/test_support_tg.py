@@ -266,6 +266,26 @@ async def test_poller_start_creates_conversation_and_greets_once(tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_poller_start_uses_custom_greeting(tmp_path):
+    """Приветствие из настроек уходит клиенту и сохраняется как ответ бота."""
+    transport = TgTransport()
+    store = FakeStore()
+    client, _ = make_client(transport)
+    poller = TelegramPoller(
+        store=store, event_bus=EventBus(), client=client,
+        bot_name="main", upload_dir=tmp_path, enabled=True,
+        greeting="Свой текст приветствия",
+    )
+
+    assert await poller._handle_update(_update_text(1, 32, "/start")) == 1
+
+    outbound = [m for m in store.messages if m["direction"] == "out"]
+    assert len(outbound) == 1
+    assert outbound[0]["text"] == "Свой текст приветствия"
+    assert transport.send_calls[-1]["json"]["text"] == "Свой текст приветствия"
+
+
+@pytest.mark.asyncio
 async def test_poller_start_greeting_failure_keeps_tick_alive(tmp_path):
     transport = TgTransport()
     store = FakeStore()

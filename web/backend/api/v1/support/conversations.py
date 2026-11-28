@@ -15,6 +15,7 @@ from web.backend.api.deps import AdminUser, get_current_admin
 from web.backend.api.v1.support.attachments import UPLOAD_TOKEN_TTL_HOURS, resolve_upload_token
 from web.backend.core.errors import E
 from web.backend.core.support import SupportService
+from web.backend.core.support.ai.public import config_for, public_suggestion
 from web.backend.core.support.deps import get_support_service
 from web.backend.core.support.events import EventKind
 from web.backend.core.support.outbox import WindowClosedError
@@ -124,6 +125,9 @@ async def get_support_conversation(
             suggestion = await pending(conversation_id)
         except Exception as e:  # noqa: BLE001 — деталь диалога не должна падать
             logger.debug("Pending AI suggestion read failed: %s", type(e).__name__)
+    if suggestion is not None:
+        # Наружу — только контракт плана §5.2 (level/gate/used без chunk).
+        suggestion = public_suggestion(suggestion, config_for(service))
     return {"success": True, "data": {**result, "customer": customer, "suggestion": suggestion}}
 
 
@@ -156,7 +160,7 @@ async def reply_to_conversation(
     await _guard_lease(service, conv, conversation_id, admin, force=body.force)
 
     if body.attachment_ids:
-        return await _reply_with_attachments(service, conv, conversation_id, body)
+        return await _reply_with_attachments(service, conv, conversation_id, body, admin)
 
     if not body.text:
         raise HTTPException(
@@ -204,11 +208,13 @@ async def reply_to_conversation(
             conversation_id=conversation_id,
             text_value=body.text,
             author="agent",
+            author_id=admin.id,
             external_msg_id=external_msg_id,
         )
     else:
         message_id = await service.store.record_outbound(
             conversation_id=conversation_id, text_value=body.text, author="agent",
+            author_id=admin.id,
             external_msg_id=external_msg_id,
         )
     service.event_bus.publish(
@@ -276,7 +282,13 @@ def _lease_active(claimed_at: Any) -> bool:
     return datetime.now(timezone.utc) - claimed_at <= timedelta(minutes=_LEASE_MINUTES)
 
 
-async def _reply_with_attachments(service: SupportService, conv: dict[str, Any], conversation_id: int, body: ReplyIn) -> dict:
+async def _reply_with_attachments(
+    service: SupportService,
+    conv: dict[str, Any],
+    conversation_id: int,
+    body: ReplyIn,
+    admin: AdminUser,
+) -> dict:
     """Ответ с вложениями: send_media → record_outbound → insert_attachment → claim.
 
     Окно 24ч проверяется внутри outbox.check_window (для telegram-лички окна нет).
@@ -304,6 +316,7 @@ async def _reply_with_attachments(service: SupportService, conv: dict[str, Any],
                 conversation_id=conversation_id,
                 text_value=caption or "",
                 author="agent",
+                author_id=admin.id,
                 external_msg_id=external_msg_id,
                 media_type=att.get("media_type"),
                 media_file_id=f"up:{att.get('token')}",

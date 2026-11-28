@@ -1,6 +1,7 @@
 # Саппорт — Этап B: ИИ-ассистент + база знаний
 
-**Статус:** план утверждён к исполнению (B1 → B4), код не начат
+**Статус:** выполнен 2026-11-28 (B1–B4; pytest 665, tsc/build зелёные).
+**Исходный статус плана:** утверждён к исполнению (B1 → B4)
 **Дата:** 2026-11-28
 **Основание:** `TASK.md` (Этап A закрыт), `docs/plans/2026-11-28-support-completion.md` §5 (Этап B), `docs/AI-SUPPORT.md` §1a и §7
 **Эталон:** `ai-support` v3.0.0 (`ee05237`), `src/ai/*`, `src/core/store/{kb,suggestions}.ts`, `src/core/pause.ts`, `src/panel/routes/{knowledge,assistant}.ts`

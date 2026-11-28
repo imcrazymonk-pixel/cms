@@ -18,6 +18,7 @@ from web.backend.api.v1.support import assistant as assistant_module
 from web.backend.core.database import get_db
 from web.backend.core.support.ai.config import AiConfig
 from web.backend.core.support.ai.provider import AiCompletion
+from web.backend.core.support.ai.public import config_for, public_suggestion, used_items
 from web.backend.core.support.deps import get_support_service
 from web.backend.core.support.events import EventBus
 from web.backend.core.support.outbox import WindowClosedError
@@ -593,9 +594,97 @@ async def test_conversation_detail_includes_pending_suggestion(
 
     assert resp.status_code == 200
     data = resp.json()["data"]
-    assert data["suggestion"]["id"] == 1
-    assert data["suggestion"]["status"] == "pending"
-    assert data["suggestion"]["gate_action"] == "suggest"
+    suggestion = data["suggestion"]
+    assert suggestion["id"] == 1
+    assert suggestion["status"] == "pending"
+    # Публичный контракт §5.2: level/gate/used, без сырых gate_* и chunk.
+    assert suggestion["level"] in ("sure", "check", "unsure")
+    assert suggestion["gate"] == {"action": "suggest", "reason": "режим suggest"}
+    assert suggestion["used"] == [{"doc_id": 5, "title": "Подключение"}]
+    assert "chunk" not in suggestion["used"][0]
+    assert "gate_action" not in suggestion
+    assert "gate_reason" not in suggestion
+    assert set(suggestion) == {
+        "id", "conversation_id", "message_id", "text", "final_text",
+        "operator_note", "confidence", "level", "used", "reason", "gate",
+        "model", "status", "created_at",
+    }
+
+
+@pytest.mark.asyncio
+async def test_conversation_detail_without_suggestion_is_null(
+    client: AsyncClient, override_deps, fake_service,
+):
+    fake_service.store.suggestions.clear()
+
+    resp = await client.get("/api/support/conversations/1")
+
+    assert resp.status_code == 200
+    assert resp.json()["data"]["suggestion"] is None
+
+
+# ── публичная форма (core.support.ai.public) ──────────────────────────────
+
+def test_public_suggestion_matches_contract():
+    raw = {
+        "id": 7,
+        "conversation_id": 3,
+        "message_id": 11,
+        "text": "Черновик",
+        "final_text": None,
+        "operator_note": "заметка",
+        "confidence": 0.95,
+        "needs_human": False,
+        "reason": "тариф активен",
+        "gate_action": "suggest",
+        "gate_reason": "режим suggest",
+        "used": [{"doc_id": "5", "title": "Подключение", "chunk": "длинный кусок"}],
+        "model": "fake-model",
+        "status": "pending",
+        "created_at": _NOW.isoformat(),
+    }
+
+    result = public_suggestion(raw, _config())
+
+    assert set(result) == {
+        "id", "conversation_id", "message_id", "text", "final_text",
+        "operator_note", "confidence", "level", "used", "reason", "gate",
+        "model", "status", "created_at",
+    }
+    assert result["level"] == "sure"
+    assert result["used"] == [{"doc_id": 5, "title": "Подключение"}]
+    assert result["gate"] == {"action": "suggest", "reason": "режим suggest"}
+    assert "gate_action" not in result and "gate_reason" not in result
+
+
+def test_used_items_drops_chunk_and_coerces_doc_id():
+    raw = [
+        {"doc_id": "7", "title": "Статья", "chunk": "кусок"},
+        {"doc_id": "not-an-int", "title": None, "chunk": "кусок"},
+        "мусор",
+    ]
+
+    result = used_items(raw)
+
+    assert result == [
+        {"doc_id": 7, "title": "Статья"},
+        {"doc_id": None, "title": ""},
+    ]
+    assert all(set(item) == {"doc_id", "title"} for item in result)
+
+
+def test_config_for_falls_back_to_settings():
+    service = SimpleNamespace(
+        ai=None,
+        settings=SupportSettings(ai_mode="suggest", ai_api_key="sk-test"),
+    )
+
+    config = config_for(service)
+
+    assert isinstance(config, AiConfig)
+    assert config.mode == "suggest"
+    assert config.effective_mode == "suggest"
+    assert config.has_key is True
 
 
 @pytest.mark.asyncio

@@ -8,7 +8,7 @@ import { toast } from 'sonner'
  *
  * Protocol:
  *   1. client → { "type": "auth", "token": "<JWT>" }  (first frame, within 5s)
- *   2. server → { "type": "message"|"message_updated"|"conversation"|"poller", "data": {...} }
+ *   2. server → { "type": "message"|"message_updated"|"conversation"|"poller"|"ai_suggestion"|"presence"|"sla_alert", "data": {...} }
  *      plus a {"type":"ping"} heartbeat every 30s.
  *   close 4401 → token invalid/expired (we stop and redirect to /admin/login).
  *
@@ -19,7 +19,15 @@ const BACKOFF = [2000, 5000, 10000, 30000] as const
 const AUTH_EXPIRED_CODE = 4401
 
 export interface SupportEventPayload {
-  type: 'message' | 'message_updated' | 'conversation' | 'poller' | 'ping'
+  type:
+    | 'message'
+    | 'message_updated'
+    | 'conversation'
+    | 'poller'
+    | 'ai_suggestion'
+    | 'presence'
+    | 'sla_alert'
+    | 'ping'
   data?: Record<string, unknown>
 }
 
@@ -28,6 +36,12 @@ export interface SupportSocketHandlers {
   onMessageUpdated?: (data: Record<string, unknown>) => void
   onConversation?: (data: Record<string, unknown>) => void
   onPoller?: (data: Record<string, unknown>) => void
+  /** Новая/изменённая ИИ-предложка: `{conversation_id, suggestion_id, status}`. */
+  onAiSuggestion?: (data: Record<string, unknown>) => void
+  /** Отметка присутствия оператора: `{conversation_id, actor_id, state}`. */
+  onPresence?: (data: Record<string, unknown>) => void
+  /** Просрочка SLA: `{conversation_id, kind, due_at, overdue_minutes}`. */
+  onSlaAlert?: (data: Record<string, unknown>) => void
   onAuthExpired?: () => void
   onStatusChange?: (connected: boolean) => void
 }
@@ -141,6 +155,15 @@ class SupportSocketClient {
         break
       case 'poller':
         this.handlers.onPoller?.(data)
+        break
+      case 'ai_suggestion':
+        this.handlers.onAiSuggestion?.(frame.data ?? {})
+        break
+      case 'presence':
+        this.handlers.onPresence?.(data)
+        break
+      case 'sla_alert':
+        this.handlers.onSlaAlert?.(data)
         break
       default:
         break

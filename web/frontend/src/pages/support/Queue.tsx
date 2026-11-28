@@ -5,11 +5,13 @@ import { useAuthStore } from '@/store/authStore'
 import {
   supportApi,
   getSupportErrorCode,
+  getSupportErrorMessage,
   type ConversationPriority,
   type ConversationStatus,
   type PollerStatus,
   type SupportConfigStatus,
   type SupportMessage,
+  type SupportSuggestionDecisionPayload,
 } from '@/api/support'
 import { useSupportSocket } from '@/lib/supportSocket'
 import { toast } from 'sonner'
@@ -20,6 +22,7 @@ import { Card } from '@/components/ui/card'
 import { ConversationList } from './components/ConversationList'
 import { MessageThread } from './components/MessageThread'
 import { CustomerCard } from './components/CustomerCard'
+import type { SuggestionDecision } from './components/AiDraftCard'
 
 const PAGE_SIZE = 20
 const LIST_REFETCH_DEBOUNCE = 400
@@ -165,6 +168,13 @@ export default function SupportQueue() {
   const [unreadOnly, setUnreadOnly] = useState(false)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
+  /** Тик для переноса ИИ-черновика в композер («Править»). */
+  const [suggestionEditSignal, setSuggestionEditSignal] = useState(0)
+  /**
+   * Текст, который «Править» переносит в композер. Фиксируется в onSuccess,
+   * потому что после invalidateQueries suggestion может стать null раньше эффекта.
+   */
+  const [suggestionEditText, setSuggestionEditText] = useState('')
   const listRefreshTimer = useRef<number | null>(null)
   /** Попытка отправки — нужна, чтобы повторить с тем же client_msg_id (идемпотентность). */
   const pendingReplyRef = useRef<{
@@ -207,6 +217,22 @@ export default function SupportQueue() {
     },
     onConversation: () => scheduleListRefresh(),
     onPoller: () => queryClient.invalidateQueries({ queryKey: ['support-pollers'] }),
+    onAiSuggestion: (data) => {
+      const cid = Number(data.conversation_id)
+      if (activeId != null && cid === activeId) {
+        queryClient.invalidateQueries({ queryKey: ['support-conversation', activeId] })
+      }
+      scheduleListRefresh()
+    },
+    onPresence: (data) => {
+      const cid = Number(data.conversation_id)
+      if (activeId != null && cid === activeId) {
+        queryClient.invalidateQueries({ queryKey: ['support', 'presence', activeId] })
+      }
+    },
+    onSlaAlert: () => {
+      queryClient.invalidateQueries({ queryKey: ['support', 'sla'] })
+    },
   })
 
   // ── Запросы ───────────────────────────────────────────────────
@@ -364,6 +390,75 @@ export default function SupportQueue() {
     onError: (err) => toastMutationError(err, 'Не удалось обновить карточку'),
   })
 
+  // ── ИИ: решение по предложке ─────────────────────────────────
+  const suggestionDecisionMutation = useMutation({
+    mutationFn: (vars: { id: number; payload: SupportSuggestionDecisionPayload }) =>
+      supportApi.decideSuggestion(vars.id, vars.payload),
+    onSuccess: (data, vars) => {
+      if (vars.payload.decision === 'edit') {
+        // Даём MessageThread сигнал забрать текст в композер до инвалидации.
+        // Текст передаём явно: suggestion после invalidateQueries может стать null.
+        setSuggestionEditText(vars.payload.final_text || '')
+        setSuggestionEditSignal((n) => n + 1)
+        toast.success('Черновик перенесён в поле ответа')
+      } else if (data.status === 'sent') {
+        toast.success('Ответ отправлен')
+      } else {
+        toast.success('Предложка отклонена')
+      }
+      if (activeId != null) {
+        queryClient.invalidateQueries({ queryKey: ['support-conversation', activeId] })
+      }
+      scheduleListRefresh()
+    },
+    onError: (err) => {
+      const code = getSupportErrorCode(err)
+      if (code === 'AI_PAUSED') {
+        toast.error('ИИ-помощник на паузе — ответ отправлен не будет')
+        return
+      }
+      if (code === 'AI_KEY_MISSING') {
+        toast.error('Ключ API ИИ не задан — настройте его в «Настройки → ИИ / Саппорт»')
+        return
+      }
+      if (code === 'REPLY_WINDOW_CLOSED') {
+        toast.error('Клиент давно не писал — отправка ограничена')
+        return
+      }
+      if (code === 'CLIENT_WROTE') {
+        toast.error('Клиент написал после прочтения — проверьте новые сообщения')
+        if (activeId != null) {
+          queryClient.invalidateQueries({ queryKey: ['support-conversation', activeId] })
+        }
+        return
+      }
+      const message = getSupportErrorMessage(err)
+      if (message) {
+        toast.error(message, { duration: 8000 })
+        return
+      }
+      toastMutationError(err, 'Не удалось обработать предложку')
+    },
+  })
+
+  // ── ИИ: обратная связь по ответу («Это неверно») ──────────────
+  const feedbackMutation = useMutation({
+    mutationFn: (vars: { messageId: number; correctAnswer?: string }) =>
+      supportApi.messageFeedback(vars.messageId, {
+        verdict: 'wrong',
+        correct_answer: vars.correctAnswer,
+      }),
+    onSuccess: () => toast.success('Спасибо! Учли, как надо отвечать'),
+    onError: (err) => {
+      const message = getSupportErrorMessage(err)
+      if (message) {
+        toast.error(message, { duration: 8000 })
+        return
+      }
+      toastMutationError(err, 'Не удалось отправить оценку')
+    },
+  })
+
   // ── Обработчики ─────────────────────────────────────────────
   const handleSelect = (id: number) => {
     setActiveId(id)
@@ -380,6 +475,39 @@ export default function SupportQueue() {
     }
     pendingReplyRef.current = pending
     replyMutation.mutate(pending)
+  }
+
+  // ── ИИ-предложка: обработчики для MessageThread ───────────────
+  const suggestion = detailQuery.data?.suggestion ?? null
+
+  const handleSuggestionDecision = (
+    decision: SuggestionDecision,
+    opts?: { final_text?: string; reason?: string },
+  ) => {
+    if (!suggestion) return
+    suggestionDecisionMutation.mutate({
+      id: suggestion.id,
+      payload: { decision, final_text: opts?.final_text, reason: opts?.reason },
+    })
+  }
+
+  // «Править»: бэкенд помечает предложку edited и сохраняет черновик,
+  // текст переезжает в композер через suggestionEditSignal.
+  const handleEditSuggestionText = (value: string) => {
+    if (!suggestion) return
+    suggestionDecisionMutation.mutate({
+      id: suggestion.id,
+      payload: { decision: 'edit', final_text: value },
+    })
+  }
+
+  const handleSuggestionWrong = (payload: { verdict: 'wrong'; corrected_text?: string }) => {
+    const messageId = suggestion?.message_id
+    if (!messageId) {
+      toast.error('Не к чему привязать оценку: у предложки нет входящего сообщения')
+      return
+    }
+    feedbackMutation.mutate({ messageId, correctAnswer: payload.corrected_text })
   }
 
   const handleState = (patch: { status?: ConversationStatus; priority?: ConversationPriority }) => {
@@ -473,6 +601,13 @@ export default function SupportQueue() {
             onAssign={handleAssign}
             onResolve={handleResolve}
             onReply={handleReply}
+            suggestion={suggestion}
+            suggestionPending={suggestionDecisionMutation.isPending || feedbackMutation.isPending}
+            onSuggestionDecision={handleSuggestionDecision}
+            onEditSuggestionText={handleEditSuggestionText}
+            onSuggestionWrong={handleSuggestionWrong}
+            suggestionEditSignal={suggestionEditSignal}
+            suggestionEditText={suggestionEditText}
           />
         </div>
 
@@ -482,6 +617,8 @@ export default function SupportQueue() {
             card={activeId != null ? customerQuery.data : undefined}
             isLoading={activeId != null && customerQuery.isLoading}
             isRefreshing={refreshCustomerMutation.isPending}
+            customerProfileId={detailQuery.data?.conversation.customer_profile_id ?? null}
+            currentUserId={user?.id ?? null}
             onRefresh={() => {
               if (activeId != null) refreshCustomerMutation.mutate(activeId)
             }}

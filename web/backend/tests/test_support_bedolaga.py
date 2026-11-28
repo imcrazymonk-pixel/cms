@@ -4,6 +4,7 @@ No network, no DB: the poller is injected with a fake Bedolaga client and a
 fake store that emulates the SupportStore facade's dedup/cold-start semantics.
 """
 from datetime import datetime, timedelta, timezone
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -16,6 +17,10 @@ from web.backend.core.support.channels.bedolaga import (
     ticket_id_of,
 )
 from web.backend.core.support.events import EventBus, EventKind
+from web.backend.core.support.integrations.bedolaga_customer import (
+    _subscription_summary,
+    build_customer_card,
+)
 
 _UTC = timezone.utc
 
@@ -324,3 +329,81 @@ async def test_sender_does_not_retry_on_5xx():
 
 def test_active_statuses_const():
     assert ACTIVE_STATUSES == ("open", "answered", "pending")
+
+
+# ── Customer card: поля подписки из Bedolaga ───────────────────────────────
+
+class FakeCardClient:
+    """Минимальный клиент для карточки: пользователь + одна подписка."""
+
+    async def get_user_by_telegram(self, tg):
+        return {"id": 7, "tg_id": tg, "username": "alice"}
+
+    async def list_subscriptions(self, **kwargs):
+        return {
+            "items": [{
+                "status": "active",
+                "end_date": "2027-01-01",
+                "is_trial": False,
+                "subscription_url": "https://sub.example/abc",
+                "tariff_name": "Pro",
+                "device_limit": 5,
+                "device_count": 2,
+                "traffic_used_gb": 12.5,
+                "traffic_limit_gb": 100,
+            }],
+            "total": 1,
+        }
+
+    async def list_tickets(self, **kwargs):
+        return {"items": [], "total": 0}
+
+    async def list_transactions(self, **kwargs):
+        return {"items": [], "total": 0}
+
+
+class FakeCardStore:
+    async def get_customer_profile(self, *, customer_id=None, identity_key=None):
+        return {"id": 1, "identity_key": "tg:100", "meta": {}}
+
+    async def update_customer_meta(self, customer_id, meta):
+        return True
+
+
+@pytest.mark.asyncio
+async def test_customer_card_passes_subscription_fields():
+    service = SimpleNamespace(
+        store=FakeCardStore(),
+        pollers={"bedolaga": SimpleNamespace(client=FakeCardClient())},
+    )
+    conversation = {
+        "id": 1,
+        "external_id": "10",
+        "tg_user_id": 100,
+        "customer_profile_id": 1,
+    }
+
+    card = await build_customer_card(service, conversation)
+    sub = card["subscription"]
+
+    assert sub["subscription_url"] == "https://sub.example/abc"
+    assert sub["tariff_name"] == "Pro"
+    assert sub["device_limit"] == 5
+    assert sub["device_count"] == 2
+    assert sub["traffic_used_gb"] == 12.5
+    assert sub["traffic_limit_gb"] == 100
+    # старые поля на месте
+    assert sub["status"] == "active"
+    assert sub["is_trial"] is False
+
+
+def test_subscription_summary_converts_bytes_to_gb():
+    sub = _subscription_summary([{
+        "status": "active",
+        "traffic_used_bytes": 1024 ** 3 * 5,
+        "traffic_limit_bytes": 1024 ** 3 * 10,
+    }])
+
+    assert sub["traffic_used_gb"] == 5.0
+    assert sub["traffic_limit_gb"] == 10.0
+    assert sub["traffic"]["used_bytes"] == 1024 ** 3 * 5
