@@ -80,3 +80,7 @@ __pycache__/
 
 # SDD scratch (briefs/reports, not for commit)
 /.superpowers/
+
+# Telegram Desktop exports (client data)
+ChatExport_*/
+_tgexport_normalized.json
