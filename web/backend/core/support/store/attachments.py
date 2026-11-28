@@ -96,7 +96,7 @@ async def get_attachment_with_conversation(
                 "JOIN support_message m ON m.id = a.message_id "
                 "JOIN support_conversation c ON c.id = m.conversation_id "
                 "WHERE a.id = :id "
-                "AND (:conversation_id IS NULL OR c.id = :conversation_id)"
+                "AND (CAST(:conversation_id AS bigint) IS NULL OR c.id = CAST(:conversation_id AS bigint))"
             ),
             {"id": attachment_id, "conversation_id": conversation_id},
         )

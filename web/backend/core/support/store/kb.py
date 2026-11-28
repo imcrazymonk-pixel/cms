@@ -173,7 +173,7 @@ async def _unique_slug(
         await db.execute(
             sql_text(
                 "SELECT slug FROM support_kb_doc "
-                "WHERE slug IS NOT NULL AND (:exclude_id IS NULL OR id <> :exclude_id)"
+                "WHERE slug IS NOT NULL AND (CAST(:exclude_id AS bigint) IS NULL OR id <> CAST(:exclude_id AS bigint))"
             ),
             {"exclude_id": exclude_id},
         )

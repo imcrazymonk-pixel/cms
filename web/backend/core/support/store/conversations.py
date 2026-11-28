@@ -278,8 +278,8 @@ async def set_assignee(db: AsyncSession, conversation_id: int, assignee_id: int 
             UPDATE support_conversation
                SET assignee_id = :assignee_id,
                    claimed_at = CASE
-                       WHEN :assignee_id IS NULL THEN NULL
-                       WHEN assignee_id IS DISTINCT FROM :assignee_id THEN now()
+                       WHEN CAST(:assignee_id AS bigint) IS NULL THEN NULL
+                       WHEN assignee_id IS DISTINCT FROM CAST(:assignee_id AS bigint) THEN now()
                        ELSE COALESCE(claimed_at, now())
                    END
              WHERE id = :id

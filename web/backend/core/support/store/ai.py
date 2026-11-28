@@ -91,7 +91,7 @@ async def supersede_pending(
         sql_text(
             "UPDATE support_ai_suggestion SET status = 'superseded' "
             "WHERE conversation_id = :conversation_id AND status = 'pending' "
-            "AND (:except_id IS NULL OR id <> :except_id)"
+            "AND (CAST(:except_id AS bigint) IS NULL OR id <> CAST(:except_id AS bigint))"
         ),
         {"conversation_id": conversation_id, "except_id": except_id},
     )
