@@ -48,6 +48,22 @@ def _topic_name(from_user: Any) -> str:
     return name[:MAX_TOPIC_NAME]
 
 
+def _is_forward_skip(exc: Exception) -> bool:
+    """Удалённое/недоступное исходное сообщение — не повод терять тему.
+
+    Telegram отвечает ``message to forward not found`` для удалённых или
+    синтетических сообщений. Раньше мост на любой ошибке очищал ``source_id``
+    и создавал новую тему «Клиент (тема пересоздана)», оставляя исходную
+    тему пустой. Такие ошибки пропускаем, сохраняя привязку.
+    """
+    text = str(exc).lower()
+    return (
+        "message to forward not found" in text
+        or "message can't be forwarded" in text
+        or "message_id_invalid" in text
+    )
+
+
 class ForumBridge:
     """Связка личка ↔ тема группы (создание, зеркалирование, команды)."""
 
@@ -129,12 +145,18 @@ class ForumBridge:
             raise TelegramAPIError("forward_to_topic: тема не создана (source_id пуст)")
         try:
             await self.client.forward_message(self.staff_group_id, from_chat_id, message_id, message_thread_id=topic_id)
-        except TelegramAPIError:
+        except TelegramAPIError as exc:
+            if _is_forward_skip(exc):
+                logger.warning("forward_to_topic skip: %s", exc)
+                return topic_id
             # закрыта → reopen → повтор
             try:
                 await self.client.reopen_forum_topic(self.staff_group_id, topic_id)
                 await self.client.forward_message(self.staff_group_id, from_chat_id, message_id, message_thread_id=topic_id)
-            except TelegramAPIError:
+            except TelegramAPIError as retry_exc:
+                if _is_forward_skip(retry_exc):
+                    logger.warning("forward_to_topic skip: %s", retry_exc)
+                    return topic_id
                 # удалена → новая тема (НИКАКИХ deleteMessage — только create)
                 await self.store.set_source_id(conv["id"], None)
                 topic_id = await self._create_topic(conv, _FakeUser(name="Клиент (тема пересоздана)"))

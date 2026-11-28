@@ -11,7 +11,7 @@ import httpx
 import pytest
 
 from web.backend.core.support.events import EventBus
-from web.backend.core.support.tg.api import TelegramClient
+from web.backend.core.support.tg.api import TelegramClient, TelegramAPIError
 from web.backend.core.support.tg.forum import ForumBridge
 from web.backend.core.support.tg.poller import TelegramPoller
 from web.backend.core.support.tg.types import parse_update
@@ -429,3 +429,41 @@ async def test_topic_send_to_client_uses_no_window():
     transport.updates_responses = [[_topic_update(1, 100, "ответ поверх старых")]]
     assert await poller.tick() == 1
     assert store.recorded_outbound[-1]["text_value"] == "ответ поверх старых"
+
+class _MissingMessageClient:
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    async def forward_message(self, *args, **kwargs):
+        self.calls.append("forward")
+        raise TelegramAPIError("Bad Request: message to forward not found")
+
+    async def reopen_forum_topic(self, *args, **kwargs):
+        self.calls.append("reopen")
+        return {}
+
+    async def create_forum_topic(self, *args, **kwargs):
+        self.calls.append("create")
+        return {"message_thread_id": 9002}
+
+
+class _SkipStore:
+    def __init__(self) -> None:
+        self.calls: list[tuple] = []
+
+    async def set_source_id(self, conversation_id, topic_id):
+        self.calls.append((conversation_id, topic_id))
+        return True
+
+
+@pytest.mark.asyncio
+async def test_forward_missing_message_keeps_topic_and_mapping():
+    client = _MissingMessageClient()
+    store = _SkipStore()
+    bridge = ForumBridge(client=client, store=store, staff_group_id=STAFF_GROUP)
+
+    topic = await bridge.forward_to_topic({"id": 1, "source_id": "9001"}, from_chat_id=CLIENT_ID, message_id=10)
+
+    assert topic == 9001
+    assert client.calls == ["forward"]
+    assert store.calls == []
