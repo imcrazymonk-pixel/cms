@@ -243,6 +243,7 @@ export function MessageThread({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const lastTypingPingRef = useRef(0)
+  const readMarkedRef = useRef<number | null>(null)
 
   // Слэш-подсказка: текст целиком `/...` → до 5 шаблонов из общего запроса подбора.
   const slashQuery = SLASH_RE.test(text) ? text.slice(1) : null
@@ -257,10 +258,21 @@ export function MessageThread({
     refetchInterval: 15_000,
   })
 
-  // Отмечаем прочитанным при открытии диалога с непрочитанными
+  // Отмечаем прочитанным один раз на диалог. Иначе `conversation`/`onMarkRead`
+  // меняют identity каждый рендер и при неудачном mark-read получается
+  // бесконечный цикл обновлений (React #185).
   useEffect(() => {
-    if (conversation && conversation.unread > 0) onMarkRead(conversation.id)
-  }, [conversation, onMarkRead])
+    const id = conversation?.id
+    const unread = conversation?.unread ?? 0
+    if (id == null || unread <= 0) {
+      readMarkedRef.current = null
+      return
+    }
+    if (readMarkedRef.current === id) return
+    readMarkedRef.current = id
+    onMarkRead(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conversation?.id, conversation?.unread])
 
   // Heartbeat «смотрю» при открытии/смене диалога; при смене сбрасываем троттлинг печати.
   useEffect(() => {
