@@ -50,6 +50,11 @@ from typing import Any
 from bs4 import BeautifulSoup
 from bs4.element import Tag
 
+try:  # script mode: tools/ is on sys.path
+    from support_cleanup_service_msgs import is_service_bot_text
+except ImportError:  # package/test mode
+    from .support_cleanup_service_msgs import is_service_bot_text
+
 PAGE_NAMES = ("messages.html", "messages2.html", "messages3.html")
 
 # Display names that write informational/system messages, not support replies.
@@ -283,6 +288,9 @@ def parse_export(
             continue
 
         text = _clean_text(scope.find("div", class_="text"))
+        if is_service_bot_text(text):
+            # Чеки/продления/промогруппы Bedolaga, NaloGO, YooKassa — не диалог.
+            continue
         photos, videos = _collect_media(block)
         if not text and not photos and not videos:
             continue
