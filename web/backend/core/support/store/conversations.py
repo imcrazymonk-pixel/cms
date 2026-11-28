@@ -10,7 +10,7 @@ live messages bump unread/time anchors.
 """
 from datetime import datetime, timezone
 
-from sqlalchemy import text
+from sqlalchemy import text as sql_text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 _UTC = timezone.utc
@@ -34,7 +34,7 @@ async def upsert_conversation(
     """Create the conversation row if missing; returns (id, created) — no side effects."""
     row = (
         await db.execute(
-            text("""
+            sql_text("""
                 INSERT INTO support_conversation
                     (channel, external_id, subject, priority, tg_user_id, source_id, customer_profile_id)
                 VALUES
@@ -58,7 +58,7 @@ async def upsert_conversation(
         return int(row.id), True
     existing = (
         await db.execute(
-            text("SELECT id FROM support_conversation WHERE channel = :channel AND external_id = :external_id"),
+            sql_text("SELECT id FROM support_conversation WHERE channel = :channel AND external_id = :external_id"),
             {"channel": channel, "external_id": external_id},
         )
     ).fetchone()
@@ -78,7 +78,7 @@ async def fill_conversation_mapping(
     not replace a value already written by a live channel.
     """
     res = await db.execute(
-        text("""
+        sql_text("""
             UPDATE support_conversation
                SET tg_user_id = COALESCE(tg_user_id, :tg_user_id),
                    source_id  = COALESCE(source_id, :source_id)
@@ -122,7 +122,7 @@ async def record_inbound(
 
     mrow = (
         await db.execute(
-            text("""
+            sql_text("""
                 INSERT INTO support_message
                     (conversation_id, direction, author, text, media_type, media_file_id,
                      external_msg_id, is_backfill, created_at)
@@ -148,7 +148,7 @@ async def record_inbound(
 
     if message_created:
         await db.execute(
-            text("""
+            sql_text("""
                 UPDATE support_conversation SET
                     first_inbound_at = COALESCE(first_inbound_at, :ts),
                     last_inbound_at = CASE WHEN :is_backfill THEN last_inbound_at ELSE :ts END,
@@ -201,7 +201,7 @@ async def record_outbound(
     """
     ts = created_at or _now()
     res = await db.execute(
-        text("""
+        sql_text("""
             INSERT INTO support_message
                 (conversation_id, direction, author, author_id, text, media_type,
                  media_file_id, external_msg_id, reply_to_external_id, is_backfill, created_at)
@@ -225,7 +225,7 @@ async def record_outbound(
     )
     message_id = int(res.scalar_one())
     await db.execute(
-        text("""
+        sql_text("""
             UPDATE support_conversation
                SET first_response_at = CASE
                        WHEN :is_backfill THEN first_response_at
@@ -242,7 +242,7 @@ async def record_outbound(
 async def set_source_id(db: AsyncSession, conversation_id: int, topic_id: str | None) -> bool:
     """Сохранить источник (topic_id форума) для диалога; None — очистить."""
     res = await db.execute(
-        text("UPDATE support_conversation SET source_id = :topic_id WHERE id = :id"),
+        sql_text("UPDATE support_conversation SET source_id = :topic_id WHERE id = :id"),
         {"topic_id": topic_id, "id": conversation_id},
     )
     return res.rowcount > 0
@@ -251,7 +251,7 @@ async def set_source_id(db: AsyncSession, conversation_id: int, topic_id: str | 
 async def set_status(db: AsyncSession, conversation_id: int, status: str) -> bool:
     """Update conversation status. Returns False when the row is missing."""
     res = await db.execute(
-        text("UPDATE support_conversation SET status = :status WHERE id = :id"),
+        sql_text("UPDATE support_conversation SET status = :status WHERE id = :id"),
         {"status": status, "id": conversation_id},
     )
     return res.rowcount > 0
@@ -260,7 +260,7 @@ async def set_status(db: AsyncSession, conversation_id: int, status: str) -> boo
 async def set_priority(db: AsyncSession, conversation_id: int, priority: str) -> bool:
     """Update conversation priority. Returns False when the row is missing."""
     res = await db.execute(
-        text("UPDATE support_conversation SET priority = :priority WHERE id = :id"),
+        sql_text("UPDATE support_conversation SET priority = :priority WHERE id = :id"),
         {"priority": priority, "id": conversation_id},
     )
     return res.rowcount > 0
@@ -273,7 +273,7 @@ async def set_assignee(db: AsyncSession, conversation_id: int, assignee_id: int 
     changes and cleared on release (NULL assignee) — the lease anchor.
     """
     res = await db.execute(
-        text("""
+        sql_text("""
             UPDATE support_conversation
                SET assignee_id = :assignee_id,
                    claimed_at = CASE
@@ -291,7 +291,7 @@ async def set_assignee(db: AsyncSession, conversation_id: int, assignee_id: int 
 async def mark_read(db: AsyncSession, conversation_id: int) -> bool:
     """Reset unread counter. Returns False when the row is missing."""
     res = await db.execute(
-        text("UPDATE support_conversation SET unread = 0 WHERE id = :id"),
+        sql_text("UPDATE support_conversation SET unread = 0 WHERE id = :id"),
         {"id": conversation_id},
     )
     return res.rowcount > 0
@@ -300,7 +300,7 @@ async def mark_read(db: AsyncSession, conversation_id: int) -> bool:
 async def link_customer(db: AsyncSession, conversation_id: int, customer_profile_id: int) -> bool:
     """Link the conversation to a customer profile. Returns False when missing."""
     res = await db.execute(
-        text("UPDATE support_conversation SET customer_profile_id = :cp WHERE id = :id"),
+        sql_text("UPDATE support_conversation SET customer_profile_id = :cp WHERE id = :id"),
         {"cp": customer_profile_id, "id": conversation_id},
     )
     return res.rowcount > 0
@@ -317,7 +317,7 @@ async def touch_last_message(
     ts = created_at or _now()
     inbound_col = ", last_inbound_at = :ts" if direction == "in" else ""
     res = await db.execute(
-        text(f"""
+        sql_text(f"""
             UPDATE support_conversation
                SET last_message_at = :ts{inbound_col},
                    unread = CASE WHEN :direction = 'in' THEN unread + 1 ELSE unread END
@@ -340,7 +340,7 @@ async def get_reply_key(
     """Stored message id for (actor, conversation, client_msg_id), or None."""
     row = (
         await db.execute(
-            text(
+            sql_text(
                 "SELECT message_id FROM support_reply_key "
                 "WHERE actor_id = :actor_id AND conversation_id = :conversation_id "
                 "AND client_msg_id = :client_msg_id"
@@ -361,7 +361,7 @@ async def save_reply_key(
 ) -> None:
     """Remember an outbound reply key (idempotent: first writer wins)."""
     await db.execute(
-        text("""
+        sql_text("""
             INSERT INTO support_reply_key
                 (actor_id, conversation_id, client_msg_id, message_id)
             VALUES
