@@ -155,7 +155,12 @@ async def record_inbound(
                                            THEN last_inbound_at ELSE CAST(:ts AS timestamptz) END,
                     last_message_at = CAST(:ts AS timestamptz),
                     unread          = unread + CASE WHEN CAST(:is_backfill AS boolean) THEN 0 ELSE 1 END,
-                    subject         = COALESCE(subject, CAST(:subject AS text)),
+                    subject         = CASE
+                        WHEN CAST(:subject AS text) IS NULL THEN subject
+                        WHEN subject IS NULL OR btrim(subject) = '' OR subject LIKE 'Telegram%'
+                            THEN CAST(:subject AS text)
+                        ELSE subject
+                    END,
                     priority        = COALESCE(CAST(:priority AS text), priority),
                     tg_user_id      = COALESCE(tg_user_id, CAST(:tg_user_id AS bigint)),
                     source_id       = COALESCE(source_id, CAST(:source_id AS text)),
@@ -238,6 +243,15 @@ async def record_outbound(
         {"ts": ts, "is_backfill": is_backfill, "conversation_id": conversation_id},
     )
     return message_id
+
+
+async def set_subject(db: AsyncSession, conversation_id: int, subject: str | None) -> bool:
+    """Обновить отображаемое имя диалога (ФИО/ник из Telegram)."""
+    res = await db.execute(
+        sql_text("UPDATE support_conversation SET subject = :subject WHERE id = :id"),
+        {"subject": subject, "id": conversation_id},
+    )
+    return res.rowcount > 0
 
 
 async def set_source_id(db: AsyncSession, conversation_id: int, topic_id: str | None) -> bool:

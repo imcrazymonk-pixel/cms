@@ -394,12 +394,17 @@ class TelegramPoller:
 
 
 def _private_subject(message: Message) -> str:
-    username = ""
-    if message.from_user is not None and message.from_user.username:
-        username = message.from_user.username
-    elif message.chat is not None and message.chat.username:
-        username = message.chat.username
-    return f"Telegram{': ' + username if username else ''}"
+    user = message.from_user
+    first = str(getattr(user, "first_name", None) or "").strip() if user else ""
+    last = str(getattr(user, "last_name", None) or "").strip() if user else ""
+    base = " ".join(part for part in (first, last) if part)
+    username = str(getattr(user, "username", None) or "").strip() if user else ""
+    if username:
+        base = f"{base} (@{username})" if base else f"@{username}"
+    if base:
+        return base
+    chat_id = getattr(getattr(message, "chat", None), "id", None)
+    return f"Telegram {chat_id}" if chat_id is not None else "Telegram"
 
 
 def _as_int(value: Any) -> int | None:

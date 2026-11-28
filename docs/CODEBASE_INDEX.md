@@ -929,6 +929,15 @@ python tools/support_import_history.py --topics <path> [--dry-run|--apply] [--li
     # dry-run по умолчанию; channel='telegram', external_id=str(userId), source_id=str(topicId),
     # tg_user_id=userId, created -> status='closed'; тела не пишутся, Outbox не используется;
     # повторный --apply идемпотентен (UNIQUE(channel, external_id), 0 create)
+
+# tools/tgexport_html_parse.py — dev-парсер Telegram Desktop HTML-экспорта (bs4, вне runtime)
+python tools/tgexport_html_parse.py --dir ChatExport_... --out _tgexport_normalized.json
+    # messages.html → messages2.html → messages3.html; темы из `created topic «…»`,
+    # forwarded=клиент, plain=оператор, joined наследует отправителя; фото/видео href
+# tools/support_import_tgexport.py — импорт тел/медиа в support_message/support_attachment
+python tools/support_import_tgexport.py --input <json> --media-root <dir> [--dry-run|--apply]
+    # is_backfill=True: без Outbox/уведомлений/unread/SLA/first_response; dedup по
+    # (conversation_id, external_msg_id); медиа копируется в upload_dir/support/exp_<sha>.<ext>
 ```
 
 ## Support: ИИ-ядро и store (Этап B, B1b-2a)

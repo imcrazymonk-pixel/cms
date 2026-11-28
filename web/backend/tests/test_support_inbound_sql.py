@@ -66,3 +66,20 @@ async def test_record_inbound_accepts_text_without_shadowing_sql_text():
     assert "CAST(:priority AS text)" in update_sql
     assert "CAST(:tg_user_id AS bigint)" in update_sql
     assert "CAST(:customer_profile_id AS integer)" in update_sql
+
+def test_private_subject_uses_name_and_username():
+    from web.backend.core.support.tg.poller import _private_subject
+
+    class _User:
+        first_name = "Андрей"
+        last_name = "Ковалёв"
+        username = "ImCrazyMonk"
+
+    class _Chat:
+        id = 461538917
+
+    class _Message:
+        from_user = _User()
+        chat = _Chat()
+
+    assert _private_subject(_Message()) == "Андрей Ковалёв (@ImCrazyMonk)"

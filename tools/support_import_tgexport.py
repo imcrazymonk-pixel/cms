@@ -392,6 +392,9 @@ async def _process_topic(
                 summary["topics_matched"] += 1
                 summary["topics_created"] -= 1
 
+    if apply and conversation_id is not None and topic.get("title"):
+        await conversations.set_subject(db, conversation_id, str(topic["title"]))
+
     in_count = out_count = dup_count = 0
     media_found = media_missing = 0
     seen_external: set[str] = set()
