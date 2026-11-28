@@ -230,6 +230,18 @@ const tabForFrom = (from: string): string => {
   return from === 'support' || from === 'support_ai' ? 'support' : 'integrations'
 }
 
+/** Поисковые алиасы вкладок: запрос «поддержка» не должен давать 0 на вкладке «Поддержка». */
+const TAB_SEARCH_ALIASES: Record<string, string> = {
+  basic: 'основные basic',
+  seo: 'seo поиск',
+  theme: 'сайт тема theme',
+  security: 'безопасность security',
+  finance: 'финансы finance',
+  support: 'поддержка саппорт support',
+  integrations: 'интеграции integrations',
+  logs: 'логи logs',
+}
+
 /** Категория → ASCII-якорь DOM (без кириллицы и пробелов). */
 const CATEGORY_ANCHOR: Record<string, string> = {
   'Bedolaga Bot': 'settings-cat-bedolaga',
@@ -374,7 +386,13 @@ export default function Settings() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const fromParam = searchParams.get('from') || ''
-  const initialTab = searchParams.get('tab') || tabForFrom(fromParam)
+  const tabFromParams = (params: URLSearchParams): string => {
+    const from = params.get('from') || ''
+    // Старые ссылки вида ?tab=integrations&from=support ведут в «Поддержку».
+    if (from === 'support' || from === 'support_ai') return 'support'
+    return params.get('tab') || tabForFrom(from)
+  }
+  const initialTab = tabFromParams(searchParams)
   const [tab, setTab] = useState(initialTab)
   const focusCategory = tab === 'integrations' || tab === 'support'
     ? (FROM_TO_CATEGORY[fromParam] || '')
@@ -462,8 +480,13 @@ export default function Settings() {
   useEffect(() => { load() }, [])
 
   useEffect(() => {
-    setTab(searchParams.get('tab') || tabForFrom(searchParams.get('from') || ''))
+    setTab(tabFromParams(searchParams))
   }, [searchParams])
+
+  // Поиск не должен «протекать» между вкладками и скрывать все настройки.
+  useEffect(() => {
+    setSearch('')
+  }, [tab])
 
   // Deep-link из другого раздела не должен наследовать старый поиск:
   // иначе `from` фокусирует категорию, а прежний запрос скрывает все блоки.
@@ -641,6 +664,8 @@ export default function Settings() {
     !q ||
     it.label.toLowerCase().includes(q) ||
     it.key.toLowerCase().includes(q) ||
+    it.category.toLowerCase().includes(q) ||
+    (TAB_SEARCH_ALIASES[it.tab] || '').includes(q) ||
     (it.description || '').toLowerCase().includes(q)
 
   const countMatches = (cats: [string, RegistryItem[]][]) =>

@@ -101,7 +101,7 @@ const navigation: NavigationEntry[] = [
       { name: 'Шаблоны', href: '/support/templates', icon: FileStack, permission: null },
       { name: 'Аналитика', href: '/support/analytics', icon: BarChart3, permission: null },
       { name: 'Команда', href: '/support/team', icon: UserCog, permission: null },
-      { name: 'Настройки', href: '/settings?tab=integrations&from=support', icon: SlidersHorizontal, permission: null },
+      { name: 'Настройки', href: '/settings?tab=support&from=support', icon: SlidersHorizontal, permission: null },
     ],
   },
 

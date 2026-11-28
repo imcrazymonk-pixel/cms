@@ -1917,7 +1917,11 @@ WS-инвалидация `['support-pollers']` сохраняется.
 (`bedolaga|support|support_ai|bot_db|platega|yookassa|proxy`) маппится в категорию
 (`FROM_TO_CATEGORY`); `support`/`support_ai` открывают вкладку `support`, остальные — `integrations`;
 без `tab` вкладка выбирается по `from`, после загрузки выполняется
-`scrollIntoView` к блоку с ASCII-якорем `settings-cat-*` (`CATEGORY_ANCHOR`). Блоки раскрыты
+`scrollIntoView` к блоку с ASCII-якорем `settings-cat-*` (`CATEGORY_ANCHOR`). Ссылка
+«Саппорт → Настройки» в сайдбаре ведёт на `?tab=support&from=support`; старые ссылки
+`?tab=integrations&from=support` принудительно открывают `support`. Поиск матчит
+`label/key/category/description` и алиасы вкладки (`TAB_SEARCH_ALIASES`: «поддержка» → support),
+сбрасывается при смене вкладки. Блоки раскрыты
 по умолчанию; при заданном `from` — только целевой (при поиске — все совпавшие), а если
 `from` не сопоставлен категории — раскрываются все. Смена `from` сбрасывает поисковый запрос.
 Пустой реестр соответствующей вкладки показывает `EmptyState` «Настройки интеграций недоступны»
