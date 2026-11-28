@@ -940,6 +940,12 @@ python tools/tgexport_html_parse.py --dir ChatExport_... --out _tgexport_normali
 python tools/support_import_tgexport.py --input <json> --media-root <dir> [--dry-run|--apply]
     # is_backfill=True: без Outbox/уведомлений/unread/SLA/first_response; dedup по
     # (conversation_id, external_msg_id); медиа копируется в upload_dir/support/exp_<sha>.<ext>
+
+# tools/support_cleanup_service_msgs.py — удаление уведомлений ботов из backfill-истории
+python tools/support_cleanup_service_msgs.py [--apply]
+    # маркеры: чеки/продления/промогруппы/техработы Bedolaga, NaloGO, YooKassa;
+    # только is_backfill=True; удаляет support_message (CASCADE attachments), файлы и
+    # пересчитывает last_message_at; dry-run по умолчанию
 ```
 
 ## Support: ИИ-ядро и store (Этап B, B1b-2a)
