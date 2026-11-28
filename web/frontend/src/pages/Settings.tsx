@@ -213,7 +213,7 @@ const INTEGRATION_TEST_IDS: Record<string, string> = {
   'Прокси по умолчанию': 'global',
 }
 
-/** Deep-link `from` (Sidebar) → категория вкладки «Интеграции». */
+/** Deep-link `from` (Sidebar) → категория вкладки «Интеграции»/«Поддержка». */
 const FROM_TO_CATEGORY: Record<string, string> = {
   bedolaga: 'Bedolaga Bot',
   support: 'Telegram / Саппорт',
@@ -222,6 +222,12 @@ const FROM_TO_CATEGORY: Record<string, string> = {
   platega: 'Platega',
   yookassa: 'YooKassa',
   proxy: 'Прокси по умолчанию',
+}
+
+/** Deep-link `from` → вкладка настроек: саппорт-категории живут во вкладке «Поддержка». */
+const tabForFrom = (from: string): string => {
+  if (!from) return 'basic'
+  return from === 'support' || from === 'support_ai' ? 'support' : 'integrations'
 }
 
 /** Категория → ASCII-якорь DOM (без кириллицы и пробелов). */
@@ -368,9 +374,11 @@ export default function Settings() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const fromParam = searchParams.get('from') || ''
-  const initialTab = searchParams.get('tab') || (fromParam ? 'integrations' : 'basic')
+  const initialTab = searchParams.get('tab') || tabForFrom(fromParam)
   const [tab, setTab] = useState(initialTab)
-  const focusCategory = tab === 'integrations' ? (FROM_TO_CATEGORY[fromParam] || '') : ''
+  const focusCategory = tab === 'integrations' || tab === 'support'
+    ? (FROM_TO_CATEGORY[fromParam] || '')
+    : ''
   const [isPending, setIsPending] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -454,7 +462,7 @@ export default function Settings() {
   useEffect(() => { load() }, [])
 
   useEffect(() => {
-    setTab(searchParams.get('tab') || (searchParams.get('from') ? 'integrations' : 'basic'))
+    setTab(searchParams.get('tab') || tabForFrom(searchParams.get('from') || ''))
   }, [searchParams])
 
   // Deep-link из другого раздела не должен наследовать старый поиск:
@@ -813,6 +821,7 @@ export default function Settings() {
             <TabsTrigger value="theme">Сайт</TabsTrigger>
             <TabsTrigger value="security">Безопасность</TabsTrigger>
             <TabsTrigger value="finance">Финансы</TabsTrigger>
+            <TabsTrigger value="support">Поддержка</TabsTrigger>
             <TabsTrigger value="integrations">Интеграции</TabsTrigger>
             <TabsTrigger value="logs">Логи</TabsTrigger>
           </TabsList>
@@ -882,6 +891,18 @@ export default function Settings() {
             <SearchBar value={search} onChange={setSearch} count={countMatches(Object.entries(byTab.finance || {}))} />
             {Object.entries(byTab.finance || {}).map(([cat, catItems]) =>
               renderCategory(cat, catItems)
+            )}
+          </TabsContent>
+
+          {/* ── Поддержка ── */}
+          <TabsContent value="support" className="space-y-2 mt-4">
+            <SearchBar
+              value={search}
+              onChange={setSearch}
+              count={countMatches(Object.entries(byTab.support || {}))}
+            />
+            {Object.entries(byTab.support || {}).map(([cat, catItems]) =>
+              renderIntegrationCategory(cat, catItems)
             )}
           </TabsContent>
 

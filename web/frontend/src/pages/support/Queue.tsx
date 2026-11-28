@@ -608,6 +608,7 @@ export default function SupportQueue() {
             onSuggestionWrong={handleSuggestionWrong}
             suggestionEditSignal={suggestionEditSignal}
             suggestionEditText={suggestionEditText}
+            mediaMaxMb={configQuery.data?.media_max_mb ?? 8}
           />
         </div>
 

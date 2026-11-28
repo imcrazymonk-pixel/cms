@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { EmptyState } from '@/components/EmptyState'
+import { toast } from 'sonner'
 import { toastMutationError } from '@/lib/mutationToast'
 import { cn } from '@/lib/utils'
 import { formatDateUtil as formatDate } from '@/lib/useFormatters'
@@ -209,6 +210,8 @@ interface MessageThreadProps {
   suggestionEditSignal?: number
   /** Явный текст для переноса (родитель фиксирует его до инвалидации предложки). */
   suggestionEditText?: string
+  /** Лимит размера файла из настроек (МБ); 8 — безопасный дефолт. */
+  mediaMaxMb?: number
 }
 
 export function MessageThread({
@@ -231,6 +234,7 @@ export function MessageThread({
   onSuggestionWrong,
   suggestionEditSignal = 0,
   suggestionEditText,
+  mediaMaxMb = 8,
 }: MessageThreadProps) {
   const [text, setText] = useState('')
   const [tokens, setTokens] = useState<UploadedToken[]>([])
@@ -352,6 +356,12 @@ export function MessageThread({
     const accepted = Array.from(files).slice(0, Math.max(0, freeSlots))
     if (!accepted.length) {
       toastMutationError(new Error('Слишком много файлов за раз (максимум 10)'), 'Максимум 10 вложений')
+      return
+    }
+    const tooLarge = accepted.find((file) => file.size > mediaMaxMb * 1024 * 1024)
+    if (tooLarge) {
+      toast.error(`Файл «${tooLarge.name}» больше ${mediaMaxMb} МБ — уменьшите размер`)
+      if (fileInputRef.current) fileInputRef.current.value = ''
       return
     }
     setUploading(true)
@@ -577,6 +587,7 @@ export function MessageThread({
               {uploading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Paperclip className="mr-1.5 h-4 w-4" />}
               {uploading ? 'Загрузка…' : 'Файл'}
             </Button>
+            <span className="text-[11px] text-dark-400">до {mediaMaxMb} МБ</span>
             <TemplatePicker onPick={insertTemplate} />
             <span className="text-[11px] text-dark-400">Enter — отправить · Shift+Enter — новая строка</span>
           </div>

@@ -11,6 +11,7 @@ Covers §8 of docs/plans/2026-11-28-support-stage-b.md:
 No network, no DB.
 """
 import pytest
+from pydantic import ValidationError
 
 from web.backend.core.settings_registry import REGISTRY, REGISTRY_BY_KEY, SUPPORT_KEYS
 from web.backend.core.support.settings import (
@@ -66,7 +67,7 @@ def test_ai_keys_share_group_and_tab():
     for key in AI_ENV_BY_KEY:
         defn = REGISTRY_BY_KEY[key]
         assert defn.category == "ИИ / Саппорт", key
-        assert defn.tab == "integrations", key
+        assert defn.tab == "support", key
 
 
 def test_ai_env_names_match_plan_table():
@@ -272,3 +273,49 @@ def test_greeting_key_registered_and_mapped():
         {"support_tg_greeting": "Свой текст"},
     )
     assert settings.tg_greeting == "Свой текст"
+
+
+# ── Медиа-лимит (Stage D, D-1) ────────────────────────────────────────────
+
+def test_media_max_mb_registered():
+    definition = REGISTRY_BY_KEY["support_media_max_mb"]
+    assert definition.category == "Telegram / Саппорт"
+    assert definition.tab == "support"
+    assert definition.type == "number"
+    assert definition.default == "8"
+    assert definition.env_var == "SUPPORT_MEDIA_MAX_MB"
+    assert "support_media_max_mb" in SUPPORT_KEYS
+    assert SUPPORT_OVERRIDES["support_media_max_mb"] == ("field", "media_max_mb")
+
+
+def test_all_support_keys_use_support_tab():
+    """После D-2 все ключи саппорта живут во вкладке «Поддержка»."""
+    for key in SUPPORT_KEYS:
+        assert REGISTRY_BY_KEY[key].tab == "support", key
+
+
+def test_media_max_mb_default_and_bounds():
+    assert SupportSettings().media_max_mb == 8
+
+    for allowed in (1, 50):
+        assert SupportSettings(media_max_mb=allowed).media_max_mb == allowed
+
+    for rejected in (0, 51):
+        with pytest.raises(ValidationError):
+            SupportSettings(media_max_mb=rejected)
+
+
+def test_media_max_mb_override_applies():
+    settings = SupportSettings()
+    runtime: dict[str, str] = {}
+
+    _apply_registry_overrides(settings, runtime, {"support_media_max_mb": "12"})
+
+    assert settings.media_max_mb == 12
+
+
+def test_media_max_mb_triggers_support_reload():
+    """Смена лимита должна пересобрать poller/forum без рестарта."""
+    from web.backend.core.integrations import SUPPORT_TRIGGER_KEYS
+
+    assert "support_media_max_mb" in SUPPORT_TRIGGER_KEYS

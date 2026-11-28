@@ -343,9 +343,11 @@ POST   /api/docs/render                      req: AUTH + {"markdown": str} (<=1 
 GET  /api/support/health                     без AUTH -> W<{status:"ok"|"degraded",db:boolean,pollers:{channel:status}}>
                                              # db — реальный SELECT 1 через session factory; ошибка/нет сервиса -> db:false, status:"degraded"
                                              # pollers — живые app.state.support.pollers ({} без сервиса); всегда HTTP 200
-GET  /api/support/config-status              req: AUTH -> W<{channels[],poll_interval_seconds,reply_window_hours}>
+GET  /api/support/config-status              req: AUTH -> W<{channels[],poll_interval_seconds,reply_window_hours,
+                                               media_max_mb,upload_max_bytes,ai{mode,effective_mode,has_key,paused,model}}>
                                              # приоритет: реестр (support_*, db/env) → support_setting → SupportSettings
                                              # registry-дефолты legacy-runtime не перетирают
+                                             # media_max_mb: support_media_max_mb, кламп 1..50; upload_max_bytes = media_max_mb*1024*1024
 GET  /api/support/conversations              req: AUTH + q{status:^(open|pending|resolved|closed)$, channel:^[a-z0-9_]{1,32}$, priority:^(low|normal|high|urgent)$,
                                                assignee_id:int, customer_id:int, unread_only=false, q<=200, page=1 (>=1), per_page=50 (1..200)}
                                              -> W<{items[],total,page,per_page}>  # неверные status/channel/priority -> 422
@@ -425,7 +427,9 @@ POST /api/support/kb/{id}/archive            req: AUTH -> W<{id,status:'archived
 POST /api/support/kb/{id}/restore            req: AUTH -> W<{id,status:'draft'}>  # archived -> draft; другие статусы не меняются
 DELETE /api/support/kb/{id}                  req: AUTH -> W<{deleted:true}>; published -> 409 KB_DOC_PUBLISHED (сначала archive)
 POST /api/support/attachments                req: AUTH + multipart file -> W<{token,media_type,mime_type,original_name,bytes,sha256}>
-                                             # allowlist расширений/mime, 8 МБ; upload-токен живёт 24ч (env SUPPORT_UPLOAD_TOKEN_TTL_HOURS)
+                                             # allowlist расширений/mime; лимит из support_media_max_mb (1..50, дефолт 8 МБ),
+                                             # превышение -> 413 FILE_TOO_LARGE; глобальный потолок middleware/nginx — 64 МБ
+                                             # upload-токен живёт 24ч (env SUPPORT_UPLOAD_TOKEN_TTL_HOURS)
 GET  /api/support/attachments/{id}           req: AUTH + q{download=false,conversation_id?} -> FileResponse
                                              # ACL: attachment → message → conversation (INNER JOIN); битая связка или чужой conversation_id -> 404
 GET  /api/support/sla/policies               req: AUTH -> W<{items:[{name,first_response_minutes,resolution_minutes}]}>
@@ -894,6 +898,9 @@ TelegramConflict(TelegramAPIError)                   # HTTP 409 / error_code=409
 GREETING = DEFAULT_TG_GREETING          # core/support/defaults.py — дефолт
 # TelegramPoller(greeting=settings.tg_greeting) — текст из настройки support_tg_greeting
 # (textarea, env SUPPORT_TG_GREETING, hot reload через SUPPORT_TRIGGER_KEYS)
+# init_support: service.upload_max_size = settings.media_max_mb * 1024 * 1024
+#   support_media_max_mb (number, 1..50, default 8, env SUPPORT_MEDIA_MAX_MB, hot reload)
+#   -> web-upload 413 FILE_TOO_LARGE; poller/forum получают лимит через service.upload_max_size
 # core/support/schema.py
 ensure_support_schema()  # применяет по порядку 004-support-foundation.sql, 005-support-reply-idempotency.sql,
                          # 006-support-ai-kb.sql, затем idempotent ALTER: support_message.author CHECK расширен
@@ -907,6 +914,21 @@ ensure_support_schema()  # применяет по порядку 004-support-fo
                          # 008-support-stage-c.sql (Этап C): support_message.author_id, support_template.category/created_by/
                          #   updated_at, support_sla_event(id,conversation_id,kind,due_at,breached_at,notified_at,closed_at;
                          #   UNIQUE(conversation_id,kind); partial idx due WHERE notified_at IS NULL AND closed_at IS NULL)
+
+# core/support/store/conversations.py
+async def record_inbound(..., is_backfill: bool = False)
+    # is_backfill: unread не растёт, last_inbound_at не двигается
+async def record_outbound(..., is_backfill: bool = False) -> int
+    # INSERT support_message.is_backfill; при True first_response_at не пишется,
+    # last_message_at = GREATEST(last_message_at, :ts); last_inbound_at не трогается
+async def fill_conversation_mapping(db, conversation_id, *, tg_user_id=None, source_id=None) -> bool
+    # заполняет только NULL (COALESCE), не перетирает значения живого канала
+
+# tools/support_import_history.py — mapping-only импорт 24 пар legacy topics.json
+python tools/support_import_history.py --topics <path> [--dry-run|--apply] [--limit N]
+    # dry-run по умолчанию; channel='telegram', external_id=str(userId), source_id=str(topicId),
+    # tg_user_id=userId, created -> status='closed'; тела не пишутся, Outbox не используется;
+    # повторный --apply идемпотентен (UNIQUE(channel, external_id), 0 create)
 ```
 
 ## Support: ИИ-ядро и store (Этап B, B1b-2a)
@@ -1463,7 +1485,8 @@ interface SupportConversationDetail { conversation:SupportConversation; messages
 interface PollerStatus { enabled?:boolean; running?:boolean; last_poll?:string|null; last_offset?:number;
   last_error?:string|null; ingested?:number }
 interface SupportPollersResult { pollers:Record<string,PollerStatus> }
-interface SupportConfigStatus { channels:string[]; poll_interval_seconds:number; reply_window_hours:number }
+interface SupportConfigStatus { channels:string[]; poll_interval_seconds:number; reply_window_hours:number;
+  media_max_mb:number; upload_max_bytes?:number }
 interface ListConversationParams { status?:string; channel?:string; priority?:string; assignee_id?:number; customer_id?:number;
   unread_only?:boolean; q?:string; page?:number; per_page?:number }
 interface SupportUploadResult { token:string; media_type:string; mime_type:string; original_name:string; bytes:number; sha256:string }
@@ -1882,19 +1905,24 @@ query-key `['bedolaga-customer-analytics', id]` (staleTime 60с); ошибка/`
 строки `telegram`/`bedolaga` показывают `enabled`, `running`, `last_poll`, `last_error`; `conflict` —
 красное пояснение про второй бот/webhook, отсутствие `telegram` — подсказка про токен и
 `support_tg_enabled` (при ошибке запроса статус помечается недоступным, ложных «не запущен» нет).
+Композер получает `media_max_mb` из `['support-config-status']` (`mediaMaxMb`, fallback 8):
+подпись «до N МБ» и клиентская проверка размера перед `uploadAttachment`; серверный 413 остаётся истиной.
 WS-инвалидация `['support-pollers']` сохраняется.
 
 **Settings (`/settings`):** вкладки `basic`, `seo`, `theme` («Сайт»), `security`, `finance`,
-`integrations`, `logs`; controlled `Tabs` синхронизируются с `?tab=`; вкладка «Интеграции»
-рендерится из реестра (`tab="integrations"`), у HTTP-блоков — кнопки
+`support` («Поддержка»), `integrations`, `logs`; controlled `Tabs` синхронизируются с `?tab=`.
+Вкладки «Поддержка» и «Интеграции» рендерятся из реестра по `tab="support"` / `tab="integrations"`
+(все `support_*`, `support_tg_*`, `support_ai_*` — во вкладке «Поддержка»), у HTTP-блоков — кнопки
 `settingsApi.testIntegration`, у прокси — `settingsApi.testProxy`. Deep-link `?from=`
-(`bedolaga|support|support_ai|bot_db|platega|yookassa|proxy`) маппится в категорию вкладки «Интеграции»
-(`FROM_TO_CATEGORY`), при отсутствии `tab` открывает `integrations`, после загрузки выполняет
-`scrollIntoView` к блоку с ASCII-якорем `settings-cat-*` (`CATEGORY_ANCHOR`). Блоки «Интеграций»
-раскрыты по умолчанию; при заданном `from` — только целевой (при поиске — все совпавшие), а если
+(`bedolaga|support|support_ai|bot_db|platega|yookassa|proxy`) маппится в категорию
+(`FROM_TO_CATEGORY`); `support`/`support_ai` открывают вкладку `support`, остальные — `integrations`;
+без `tab` вкладка выбирается по `from`, после загрузки выполняется
+`scrollIntoView` к блоку с ASCII-якорем `settings-cat-*` (`CATEGORY_ANCHOR`). Блоки раскрыты
+по умолчанию; при заданном `from` — только целевой (при поиске — все совпавшие), а если
 `from` не сопоставлен категории — раскрываются все. Смена `from` сбрасывает поисковый запрос.
-Пустой реестр `tab="integrations"` показывает `EmptyState` «Настройки интеграций недоступны»
+Пустой реестр соответствующей вкладки показывает `EmptyState` «Настройки интеграций недоступны»
 с объяснением и кнопкой «Повторить» (`load()`); при `isPending`/`error` empty-state не рендерится.
+У «ИИ / Саппорт» нет `INTEGRATION_TEST_IDS` — кнопка «Проверить» не показывается (by design).
 `Section` принимает `id`, заголовок — `<button aria-expanded aria-controls>`, панель — `role="region"`.
 После сохранения/сброса ключа `bedolaga_*`/`bot_db_*`/`support_*`/`outbound_proxy_*`, массового сохранения с такими ключами
 и любой тест-проверки `bedolaga|bot_db|support|global` (успешной или нет) страница инвалидирует react-query:

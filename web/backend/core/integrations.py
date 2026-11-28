@@ -765,6 +765,7 @@ SUPPORT_TRIGGER_KEYS = {
     "support_tg_enabled", "support_tg_token", "support_tg_bot_name",
     "support_tg_greeting",
     "support_tg_staff_group_id", "support_tg_forum", "support_tg_archive_days",
+    "support_media_max_mb",
     "support_poll_interval_seconds", "support_window_hours",
     "support_bedolaga_enabled", "support_proxy_mode", "support_proxy_url",
     "support_proxy_no_proxy", "bedolaga_enabled",

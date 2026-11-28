@@ -253,6 +253,54 @@ async def test_support_config_status_falls_back_to_runtime(
     assert data["reply_window_hours"] == 5
 
 
+@pytest.mark.asyncio
+async def test_support_config_status_media_max_mb_from_registry(
+    client: AsyncClient, admin_override, monkeypatch,
+):
+    from web.backend.api.v1.support import status as status_module
+
+    async def fake_stored(db):
+        return {"support_media_max_mb": "12"}
+
+    async def fake_runtime(db):
+        return {}
+
+    monkeypatch.setattr(status_module.settings_values, "stored_merged", fake_stored)
+    monkeypatch.setattr(status_module, "read_runtime_settings", fake_runtime)
+    app.dependency_overrides[get_db] = lambda: None
+    try:
+        data = (await client.get("/api/support/config-status")).json()["data"]
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+    assert data["media_max_mb"] == 12
+    assert data["upload_max_bytes"] == 12 * 1024 * 1024
+
+
+@pytest.mark.asyncio
+async def test_support_config_status_media_max_mb_fallback(
+    client: AsyncClient, admin_override, monkeypatch,
+):
+    from web.backend.api.v1.support import status as status_module
+
+    async def empty_stored(db):
+        return {}
+
+    async def empty_runtime(db):
+        return {}
+
+    monkeypatch.setattr(status_module.settings_values, "stored_merged", empty_stored)
+    monkeypatch.setattr(status_module, "read_runtime_settings", empty_runtime)
+    app.dependency_overrides[get_db] = lambda: None
+    try:
+        data = (await client.get("/api/support/config-status")).json()["data"]
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+    assert data["media_max_mb"] == 8
+    assert data["upload_max_bytes"] == 8 * 1024 * 1024
+
+
 # ── R10/R11: Telegram 409 Conflict ────────────────────────────────────────
 
 def test_telegram_409_maps_to_conflict():

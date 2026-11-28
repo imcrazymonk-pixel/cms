@@ -120,6 +120,9 @@ export interface SupportConfigStatus {
   channels: string[]
   poll_interval_seconds: number
   reply_window_hours: number
+  /** Лимит размера файла в композере (МБ), из настроек саппорта. */
+  media_max_mb: number
+  upload_max_bytes?: number
 }
 
 export interface ListConversationParams {

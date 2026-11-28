@@ -301,6 +301,9 @@ async def init_support(
         )
         service.ai = _build_ai_runtime(settings, service.store)
 
+    # Медиа-лимит из настроек (D-1): работает и для нового сервиса, и при reload.
+    service.upload_max_size = settings.media_max_mb * 1024 * 1024
+
     if await _bedolaga_enabled(runtime):
         poller = BedolagaPoller(
             store=service.store,

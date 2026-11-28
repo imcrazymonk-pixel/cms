@@ -375,6 +375,24 @@ def test_upload_token_legacy_without_created_at_still_works(tmp_path):
     assert resolve_upload_token(service, "legacy01") is not None
 
 
+# ── D-1: серверный лимит загрузки (413 FILE_TOO_LARGE) ───────────────
+
+@pytest.mark.asyncio
+async def test_upload_over_media_limit_413(client: AsyncClient, override_deps, fake_service, tmp_path):
+    """service.upload_max_size из настроек — источник истины для 413."""
+    fake_service.upload_dir = tmp_path
+    fake_service.upload_max_size = 1024 * 1024  # 1 МБ
+
+    payload = b"a" * (1024 * 1024 + 1)
+    resp = await client.post(
+        "/api/support/attachments",
+        files={"file": ("big.txt", payload, "text/plain")},
+    )
+
+    assert resp.status_code == 413
+    assert resp.json()["code"] == "FILE_TOO_LARGE"
+
+
 # ── A1.3: ACL вложений (битая связка / чужой диалог → 404) ──────────────────
 
 @pytest.mark.asyncio

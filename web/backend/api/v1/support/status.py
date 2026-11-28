@@ -63,6 +63,10 @@ async def support_config_status(
 
     poll_fallback = _positive_int(runtime.get("poll_interval_seconds")) or settings.poll_interval_seconds
     window_fallback = _positive_int(runtime.get("window_hours")) or settings.window_hours
+    media_max_mb = min(
+        50,
+        _registry_int(stored, "support_media_max_mb", settings.media_max_mb, minimum=1),
+    )
 
     # AI snapshot: registry overrides when a session is available, env otherwise.
     ai_settings, _ = await load_support_config(db)
@@ -86,6 +90,8 @@ async def support_config_status(
             "reply_window_hours": _registry_int(
                 stored, "support_window_hours", window_fallback,
             ),
+            "media_max_mb": media_max_mb,
+            "upload_max_bytes": media_max_mb * 1024 * 1024,
             "ai": {
                 "mode": ai_config.mode,
                 "effective_mode": ai_config.effective_mode,

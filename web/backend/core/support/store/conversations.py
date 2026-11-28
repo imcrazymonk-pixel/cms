@@ -65,6 +65,30 @@ async def upsert_conversation(
     return int(existing.id), False
 
 
+async def fill_conversation_mapping(
+    db: AsyncSession,
+    conversation_id: int,
+    *,
+    tg_user_id: int | None = None,
+    source_id: str | None = None,
+) -> bool:
+    """Fill only NULL mapping fields — never overwrite an existing value.
+
+    Used by the history CLI: re-runs may add a missing topic/user id but must
+    not replace a value already written by a live channel.
+    """
+    res = await db.execute(
+        text("""
+            UPDATE support_conversation
+               SET tg_user_id = COALESCE(tg_user_id, :tg_user_id),
+                   source_id  = COALESCE(source_id, :source_id)
+             WHERE id = :id
+        """),
+        {"tg_user_id": tg_user_id, "source_id": source_id, "id": conversation_id},
+    )
+    return res.rowcount > 0
+
+
 async def record_inbound(
     db: AsyncSession,
     *,
@@ -168,17 +192,22 @@ async def record_outbound(
     media_file_id: str | None = None,
     reply_to_external_id: str | None = None,
     created_at: datetime | None = None,
+    is_backfill: bool = False,
 ) -> int:
-    """Persist an outbound message and set first_response_at if unset. Returns message id."""
+    """Persist an outbound message and set first_response_at if unset. Returns message id.
+
+    ``is_backfill`` marks historical history: such rows never claim the first
+    response and never move ``last_message_at`` backwards.
+    """
     ts = created_at or _now()
     res = await db.execute(
         text("""
             INSERT INTO support_message
                 (conversation_id, direction, author, author_id, text, media_type,
-                 media_file_id, external_msg_id, reply_to_external_id, created_at)
+                 media_file_id, external_msg_id, reply_to_external_id, is_backfill, created_at)
             VALUES
                 (:conversation_id, 'out', :author, :author_id, :text, :media_type,
-                 :media_file_id, :external_msg_id, :reply_to_external_id, :created_at)
+                 :media_file_id, :external_msg_id, :reply_to_external_id, :is_backfill, :created_at)
             RETURNING id
         """),
         {
@@ -190,6 +219,7 @@ async def record_outbound(
             "media_file_id": media_file_id,
             "external_msg_id": external_msg_id,
             "reply_to_external_id": reply_to_external_id,
+            "is_backfill": is_backfill,
             "created_at": ts,
         },
     )
@@ -197,11 +227,14 @@ async def record_outbound(
     await db.execute(
         text("""
             UPDATE support_conversation
-               SET first_response_at = COALESCE(first_response_at, :ts),
-                   last_message_at  = :ts
+               SET first_response_at = CASE
+                       WHEN :is_backfill THEN first_response_at
+                       ELSE COALESCE(first_response_at, :ts)
+                   END,
+                   last_message_at  = GREATEST(last_message_at, :ts)
              WHERE id = :conversation_id
         """),
-        {"ts": ts, "conversation_id": conversation_id},
+        {"ts": ts, "is_backfill": is_backfill, "conversation_id": conversation_id},
     )
     return message_id
 

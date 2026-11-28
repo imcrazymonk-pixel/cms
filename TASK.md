@@ -1,13 +1,14 @@
 # TASK — Саппорт: состояние и продолжение (хендофф)
 
 **Обновлено:** 2026-11-28
-**Состояние:** Этап A, **Этап B** (B1–B4) и **Этап C** (C1–C5) закрыты полностью. Этап D в работе: сделан deep-карточка на данных Bedolaga и редактор приветствия бота.
-**Следующий шаг:** продолжить Этап D — медиа-лимиты из настроек, вкладка «Поддержка», активация CMS-бота/cutover, решение по истории.
+**Состояние:** Этап A, **Этап B** (B1–B4) и **Этап C** (C1–C5) закрыты полностью. Этап D: закрыты deep-карточка, редактор приветствия, медиа-лимиты, вкладка «Поддержка», история mapping-only и `is_backfill`. Остались только прод-действия D-3/D-5 (нужно подтверждение владельца) и решение по телам истории.
+**Следующий шаг:** D-3 — активация CMS-бота и cutover по `docs/plans/2026-11-28-support-stage-d-remainder.md` §3, только после подтверждения владельца; затем D-5 (остановка старого бота) и, при отдельном решении, D-4c (тела истории).
 **Планы:**
 - `docs/plans/2026-11-28-support-stage-b.md` — Этап B (выполнен);
 - `docs/plans/2026-11-28-support-stage-c.md` — Этап C (выполнен);
-- `docs/plans/2026-11-28-support-bot-activation-and-history.md` — активация бота и история (в работе).
-**Проверки на 2026-11-28:** `pytest` 726 passed; `tsc` 0 ошибок; `npm run build` успешно.
+- `docs/plans/2026-11-28-support-bot-activation-and-history.md` — активация бота и история (D-3/D-5 ждут владельца);
+- `docs/plans/2026-11-28-support-stage-d-remainder.md` — остаток D (D-1/D-2/D-4a/D-4b выполнены).
+**Проверки на 2026-11-28:** `pytest` 754 passed; `tsc` 0 ошибок; `npm run build` успешно.
 
 ---
 
@@ -30,7 +31,7 @@
 
 ### Проверки на момент фиксации
 ```
-cd web/backend; python -m pytest tests -q   → 726 passed
+cd web/backend; python -m pytest tests -q   → 754 passed
 cd web/frontend; npx tsc --noEmit           → 0 ошибок
 cd web/frontend; npm run build              → успешно (dist обновлён)
 ```
@@ -47,19 +48,22 @@ cd web/frontend; npm run build              → успешно (dist обнов�
 - **C4** — присутствие `viewing|typing` (TTL 120 с, троттлинг 5 с, WS `presence`) в треде, аудит и экран `/support/team` (операторы + журнал).
 - **C5** — аналитика `/support/analytics`: объёмы, медиана/P90 первого ответа только по людям, каналы/приоритеты, нагрузка операторов, метрики ИИ.
 
-### Этап D — полировка (в работе; план — `docs/plans/2026-11-28-support-bot-activation-and-history.md`)
+### Этап D — полировка (D-1/D-2/D-4 закрыты; D-3/D-5 ждут владельца)
 
 Сделано:
 1. [x] Deep-карточка на **существующих данных Bedolaga**: `subscription_url`, `tariff_name`, `device_limit/count`, `traffic_*_gb` в `bedolaga_customer.py` и `CustomerCard`; мёртвый запрос `/api/users?search=` (это пользователи CMS, не Remnawave) удалён из `BedolagaCustomerDetail`.
-2. [x] **Редактор приветствия бота**: `support_tg_greeting` (textarea, env `SUPPORT_TG_GREETING`), `TelegramPoller(greeting=...)`, hot reload через `SUPPORT_TRIGGER_KEYS`; тесты 726.
+2. [x] **Редактор приветствия бота**: `support_tg_greeting` (textarea, env `SUPPORT_TG_GREETING`), `TelegramPoller(greeting=...)`, hot reload через `SUPPORT_TRIGGER_KEYS`.
 3. [x] План активации бота и истории — `docs/plans/2026-11-28-support-bot-activation-and-history.md`.
+4. [x] План остатка Этапа D — `docs/plans/2026-11-28-support-stage-d-remainder.md` (D-1 … D-5).
+5. [x] **D-1. Медиа-лимиты**: `support_media_max_mb` (1–50, дефолт 8, env `SUPPORT_MEDIA_MAX_MB`) → `SupportSettings.media_max_mb` → `init_support` выставляет `SupportService.upload_max_size`; `config-status.media_max_mb/upload_max_bytes`; подсказка и клиентская проверка в композере; hot reload.
+6. [x] **D-2. Вкладка «Поддержка»**: `tab="support"` для всех `support_*`/`support_ai_*`, `TabsTrigger`/`TabsContent` в `Settings.tsx`, deep-link `support|support_ai`; миграция не нужна. Долг №7 закрыт как «by design».
+7. [x] **D-4a. История mapping-only**: `tools/support_import_history.py` (`--dry-run` по умолчанию, `--apply`), 24 пары `topics.json` → `support_conversation` (`closed`), `fill_conversation_mapping` только NULL, тела не пишутся, Outbox не используется.
+8. [x] **D-4b. `is_backfill`**: `record_outbound(..., is_backfill=False)` — INSERT колонки, при `True` не пишет `first_response_at`, `last_message_at=GREATEST`.
 
-Осталось:
-4. [ ] Медиа-лимиты из настроек (`SupportService.upload_max_size` всегда `None`).
-5. [ ] Вкладка «Поддержка» в настройках.
-6. [ ] Активация CMS-бота и cutover (D1): ключи `support_tg_*`, остановить `vpn_support_bot`, смоук.
-7. [ ] История (D3): **решение по приватности** — mapping-only (24 пары `topics.json`) или тела через MTProto/Desktop export; добавить `is_backfill` в `record_outbound`.
-8. [ ] Остановка/удаление старого Node-бота `vpn_support_bot` (это не `ai-support`; `ai-support` в проде не развёрнут) — после смоука, см. план.
+Осталось (прод/решение владельца):
+9. [ ] **D-3. Активация CMS-бота (D1)**: ключи `support_tg_*`, стоп `vpn_support_bot` на окно cutover, смоук `/start`, зеркало в обе стороны, `/myid`, «Решено». Только с подтверждением владельца.
+10. [ ] **D-5. Остановка старого `vpn_support_bot`** (не `ai-support`) — только после смоука и недели наблюдения, с бэкапом `topics.json`/`.env`.
+11. [ ] **D-4c. Тела истории** — только по явному решению владельца: Desktop export (stdlib) или MTProto (новая зависимость), обновление `PRIVACY_CLEANUP_MSG` + ADR retention.
 
 ### Этап E — публичный чат (решение владельца, не начат)
 Виджет чата на `hexaveil.xyz` (канал `web`) или остаёмся на Telegram-ссылке.
@@ -79,7 +83,7 @@ cd web/frontend; npm run build              → успешно (dist обнов�
 | 4 | Импорт принимает только JSON-тело (`payload`), файл читает фронт. | `api/v1/support/imports.py` |
 | 5 | `core/support/imports/` назван так, а не `import/` — `import` зарезервирован в Python. | — |
 | 6 | Компоненты КБ лежат в `src/components/kb/`, а страницы ИИ — в `pages/support/components/assistant/`; расположение исторически неоднородно. | `web/frontend/src` |
-| 7 | `user`-код `INTEGRATION_TEST_IDS` для «ИИ / Саппорт» не добавлен — тест-эндпоинта нет. | `pages/Settings.tsx` |
+| 7 | ✅ Закрыто в D-2: у «ИИ / Саппорт» нет тест-эндпоинта, кнопка «Проверить» не рендерится (by design). | `pages/Settings.tsx` |
 | 8 | Присутствие и аудит проверены на фейковой `AsyncSession`, без живой БД: SQL-heartbeat/TTL и запись `support_audit_log` на реальном PostgreSQL не прогонялись. | `tests/test_support_presence.py`, `tests/test_support_audit.py` |
 | 9 | `conversations_resolved` считается по `updated_at` диалогов в статусе `resolved|closed` — отдельного `resolved_at` в `support_conversation` нет, поэтому повторное изменение «решённого» диалога сдвигает дату. | `store/analytics.py` |
 

@@ -51,6 +51,10 @@ class SupportSettings(BaseSettings):
     tg_staff_group_id: int | None = Field(default=None, description="Id группы-форума (операторская тема)")
     tg_forum: bool = Field(default=False, description="Включить форум-мост (тема на клиента)")
     tg_archive_days: int = Field(default=7, ge=1, description="Неактивность (дней) до архивации диалога")
+    # Лимит размера файла в чате (Этап D) — env SUPPORT_MEDIA_MAX_MB
+    media_max_mb: int = Field(
+        default=8, ge=1, le=50, description="Максимальный размер файла в чате, МБ",
+    )
 
     # ── ИИ-ассистент (Этап B) — env SUPPORT_AI_* ───────────────────────
     ai_mode: Literal["off", "shadow", "suggest", "auto"] = Field(
@@ -92,6 +96,7 @@ SUPPORT_OVERRIDES: Dict[str, Tuple[str, str]] = {
     "support_tg_staff_group_id": ("runtime", "tg.main.staff_group_id"),
     "support_tg_forum": ("runtime", "tg.main.forum"),
     "support_tg_archive_days": ("runtime", "tg.main.archive_days"),
+    "support_media_max_mb": ("field", "media_max_mb"),
     "support_poll_interval_seconds": ("runtime", "poll_interval_seconds"),
     "support_window_hours": ("runtime", "window_hours"),
     "support_tg_enabled": ("tri", "tg.main.enabled"),

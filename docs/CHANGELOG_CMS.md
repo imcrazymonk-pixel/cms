@@ -357,5 +357,29 @@ SLA и уведомления:
 Проверки:
 - ✅ 726 backend-тестов, 	sc и ite build — зелёные
 
+[Сб.28.11.2026 17:30:00] Администратор: 🎧 Саппорт: медиа-лимит, вкладка «Поддержка» и импорт истории
+
+Остаток Этапа D — только код, без прод-изменений.
+
+Медиа:
+- 📏 Новый ключ `support_media_max_mb` (1–50, дефолт 8, env `SUPPORT_MEDIA_MAX_MB`): один лимит для веб-загрузки, Telegram-поллера и форум-моста
+- ⚙️ `init_support` выставляет `SupportService.upload_max_size`; `config-status` отдаёт `media_max_mb` и `upload_max_bytes`
+- 💬 В композере — подпись «до N МБ» и клиентская проверка; серверный 413 `FILE_TOO_LARGE` остаётся источником истины
+- ♻️ Hot reload через `SUPPORT_TRIGGER_KEYS`; nginx/middleware 64 МБ — верхний потолок
+
+Настройки:
+- 🗂 Новая вкладка «Поддержка»: все `support_*` и `support_ai_*` перенесены из «Интеграций»
+- 🔗 Deep-link `?from=support|support_ai` открывает новую вкладку; миграция БД не нужна
+- 🧪 У «ИИ / Саппорт» нет тест-эндпоинта — кнопка «Проверить» не показывается (by design)
+
+История:
+- 🧭 `tools/support_import_history.py` — mapping-only 24 пары `topics.json` → `support_conversation` (dry-run по умолчанию, `--apply` явно)
+- 🔒 Тела переписки не импортируются; старые диалоги `closed`, клиентам ничего не отправляется
+- 🧩 `record_outbound(..., is_backfill=True)` не пишет `first_response_at` и не двигает `last_message_at` назад; `fill_conversation_mapping` заполняет только NULL
+
+Проверки:
+- ✅ 754 backend-теста, `tsc` и `vite build` — зелёные
+- ⏳ Активация CMS-бота и остановка `vpn_support_bot` — только после подтверждения владельца
+
 ---
 *Лента составлена 15.11.2026 по истории git и дополняется вручную (автор: ImCrazyMonk).*
