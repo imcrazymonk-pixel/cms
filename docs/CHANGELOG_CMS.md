@@ -402,6 +402,7 @@ SLA и уведомления:
 - 🧵 Из Telegram Desktop HTML-экспорта перенесены **1171 сообщение** (528 входящих / 643 исходящих) и **87 вложений** (46 МБ) по 26 темам; `Tickets` пропущена
 - 🔒 Всё записано как `is_backfill=True`: **без Outbox, без повторной отправки клиентам**, без unread, SLA и first-response
 - 🖼 Фото сохранены в `uploads/support/exp_<sha>.<ext>` и открываются через `/api/support/attachments/{id}` (HTTP 200)
+- 🏷 Имена диалогов: `_private_subject` теперь `ФИО (@ник)`, `record_inbound` апгрейдит generic `Telegram …`, импорт обновил subject из заголовков тем
 - 🧪 Повторный dry-run: 1171 duplicate, 0 новых; идемпотентность подтверждена
 - 🗂 Инструменты: `tools/tgexport_html_parse.py`, `tools/support_import_tgexport.py`; тесты 775 passed
 - ⚠️ Требуется решение по retention: тела теперь хранятся в CMS, старое обещание «не храним переписку» больше не действует

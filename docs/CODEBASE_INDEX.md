@@ -923,6 +923,8 @@ async def record_outbound(..., is_backfill: bool = False) -> int
     # last_message_at = GREATEST(last_message_at, :ts); last_inbound_at не трогается
 async def fill_conversation_mapping(db, conversation_id, *, tg_user_id=None, source_id=None) -> bool
     # заполняет только NULL (COALESCE), не перетирает значения живого канала
+async def set_subject(db, conversation_id, subject) -> bool
+    # отображаемое имя: ФИО (@username) из Telegram или заголовок темы при импорте
 
 # tools/support_import_history.py — mapping-only импорт 24 пар legacy topics.json
 python tools/support_import_history.py --topics <path> [--dry-run|--apply] [--limit N]
