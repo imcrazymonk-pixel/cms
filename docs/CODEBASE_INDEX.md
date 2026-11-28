@@ -340,24 +340,72 @@ POST   /api/docs/render                      req: AUTH + {"markdown": str} (<=1 
 ## 1.26 `api/v1/support/*` — prefix `/api/support`
 
 ```
-GET  /api/support/health                     без AUTH -> W<{status:"ok",db:true,pollers:{channel:status}}>
-                                             # pollers — живые app.state.support.pollers ({} без сервиса)
+GET  /api/support/health                     без AUTH -> W<{status:"ok"|"degraded",db:boolean,pollers:{channel:status}}>
+                                             # db — реальный SELECT 1 через session factory; ошибка/нет сервиса -> db:false, status:"degraded"
+                                             # pollers — живые app.state.support.pollers ({} без сервиса); всегда HTTP 200
 GET  /api/support/config-status              req: AUTH -> W<{channels[],poll_interval_seconds,reply_window_hours}>
                                              # приоритет: реестр (support_*, db/env) → support_setting → SupportSettings
                                              # registry-дефолты legacy-runtime не перетирают
-GET  /api/support/conversations              req: AUTH + q{status,channel,priority,assignee_id,customer_id,unread_only=false,q,page=1,per_page=50 (1..200)} -> W<{items[],total,page,per_page}>
-GET  /api/support/conversations/{id}         req: AUTH -> W<{conversation,messages[],customer}>
-POST /api/support/conversations/{id}/reply   req: AUTH + ReplyIn{text<=4000,attachment_ids[]<=10} -> W<{message_id,conversation_id,external_msg_id}|{conversation_id,message_ids[],count}>
+GET  /api/support/conversations              req: AUTH + q{status:^(open|pending|resolved|closed)$, channel:^[a-z0-9_]{1,32}$, priority:^(low|normal|high|urgent)$,
+                                               assignee_id:int, customer_id:int, unread_only=false, q<=200, page=1 (>=1), per_page=50 (1..200)}
+                                             -> W<{items[],total,page,per_page}>  # неверные status/channel/priority -> 422
+GET  /api/support/conversations/{id}         req: AUTH -> W<{conversation,messages[],customer}>  # messages <=200, пагинации в API нет
+POST /api/support/conversations/{id}/reply   req: AUTH + ReplyIn{text<=4000, attachment_ids[]<=10, client_msg_id?, force=false}
+                                             -> W<{message_id,conversation_id,external_msg_id,repeated?}|{conversation_id,message_ids[],count}>
+                                             # client_msg_id (^[A-Za-z0-9_-]{8,64}$) — идемпотентность текстового ответа:
+                                             # повтор тем же ключом -> {message_id, repeated:true} без переотправки; ключ не пишется при attachment_ids
+                                             # force=false + активный lease другого оператора (claimed_at <=15 мин) -> 409 LOCKED_BY_OTHER;
+                                             # force=true перехватывает диалог (set_assignee на текущего оператора) и отправляет
+                                             # пустой text без вложений -> 400 INVALID_INPUT; окно 24ч -> 409 REPLY_WINDOW_CLOSED
 POST /api/support/conversations/{id}/read    req: AUTH -> W<{conversation_id,unread:0}>
-POST /api/support/conversations/{id}/state   req: AUTH + StateIn{status:open|pending|resolved|closed,priority?:low|normal|high|urgent} -> W<{conversation_id,status,priority,synced}>
+POST /api/support/conversations/{id}/state   req: AUTH + StateIn{status:open|pending|resolved|closed, priority?:low|normal|high|urgent, seen_at?:ISO-8601}
+                                             -> W<{conversation_id,status,priority,synced,priority_synced}>
+                                             # seen_at + статус resolved|closed + входящее после seen_at -> 409 CLIENT_WROTE (статус не меняется)
+                                             # synced/priority_synced: "synced"|"unchanged"|"skipped"|"error"; error не откатывает локальное значение
 POST /api/support/conversations/{id}/assignee req: AUTH + AssigneeIn{assignee_id:int|null} -> W<{conversation_id,assignee_id}>
 GET  /api/support/conversations/{id}/customer req: AUTH -> W<SupportCustomerCard>
 POST /api/support/conversations/{id}/customer/refresh req: AUTH -> W<SupportCustomerCard>
 GET  /api/support/pollers                    req: AUTH -> W<{pollers:{channel:status}}>
+GET  /api/support/kb                         req: AUTH + q{status:^(draft|published|archived|all)$, q<=200, page>=1, per_page 1..100}
+                                             -> W<{items:[{id,slug,title,source,status,version,updated_at,updated_by,excerpt}],total,page,per_page}>
+                                             # status не задан -> только published; status=all -> все статусы
+GET  /api/support/kb/search                  req: AUTH + q{1..200, limit 1..20} -> W<{items:[{id,slug,title,rank,snippet<=300}]}>
+                                             # только published; to_tsvector('russian') @@ websearch_to_tsquery('russian', :q), ts_rank_cd
+GET  /api/support/kb/candidates              req: AUTH + q{status:^(new|accepted|rejected|all)$=new, page>=1, per_page 1..100}
+                                             -> W<{items:[{id,topic,question,answer,occurrences,source,status,created_at}],total,page,per_page}>
+POST /api/support/kb/candidates/{id}         req: AUTH + {decision:accept|reject, reason?<=500, title?<=200, body?<=200000}
+                                             -> W<{id,status,doc_id?}>  # accept -> draft-статья source='candidate', кандидат линкуется doc_id
+POST /api/support/messages/{id}/feedback     req: AUTH + {verdict:correct|partial|wrong, note?<=1000, correct_answer?<=4000}
+                                             -> W<{qa_pair_id:int|null}>  # question = последнее входящее до сообщения
+                                             # correct/partial -> support_qa_pair(source='feedback', answer=correct_answer|текст сообщения)
+                                             # wrong -> кандидат source='feedback' (тема из вопроса, occurrences++);
+                                             #          + qa_pair, если передан correct_answer; нет сообщения -> 404 NOT_FOUND
+POST /api/support/kb/import                  req: AUTH + ImportIn{kind:'text'|'result_json', text?, payload?:object|string,
+                                               operator_names?[]<=50 (каждое <=80), dry_run=false}
+                                             -> W<{job_id}>  # HTTP 200, 202-семантика в теле; запускает support_job kind='kb_import'
+                                             # размер до парсинга: текст >20 MiB / result.json >50 MiB -> 413 IMPORT_TOO_LARGE;
+                                             # второй активный джоб того же kind -> 409 JOB_BUSY; пустой text/payload -> 400 INVALID_INPUT
+GET  /api/support/kb/import/{job_id}         req: AUTH -> W<{id,kind,status,progress,total,result?,error?,started_at,finished_at}>
+                                             # status: queued|running|done|error; result: {questions,pairs_created,skipped_duplicates,
+                                             # candidates_created,errors[]}, у dry_run + would_create/would_skip/would_create_candidates
+POST /api/support/kb/import/{job_id}/cancel  req: AUTH -> W<{status:'error',error:'cancelled'}>
+                                             # отменяет queued|running; завершённый джоб возвращается как есть; нет джоба -> 404 NOT_FOUND
+POST /api/support/kb                         req: AUTH + KbDocIn{title 1..200, body 1..200000, slug?, tags[]<=20, source=manual|import|candidate|faq}
+                                             -> W<{id,slug,version:1,status:'draft'}>
+GET  /api/support/kb/{id}                    req: AUTH -> W<{doc:{id,slug,title,body,status,version,tags,source,created_at,updated_at,published_at}}>
+PUT  /api/support/kb/{id}                    req: AUTH + KbDocIn + expected_version -> W<{id,version,status,slug}>
+                                             # устаревший expected_version -> 409 KB_VERSION_CONFLICT; published остаётся published (version++)
+POST /api/support/kb/{id}/publish            req: AUTH + {expected_version} -> W<{id,status:'published',published_at}>
+POST /api/support/kb/{id}/archive            req: AUTH -> W<{id,status:'archived',archived_at}>
+POST /api/support/kb/{id}/restore            req: AUTH -> W<{id,status:'draft'}>  # archived -> draft; другие статусы не меняются
+DELETE /api/support/kb/{id}                  req: AUTH -> W<{deleted:true}>; published -> 409 KB_DOC_PUBLISHED (сначала archive)
 POST /api/support/attachments                req: AUTH + multipart file -> W<{token,media_type,mime_type,original_name,bytes,sha256}>
-GET  /api/support/attachments/{id}           req: AUTH + q{download=false} -> FileResponse
+                                             # allowlist расширений/mime, 8 МБ; upload-токен живёт 24ч (env SUPPORT_UPLOAD_TOKEN_TTL_HOURS)
+GET  /api/support/attachments/{id}           req: AUTH + q{download=false,conversation_id?} -> FileResponse
+                                             # ACL: attachment → message → conversation (INNER JOIN); битая связка или чужой conversation_id -> 404
 WS   /api/support/ws                         auth-кадр обрабатывает SupportWebSocketManager; без app.state.support — close(NOT_READY)
-Ошибки: HTTPException(detail = ERR)
+Ошибки: HTTPException(detail = ERR); прикладные коды CLIENT_WROTE, LOCKED_BY_OTHER, REPLY_WINDOW_CLOSED,
+        NOT_FOUND, INVALID_INPUT, NOT_IMPLEMENTED, UPSTREAM_ERROR
 ```
 
 ## 1.27 `api/v1/bedolaga/analytics.py` — prefix `/api/bedolaga/analytics`
@@ -506,7 +554,7 @@ class ChartPoint:                      key:str; label:str; income:float=0; expen
 class DeleteBulkRequest:               ids:List[int]=[]
 ```
 
-**Inline-схемы внутри роутеров (не в `schemas/`):** `SubscriptionExtendRequest{days:int 1..}`, `TrafficAddRequest{traffic_gb:int 1..1000000}`, `DevicesAddRequest{count:int 1..10000}`, `UserUpdateRequest{first_name?,last_name?,username?}`, `BalanceModifyRequest{amount_kopeks:int,reason?}`, `SubscriptionCreateRequest{duration_days,traffic_limit_gb?,device_limit?,is_trial}`, `EntryIn{date,time,author,title,body,also_history}` (`also_history` читается только для changelog), `EntryUpdate{date,time,author,title,body}`, `DocumentUpdate{content:str 1..1_000_000,expected_updated_at?:str|null}`, `ReplyIn{text<=4000,attachment_ids[]<=10}`, `StateIn{status,priority?}`, `AssigneeIn{assignee_id:int|null}`.
+**Inline-схемы внутри роутеров (не в `schemas/`):** `SubscriptionExtendRequest{days:int 1..}`, `TrafficAddRequest{traffic_gb:int 1..1000000}`, `DevicesAddRequest{count:int 1..10000}`, `UserUpdateRequest{first_name?,last_name?,username?}`, `BalanceModifyRequest{amount_kopeks:int,reason?}`, `SubscriptionCreateRequest{duration_days,traffic_limit_gb?,device_limit?,is_trial}`, `EntryIn{date,time,author,title,body,also_history}` (`also_history` читается только для changelog), `EntryUpdate{date,time,author,title,body}`, `DocumentUpdate{content:str 1..1_000_000,expected_updated_at?:str|null}`, `ReplyIn{text<=4000,attachment_ids[]<=10,client_msg_id?:str(pattern ^[A-Za-z0-9_-]{8,64}$),force:bool=false}`, `StateIn{status:^(open|pending|resolved|closed)$,priority?:^(low|normal|high|urgent)$,seen_at?:datetime|null}`, `AssigneeIn{assignee_id:int|null}`.
 
 ---
 
@@ -788,8 +836,110 @@ TelegramConflict(TelegramAPIError)                   # HTTP 409 / error_code=409
 # /myid в личке: sendMessage("Ваш Telegram ID: <id>"), диалог/сообщения не создаются
 GREETING = "Здравствуйте! Опишите ваш вопрос одним сообщением — оператор ответит здесь."
 # core/support/schema.py
-ensure_support_schema()  # 004 + idempotent ALTER: support_message.author CHECK
-                         # расширен до client|agent|system|bot (приветствие /start)
+ensure_support_schema()  # применяет по порядку 004-support-foundation.sql, 005-support-reply-idempotency.sql,
+                         # 006-support-ai-kb.sql, затем idempotent ALTER: support_message.author CHECK расширен
+                         # до client|agent|system|bot (приветствие /start). Отсутствие 005/006 логируется и
+                         # пропускается; 004 обязательна.
+                         # 005-support-reply-idempotency.sql: support_reply_key(actor_id BIGINT, conversation_id BIGINT,
+                         #   client_msg_id TEXT, message_id BIGINT, created_at TIMESTAMPTZ; PK(actor_id,conversation_id,client_msg_id);
+                         #   FK conversation/message ON DELETE CASCADE; idx_support_reply_key_message(message_id))
+                         # 006-support-ai-kb.sql: KB/suggestion/qa_pair/operator_draft/candidate/job поля, partial unique
+                         #   uq_support_ai_suggestion_pending(conversation_id) WHERE status='pending'
+```
+
+## Support: ИИ-ядро и store (Этап B, B1b-2a)
+
+```python
+# core/support/ai/provider.py
+ProviderError(RuntimeError)                      # .status/.code/.model; текст и repr без api_key
+AiCompletion(draft, model, tokens_in, tokens_out, latency_ms)   # __getitem__/get/as_dict
+AiProvider(*, transport=None, sleep=None)        # ленивый httpx.AsyncClient(trust_env=False)
+    async complete_json(messages, config: AiConfig) -> AiCompletion
+    # 429 → 1 retry по Retry-After; 5xx/таймаут → 1 retry; затем fallback_model;
+    # 401/403 → dead до reset(); response_format=json_object, temperature/max_tokens из AiConfig
+    reset() / mark_dead() / aclose(); свойства has_client, dead
+# core/support/ai/prompt.py
+DRAFT_SCHEMA = '{"reply":"","operator_note":"","reason":"","needs_human":false,"no_request":false,"clarify":false,"used":[],"confidence":0.0}'
+build_system_prompt(config, *, links=None) -> str
+build_user_prompt(*, config, kb_chunks=(), examples=(), messages=(), customer_card=None,
+                  client_text="", messages_newest_first=True, links=None) -> tuple[str, tuple[Citation, ...]]
+build_prompt(**same) -> PromptBundle(system, user, messages, citations, draft_schema)
+    # scrub переписки/примеров/вопроса; KB [1]..[n]; безопасная карточка (SAFE_CARD_FIELDS)
+# core/support/store/ai.py  (raw SQL, без commit)
+create_suggestion / get_suggestion / get_pending_suggestion / list_suggestions
+decide_suggestion / mark_suggestion_sent / supersede_pending
+ai_replies_since / last_human_reply_at / human_hold_active
+assistant_stats / list_activity
+get_pause / set_pause / clear_pause               # support_setting['aiPause'], ≤ +31 день
+get_operator_draft / put_operator_draft / delete_operator_draft
+# core/support/kb/fts.py  (чистые функции, без I/O)
+build_query(q) -> str                            # NFKC, control chars→space, ≤200; кавычки/|/: сохраняются для websearch
+doc_tsvector_sql(alias="") / search_predicate(alias="", param="q") / rank_sql(alias="", param="q")
+slugify(title) -> str                            # RU→EN транслит, [a-z0-9-], ≤80, fallback "article"
+# core/support/ai/examples.py  (примеры манеры оператора)
+MAX_EXAMPLE_CHARS=600 / MAX_EXAMPLES_CHARS=900 / EXAMPLES_LIMIT=3
+render_examples(examples) -> str                 # scrub + clip каждой пары, весь блок ≤900
+similar_examples(store, query, *, limit=3, exclude_conversation_id=None)  # обёртка над store, ошибки → []
+store_examples(store) -> async search            # привязка для AiRuntime.examples
+# core/support/ai/chunks.py
+KbChunk(title, body, rank, position, score, section=None, doc_id=None)  # doc_id → used[].doc_id
+# core/support/store/qa.py  (raw SQL, без commit)
+normalize(text) / external_key(question, answer) # lower, ё→е, пунктуация/пробелы, сортировка слов; sha256(q \x1f a)
+clean_example(text, max=600) / is_meaningful(text)  # scrub, [номер], filler «ок/спасибо» отбрасывается
+add_qa_pair(db, question, answer, source='operator', conversation_id?, external_key?) -> int|None
+                                                 # ON CONFLICT (external_key) DO NOTHING; дубль/мусор -> None
+add_qa_pairs(db, pairs, source='import') -> (created:int, duplicates:int)
+                                                 # батч в одной транзакции; пары dict{question,answer} или tuple; мусор не считается дублем
+similar_examples(db, query, limit=3) -> [{id,question,answer,rank}]  # FTS russian + ts_rank_cd, каждая ≤600
+get_message(db, id) / last_inbound_before(db, conversation_id, message_id)
+# core/support/store/jobs.py  (raw SQL, без commit)
+JobsError / JobBusy(kind)                        # активный queued|running того же kind -> JobBusy
+create_job(db, *, kind, payload?, created_by?, total?) -> job  # app-проверка + uq_support_job_active ловит гонку
+get_job(db, id) -> job|None
+claim_job(db, id) -> job|None                    # queued -> running + started_at, иначе None
+update_job(db, id, *, progress?, total?, result?, error?) -> job|None
+finish_job(db, id, *, status='done'|'error', result?, error?) -> job|None  # + finished_at
+cancel_job(db, id) -> job|None                   # active -> status='error', error='cancelled'; иначе текущее состояние
+# core/support/imports/*  (каталог назван imports: `import` — зарезервированное слово Python,
+#                           обычный `from ... import ...` с таким пакетом невозможен)
+# imports/errors.py
+ImportParseError(ValueError)                     # → IMPORT_PARSE_FAILED / 422-семантика
+ImportTooLarge(ValueError)                       # → IMPORT_TOO_LARGE / 413
+# imports/tg_text.py  (чистые функции, парсинг в to_thread)
+DEFAULT_OPERATOR_NAMES = ('Поддержка HexaVeil','Поддержка','Support','HexaVeil','Администратор')
+HEADER_RE / decode_bytes(bytes)                  # utf-8-sig → cp1251 → ImportParseError
+check_text_size(text) / parse_text(text|bytes, operator_names?) -> [messages]
+build_pairs(messages, max_side=3) -> [{question,answer,messages}]
+parse_pairs(text|bytes, operator_names?) -> (messages, pairs)
+# imports/tg_json.py
+check_json_size(payload) / parse_json(payload:str|bytes|dict, operator_names?) -> [messages]
+                                                 # messages[]; type!='message' пропуск; text строка|массив строк/объектов;
+                                                 # date ISO иначе date_unixtime; битый JSON → ImportParseError(line/column/char)
+build_pairs(messages) -> [{question,answer,messages}]  # reply_to_message_id приоритетом, иначе чередование from_id
+parse_pairs(payload, operator_names?) -> (messages, pairs)
+# imports/cluster.py  (чистые функции)
+RU_STOPWORDS / normalize(text) / tokenize(text) / topic_for(question) -> 'tok1-tok2-tok3'|None
+build_candidates(pairs, *, limit=200, min_group_size=2) -> [{topic,question,answer,occurrences}]
+                                                 # топ-3 токена (частота, затем алфавит), группы ≥2, сортировка occurrences desc
+# imports/runner.py
+JOB_KIND='kb_import' / BATCH_SIZE=500 / TIME_BUDGET_SECONDS=120
+check_size(kind, text?, payload?)                # 20 MiB текст / 50 MiB JSON до создания джоба
+run_job(service, job_id) -> result|None          # claim → to_thread(parse) → батчи 500 → кандидаты → finish; отмена/дедлайн
+spawn(service, job_id) -> asyncio.Task           # задача трекается в service.import_tasks
+result: {questions,pairs_created,skipped_duplicates,candidates_created,errors[]}; dry_run: +would_create/would_skip/would_create_candidates
+# core/support/store/kb.py  (raw SQL, без commit)
+create_doc / get_doc / update_doc / publish_doc / archive_doc / restore_doc / delete_doc
+list_docs(*, status=None|'all'|draft|published|archived, q, page, per_page)  # None -> published
+search_docs(query, *, limit)                     # только published, ts_rank_cd, snippet ≤300
+get_published_context(query, *, limit=8)         # published статьи для ИИ: doc_id,title,body,rank
+list_candidates / decide_candidate(accept → draft source='candidate' + doc_id)
+create_candidate(*, question, answer, source='feedback', topic?, title?, file_name?) -> int
+                                                 # upsert по topic WHERE status='new', occurrences++
+# SupportStore: те же методы-обёртки через open_session(); AiRuntime.kb_search = store.get_published_context,
+#               AiRuntime.examples = store_examples(store) → store.similar_examples
+# SupportStore (B2c): add_qa_pairs_batch(pairs, source='import') -> (created, duplicates);
+#                     create_job/get_job/claim_job/update_job/finish_job/cancel_job — обёртки store/jobs.py;
+#                     SupportService.import_tasks: set[asyncio.Task] — активные задачи импорта
 ```
 
 ## `core/errors.py`
@@ -798,7 +948,10 @@ ensure_support_schema()  # 004 + idempotent ALTER: support_message.author CHECK
 class ErrorCode(str, Enum): INVALID_CREDENTIALS, TOKEN_REQUIRED, INVALID_TOKEN, TOKEN_EXPIRED, FORBIDDEN,
   ACCOUNT_DISABLED, NOT_FOUND, ALREADY_EXISTS, CREATE_FAILED, UPDATE_FAILED, DELETE_FAILED, INVALID_INPUT,
   VALIDATION_ERROR, UPLOAD_FAILED, FILE_TOO_LARGE, INVALID_FILE_TYPE, DB_ERROR, DB_CONNECTION_FAILED,
-  REPLY_WINDOW_CLOSED, INTERNAL_ERROR, NOT_IMPLEMENTED, RATE_LIMITED     # каждый member = собственное имя
+  REPLY_WINDOW_CLOSED, CLIENT_WROTE, LOCKED_BY_OTHER,
+  AI_DISABLED, AI_PAUSED, AI_KEY_MISSING, AI_UPSTREAM_ERROR, PROVIDER_ERROR,
+  KB_VERSION_CONFLICT, KB_DOC_PUBLISHED, IMPORT_TOO_LARGE, IMPORT_PARSE_FAILED, JOB_BUSY,
+  INTERNAL_ERROR, NOT_IMPLEMENTED, RATE_LIMITED     # каждый member = собственное имя
 E = ErrorCode
 def api_error(status_code: int, code: ErrorCode, detail: Optional[str] = None) -> JSONResponse   # ERR
 def api_raise(status_code: int, code: ErrorCode, detail: Optional[str] = None) -> NoReturn        # HTTPException(detail=ERR)
@@ -1224,11 +1377,23 @@ interface ListConversationParams { status?:string; channel?:string; priority?:st
   unread_only?:boolean; q?:string; page?:number; per_page?:number }
 interface SupportUploadResult { token:string; media_type:string; mime_type:string; original_name:string; bytes:number; sha256:string }
 
+interface ReplyPayload { text:string; attachment_ids?:string[]; client_msg_id?:string; force?:boolean }
+interface ReplyResult { conversation_id:number; message_id?:number; external_msg_id?:string|null; message_ids?:number[];
+  count?:number; repeated?:boolean }
+interface StatePayload { status:ConversationStatus; priority?:ConversationPriority; seen_at?:string }
+type PrioritySyncResult = 'synced'|'unchanged'|'skipped'|'error'
+interface StateResult { conversation_id:number; status:ConversationStatus; priority?:ConversationPriority|null;
+  synced?:string; priority_synced?:PrioritySyncResult|string }
+type SupportErrorCode = 'CLIENT_WROTE'|'LOCKED_BY_OTHER'|'REPLY_WINDOW_CLOSED'
+interface SupportErrorDetail { code:SupportErrorCode|string; error?:string; message?:string }
+function getSupportErrorCode(err:unknown): SupportErrorCode|string|undefined  // detail.code | detail:str | error.code
+function getSupportErrorMessage(err:unknown): string|undefined                // detail.error | error.message | error:str
+
 supportApi.listConversations(params?: ListConversationParams): Promise<SupportListResult>   // GET /api/support/conversations
 supportApi.getConversation(id): Promise<SupportConversationDetail>                          // GET  /api/support/conversations/{id}
-supportApi.replyConversation(id, {text, attachment_ids?}): Promise<{conversation_id, message_id?, external_msg_id?, message_ids?, count?}> // POST /api/support/conversations/{id}/reply
+supportApi.replyConversation(id, {text, attachment_ids?, client_msg_id?, force?}): Promise<ReplyResult> // POST /api/support/conversations/{id}/reply
 supportApi.readConversation(id): Promise<{conversation_id, unread}>                         // POST /api/support/conversations/{id}/read
-supportApi.setState(id, {status, priority?}): Promise<{conversation_id,status,priority?,synced}> // POST /api/support/conversations/{id}/state
+supportApi.setState(id, {status, priority?, seen_at?}): Promise<StateResult>                 // POST /api/support/conversations/{id}/state
 supportApi.setAssignee(id, {assignee_id}): Promise<{conversation_id, assignee_id}>         // POST /api/support/conversations/{id}/assignee
 supportApi.getCustomer(id): Promise<SupportCustomerCard>                                   // GET  /api/support/conversations/{id}/customer
 supportApi.refreshCustomer(id): Promise<SupportCustomerCard>                                // POST /api/support/conversations/{id}/customer/refresh

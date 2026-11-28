@@ -10,12 +10,12 @@
 |---|---|
 | Репозиторий | `github.com/tagashi666/ai-support` (public) |
 | Локальный путь | `C:\Users\Andre\Desktop\VPN\NewWeb\ai-support` (gitignored, upstream цел — можно `git pull`) |
-| Версия | 2.5.0 (package.json); релизы до v2.4.10 + MiniShop |
+| Версия | **3.0.0** (`package.json`), локальный клон обновлён 2026-11-28 (коммит `ee05237`) |
 | Лицензия | **MIT** (внедрение и форк легальны) |
 | Язык | TypeScript (strict, ESM), Node.js **22+** |
-| Стек | Fastify 5 + WebSocket, better-sqlite3 (WAL), grammy (Telegram), lottie-web (анимации в панели) |
-| UI панели | ванильный JS SPA в одном `public/index.html` (без фреймворков) |
-| Деплой | Docker (6.25x3 стадии, non-root uid 1000, read_only FS), порт только `127.0.0.1:8080`, systemd host-updater |
+| Стек | Fastify 5 + WebSocket, better-sqlite3 (WAL, **25 миграций**), grammy (Telegram), lottie-web |
+| UI панели | новая SPA React 18 + Vite (`web/`), классическая ванильная панель осталась в `public/`; переключатель `?ui=classic|next` и `PANEL_UI` |
+| Деплой | Docker (build-stage Vite, non-root uid 1000, read_only FS), публикация `${PANEL_BIND:-127.0.0.1}:${PANEL_PUBLISH_PORT:-8080}`, systemd host-updater |
 | Автор/поддержка | 29 звёзд, активная разработка, CI + релизы с SHA-256 |
 
 ## 2. Что это
@@ -33,6 +33,46 @@ Self-hosted центр поддержки для VPN-сервиса. Едина�
 - безопасное обновление и откат из панели (SHA-256, backup, rollback).
 
 Запускается «голой» панелью без каналов — каналы подключаются по мере готовности.
+
+## 1a. Дельта v2.5.0 → v3.0.0 (обновлено 2026-11-28)
+
+Локальный клон `ai-support/` обновлён с `6a04eae` (v2.5.0+2) до `ee05237` (v3.0.0). 169 коммитов, 399 файлов, +56k строк. Релизы: v2.6.1 (26.10), v2.7.0 (09.11), v3.0.0 (11.11).
+
+**База.** Миграции 020–025 (было 19 → стало 25): `conversation.hidden_at` + частичный индекс видимых, `last_resolved_at`; `ai_suggestion.final_text`, `answer_message_id`, `operator_note`; новая `qa_pair` + FTS5 `qa_fts` (обучение на ответах операторов); чистка `audit_log` от presence/read. Таблица `operator_draft` (черновик ответа на сервере) создаётся вне миграций — `src/core/drafts.ts:45-58`. Откат с 25-й схемы на 2.5.0 невозможен.
+
+**Новые backend-модули.**
+- `core/drafts.ts` — серверные черновики `(actor_key, conversation_id)`, TTL 30 дней, `mode reply|note`, цитата, `device`, `from_suggestion`.
+- `core/pause.ts` — пауза помощника ключом `aiPause` в `setting` (не меняет режим).
+- `core/attention.ts` + `shared/attention.ts` — серверное состояние «кому нужен ответ», секции, причины, SLA, пауза, окно.
+- `shared/conversation-order.ts` — серверный ранг списка, клиент больше не сортирует.
+- `shared/confidence.ts` — уровни `sure|check|unsure` вместо голого числа.
+- `core/fts.ts` — русский стеммер + `ftsExpression()` для FTS5.
+- `core/channels.ts` — единый справочник каналов и `file_ref`-префиксов.
+- `core/netdiag.ts` — человеческие диагнозы DNS/порт/TLS/HTML-вместо-JSON.
+- `ai/chunks.ts` — нарезка статей КБ на куски и выбор лучших в бюджете.
+- `ai/links.ts` — метки `[[link:key]]`, маскирование/раскрытие ссылок.
+- `ai/repair.ts` — терпимый разбор почти-JSON от модели.
+- `ai/examples.ts` — пары «вопрос→ответ оператора» (`qa_pair`), похожие примеры в промпт.
+- `ai/interface-kb.ts` — справочник интерфейса кабинета Bedolaga (`interface-kb/`, режимы full/lite).
+- `ai/eval.ts` + `cli/aieval.ts` — регрессионный прогон качества.
+- `cli/setup.ts` + `install.sh --setup/--check` — мастер первичной настройки.
+- `store.ts` разбит на 12 репозиториев `core/store/*`.
+- `panel/*` разнесён по маршрутам; новая read-модель inbox/thread/live.
+
+**Новые API v3.0.0.** `/api/inbox`, `/api/events?since&epoch`, `/api/bootstrap`, `/api/thread/:id`, `/api/conversations/:id/{draft,presence,intent,engage,release,note}`, `/api/presence`, `/api/team/names`, `/api/suggestions/:id[/decide]`, `/api/assistant/{settings,pause,activity}`, `/api/messages/:id/feedback`, `/api/learning/candidates*`, `/api/kb*` (+ `mine`, `publish`, version-conflict 409), `/api/interface-kb*`, `/api/filters`, `/api/operators`, `/api/roles`, `/api/audit`, `/api/system/{problems,notifications,panel}`, `/api/connections`, `/api/nodes*`, `/api/ai/*`. WS `?v=2` с кадрами `invalidate`, `problems`, `me`, `settings`, `intent`, `draft`, `presence`, `handover_request`; буфер seq/epoch и догон событий.
+
+**Семантика, которую важно перенести.**
+- `POST /state` принимает `seen` (ms последнего увиденного входящего) и отдаёт **409 `client_wrote`** — «Решено» не закрывает диалог, где клиент написал после просмотра.
+- Идемпотентный ответ: `clientMsgId` + `RepeatGuard` (сейчас in-memory, 24 ч), вложения батчами с `x-client-msg-id`.
+- `claim`/lease 15 мин, 409 `locked_by_other` при чужом захвате; `operator_active_at` подавляет AI 45 с.
+- Присутствие: `viewing|typing`, окно 90 с, `typing` без захвата.
+- «Попросить передать» — заметка + аудит + кадр владельцу, не чаще 1/мин.
+- Права: матрица `viewer|agent|lead|admin`, deny-by-default по карте «метод+шаблон → permission», переопределения `role_permission`, отзыв прав на лету (WS close 1008). Новое право `setting:uiDefault`.
+- Медиа/WS-билет: HMAC на 10 мин, cookie только для GET медиа.
+
+**ИИ.** Режимы `off|shadow|suggest|auto` (появился `shadow`). Ответы только по фактам: трафик/срок/устройства считает код, модель не арифметизирует; `used[]` обязателен; уточняющий вопрос — один и только при неясности; `operator_note` отдельно от текста клиенту; ссылки через `[[link:key]]`; fallback-модель; «печатает…» и `sendMessageDraft`; бюджет КБ 3500 симв., кусок 4200; `AI_MIN_CONFIDENCE` 0.75 → 0.9; `BEDOLAGA_POLL_SECONDS` 60 → 20; обучение на `qa_pair`.
+
+**Что это значит для CMS.** Все фичи фаз 3–5 из `docs/INTEGRATION-SUPPORT.md` уже реализованы в апстриме — переносить нужно не «с нуля», а портировать готовую логику: `attention`, `conversation-order`, `confidence`, `gate`, `links`, `repair`, `chunks`, `examples`, `drafts`, `pause`, `sla`. Заменить при переносе: FTS5/`bm25` → PostgreSQL `tsvector`/`ts_rank_cd`; `PRAGMA user_version` → миграции CMS; `MAX(x+1, ?)` → `GREATEST`; `INSERT OR IGNORE` → `ON CONFLICT DO NOTHING`; in-memory `RepeatGuard`/`Job`-локи → Postgres/Redis при нескольких воркерах.
 
 ## 3. Архитектура (правила, которые нельзя нарушать)
 

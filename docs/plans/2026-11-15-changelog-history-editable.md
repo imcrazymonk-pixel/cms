@@ -49,7 +49,7 @@
 
 ## 4. Миграция SQL
 
-⚠ `004-support-foundation.sql` уже занят — новый файл **`db/postgres/migrations/005-docs-history.sql`**. Идемпотентно:
+⚠ `004-support-foundation.sql` и `005-support-reply-idempotency.sql` (Этап A саппорта) уже заняты, а `006-support-ai-kb.sql` занята Этапом B саппорта (ИИ + КБ) — новый файл **`db/postgres/migrations/007-docs-history.sql`**. Идемпотентно:
 
 ```sql
 CREATE TABLE IF NOT EXISTS docs_documents (
@@ -97,7 +97,7 @@ DO $$ BEGIN
 
 ## 7. Шаги реализации
 
-1. **SQL+DDL**: `005-docs-history.sql`; `ensure_docs_tables()`/`seed_history_document()` в `docs.py`; вызов в `main.py:51-55`. Критерий: повторный запуск без ошибок, таблицы/триггер/индекс есть.
+1. **SQL+DDL**: `007-docs-history.sql`; `ensure_docs_tables()`/`seed_history_document()` в `docs.py`; вызов в `main.py:51-55`. Критерий: повторный запуск без ошибок, таблицы/триггер/индекс есть.
 2. **Хелперы**: `_format_history_block()`, `_compose_history_md(doc, blocks)`, `_get_history_document(db)` (seed из файла), `_history_entries(db)`; удалить мёртвый код `:289-294`. Критерий: unit-тесты формата блока/композиции.
 3. **Чтение**: history в `get_doc` и `list_entries` из БД, `editable:true`, `document` в ответе. Критерий: `GET` отдаёт файл при пустой БД и БД после seed.
 4. **Запись**: CRUD history-блоков (branch по `name`), `PUT /docs/history`, import/export history; guards по `editable` оставить, но history сделать editable. Критерий: 200/400/404/409 по таблице §3.
@@ -113,7 +113,7 @@ DO $$ BEGIN
 ```powershell
 cd web/backend; python -m pytest -q
 cd web/frontend; npm run typecheck; npm run build
-# миграция (dev): psql $env:DATABASE_URL -f db/postgres/migrations/005-docs-history.sql  (дважды — идемпотентность)
+# миграция (dev): psql $env:DATABASE_URL -f db/postgres/migrations/007-docs-history.sql  (дважды — идемпотентность)
 ```
 UI-чек-лист: history → «Редактировать документ» → правка → preview → сохранить → перезагрузить (видна); параллельная вкладка со старым `updated_at` → 409 и сообщение; «Новая запись» в history → карточка + edit/delete; changelog «Новая запись» + «Также в тех.историю» → блок в history с датой/автором/заголовком; «Импорт .md» changelog не стирает блоки history; «Экспорт .md» history содержит `## Дополнения`; dist пересобран и закоммичен.
 
