@@ -21,7 +21,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from web.backend.api.deps import AdminUser, get_current_admin
 from web.backend.core import integrations, outbound_proxy
-from web.backend.core.crypto import encrypt
 from web.backend.core.database import get_db
 from web.backend.core.errors import E, api_error
 from web.backend.core.request_utils import json_body
@@ -32,7 +31,12 @@ from web.backend.core.settings_registry import (
     REGISTRY_BY_KEY,
     resolve,
 )
-from web.backend.core.settings_values import stored_merged
+from web.backend.core.settings_values import (
+    store_value,
+    stored_merged,
+    table_for,
+    upsert_value,
+)
 
 router = APIRouter()
 
@@ -132,30 +136,8 @@ def _validate_setting(key: str, value: Any) -> Optional[str]:
     return None
 
 
-async def _upsert_in(db: AsyncSession, table: str, key: str, value: Optional[str]) -> None:
-    await db.execute(
-        text(
-            f"INSERT INTO {table} (setting_key, setting_value) VALUES (:k, :v) "
-            "ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value"
-        ),
-        {"k": key, "v": value},
-    )
-
-
 async def _delete_in(db: AsyncSession, table: str, key: str) -> None:
     await db.execute(text(f"DELETE FROM {table} WHERE setting_key = :k"), {"k": key})
-
-
-def _table_for(key: str) -> str:
-    defn = REGISTRY_BY_KEY.get(key)
-    return defn.store if defn else "settings"
-
-
-def _store_value(key: str, value: Any) -> str:
-    """Encrypt secrets, stringify everything else."""
-    defn = REGISTRY_BY_KEY.get(key)
-    raw = str(value)
-    return encrypt(raw) if (defn and defn.is_secret) else raw
 
 
 def _build(stored: Dict[str, str]) -> tuple[List[Dict[str, Any]], Dict[str, List[Dict[str, Any]]]]:
@@ -217,7 +199,7 @@ async def update_settings(
         error = _validate_setting(key, body[key])
         if error:
             return api_error(400, E.INVALID_INPUT, error)
-        await _upsert_in(db, _table_for(key), key, _store_value(key, body[key]))
+        await upsert_value(db, key, body[key])
         changed.append(key)
         saved += 1
 
@@ -254,8 +236,8 @@ async def update_setting(
     if error:
         return api_error(400, E.INVALID_INPUT, error)
 
-    stored_value = _store_value(key, value)
-    await _upsert_in(db, _table_for(key), key, stored_value)
+    stored_value = store_value(key, value)
+    await upsert_value(db, key, value)
     await db.commit()
     runtime = await _apply_runtime(request.app, db, [key])
 
@@ -274,7 +256,7 @@ async def reset_setting(
     if key not in ALLOWED_KEYS:
         return api_error(404, E.NOT_FOUND, "Неизвестная настройка")
 
-    await _delete_in(db, _table_for(key), key)
+    await _delete_in(db, table_for(key), key)
     await db.commit()
     runtime = await _apply_runtime(request.app, db, [key])
 

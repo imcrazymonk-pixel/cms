@@ -8,8 +8,13 @@ from web.backend.api.deps import AdminUser, get_current_admin
 from web.backend.core import settings_values
 from web.backend.core.database import get_db
 from web.backend.core.settings_registry import REGISTRY_BY_KEY
+from web.backend.core.support.ai.config import AiConfig
 from web.backend.core.support.channels import registry
-from web.backend.core.support.settings import get_support_settings, read_runtime_settings
+from web.backend.core.support.settings import (
+    get_support_settings,
+    load_support_config,
+    read_runtime_settings,
+)
 
 router = APIRouter()
 
@@ -59,6 +64,18 @@ async def support_config_status(
     poll_fallback = _positive_int(runtime.get("poll_interval_seconds")) or settings.poll_interval_seconds
     window_fallback = _positive_int(runtime.get("window_hours")) or settings.window_hours
 
+    # AI snapshot: registry overrides when a session is available, env otherwise.
+    ai_settings, _ = await load_support_config(db)
+    ai_config = AiConfig.from_settings(ai_settings)
+    paused = False
+    if db is not None:
+        try:
+            from web.backend.core.support.store import ai as ai_store
+
+            paused = bool(await ai_store.get_pause(db))
+        except Exception:  # noqa: BLE001 — статус не должен падать из-за паузы
+            paused = False
+
     return {
         "success": True,
         "data": {
@@ -69,5 +86,12 @@ async def support_config_status(
             "reply_window_hours": _registry_int(
                 stored, "support_window_hours", window_fallback,
             ),
+            "ai": {
+                "mode": ai_config.mode,
+                "effective_mode": ai_config.effective_mode,
+                "has_key": ai_config.has_key,
+                "paused": paused,
+                "model": ai_config.model,
+            },
         },
     }

@@ -28,6 +28,7 @@ _EVENT_TYPE_BY_KIND = {
     EventKind.MESSAGE_UPDATED: "message_updated",
     EventKind.CONVERSATION_CHANGED: "conversation",
     EventKind.POLLER_STATUS: "poller",
+    EventKind.AI_SUGGESTION: "ai_suggestion",
 }
 
 

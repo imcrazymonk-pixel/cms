@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { History, Send, CheckCheck, UserCheck, MessagesSquare, Paperclip, FileText, X, Loader2, Download } from 'lucide-react'
+import { History, Send, CheckCheck, UserCheck, UserMinus, MessagesSquare, Paperclip, FileText, X, Loader2, Download } from 'lucide-react'
 import type {
   ConversationPriority,
   ConversationStatus,
@@ -140,6 +140,18 @@ function MessageBubble({ message }: { message: SupportMessage }) {
             : 'rounded-tr-md bg-primary-500/90 text-white',
         )}
       >
+        {message.reply_excerpt && (
+          <div
+            className={cn(
+              'mb-1.5 rounded-md border-l-2 px-2 py-1 text-[11px] leading-snug',
+              incoming
+                ? 'border-primary-500/60 bg-black/20 text-dark-200'
+                : 'border-white/60 bg-white/10 text-white/80',
+            )}
+          >
+            <span className="line-clamp-3 whitespace-pre-wrap break-words">{message.reply_excerpt}</span>
+          </div>
+        )}
         {message.attachment && <AttachmentContent attachment={message.attachment} />}
         {message.text && <div className="whitespace-pre-wrap break-words">{message.text}</div>}
         <div className={cn('mt-1 flex items-center gap-1.5 text-[10px]', incoming ? 'text-dark-400' : 'text-white/70')}>
@@ -165,12 +177,15 @@ interface MessageThreadProps {
   conversation: SupportConversation | undefined
   messages: SupportMessage[]
   isLoading: boolean
+  /** Текущий оператор — для логики «Взять / Освободить / Перехватить». */
+  currentUserId: number | null
   assigneePending: boolean
   statePending: boolean
   sending: boolean
   onMarkRead: (id: number) => void
   onState: (patch: { status?: ConversationStatus; priority?: ConversationPriority }) => void
-  onAssign: () => void
+  /** null — освободить диалог, число — назначить на себя. */
+  onAssign: (assigneeId: number | null) => void
   onResolve: () => void
   onReply: (text: string, attachmentIds: string[]) => void
 }
@@ -179,6 +194,7 @@ export function MessageThread({
   conversation,
   messages,
   isLoading,
+  currentUserId,
   assigneePending,
   statePending,
   sending,
@@ -260,6 +276,10 @@ export function MessageThread({
     setTokens((prev) => prev.filter((_, i) => i !== index))
   }
 
+  // ── Назначение ────────────────────────────────────────────────
+  const assignedToMe = currentUserId != null && conversation.assignee_id === currentUserId
+  const assignedToOther = conversation.assignee_id != null && !assignedToMe
+
   return (
     <div className="glass-card flex min-h-0 flex-col">
       {/* Header */}
@@ -276,13 +296,49 @@ export function MessageThread({
             </div>
             <p className="mt-0.5 text-[11px] text-dark-400">
               {conversation.channel} · {conversation.external_id}
-              {conversation.assignee_id && <span className="ml-2 text-primary-300">· в работе</span>}
+              {conversation.assignee_id && (
+                <span className="ml-2 text-primary-300">
+                  {assignedToMe ? '· ваш диалог' : '· ведёт другой'}
+                </span>
+              )}
             </p>
           </div>
-          <div className="flex items-center gap-1.5">
-            <Button variant="secondary" size="sm" onClick={onAssign} disabled={assigneePending || statePending}>
-              <UserCheck className="mr-1.5 h-3.5 w-3.5" /> Взять диалог
-            </Button>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {assignedToOther && (
+              <>
+                <Badge variant="warning" className="text-[10px]">Ведёт другой</Badge>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => currentUserId != null && onAssign(currentUserId)}
+                  disabled={assigneePending || statePending || currentUserId == null}
+                  title="Перехватить диалог у другого оператора"
+                >
+                  <UserCheck className="mr-1.5 h-3.5 w-3.5" /> Перехватить
+                </Button>
+              </>
+            )}
+            {assignedToMe && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onAssign(null)}
+                disabled={assigneePending || statePending}
+                title="Снять назначение с себя"
+              >
+                <UserMinus className="mr-1.5 h-3.5 w-3.5" /> Освободить
+              </Button>
+            )}
+            {conversation.assignee_id == null && (
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => currentUserId != null && onAssign(currentUserId)}
+                disabled={assigneePending || statePending || currentUserId == null}
+              >
+                <UserCheck className="mr-1.5 h-3.5 w-3.5" /> Взять диалог
+              </Button>
+            )}
             <Button variant="secondary" size="sm" onClick={onResolve} disabled={statePending || assigneePending}>
               <CheckCheck className="mr-1.5 h-3.5 w-3.5" /> Решено
             </Button>

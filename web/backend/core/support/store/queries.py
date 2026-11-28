@@ -3,6 +3,7 @@
 Identifiers in the SQL come from controlled constants; filter values are
 always bound parameters (same safety contract as db_helpers.py).
 """
+from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import text
@@ -255,6 +256,35 @@ async def message_exists(
         )
     ).fetchone()
     return row is not None
+
+
+def _as_utc(value: datetime | str) -> datetime:
+    """Normalize a datetime/ISO string to a UTC-aware datetime."""
+    if isinstance(value, str):
+        value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value
+
+
+async def has_inbound_after(
+    db: AsyncSession,
+    conversation_id: int,
+    seen_at: datetime | str,
+) -> bool:
+    """True when the client wrote (`direction='in'`) after the operator's `seen_at`."""
+    row = (
+        await db.execute(
+            text(
+                "SELECT 1 FROM support_message "
+                "WHERE conversation_id = :conversation_id AND direction = 'in' "
+                "AND created_at > :seen_at LIMIT 1"
+            ),
+            {"conversation_id": conversation_id, "seen_at": _as_utc(seen_at)},
+        )
+    ).fetchone()
+    return row is not None
+
 
 
 async def list_messages(

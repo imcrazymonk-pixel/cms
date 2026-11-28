@@ -4,9 +4,12 @@ import { Activity, AlertTriangle, RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import {
   supportApi,
+  getSupportErrorCode,
   type ConversationPriority,
   type ConversationStatus,
   type PollerStatus,
+  type SupportConfigStatus,
+  type SupportMessage,
 } from '@/api/support'
 import { useSupportSocket } from '@/lib/supportSocket'
 import { toast } from 'sonner'
@@ -34,8 +37,26 @@ function formatPollTime(value?: string | null): string {
   })
 }
 
-function PollerRow({ channel, status }: { channel: 'telegram' | 'bedolaga'; status?: PollerStatus }) {
-  const label = channel === 'telegram' ? 'Telegram' : 'Bedolaga'
+function channelLabel(channel: string): string {
+  if (!channel) return '—'
+  if (channel === 'telegram') return 'Telegram'
+  if (channel === 'bedolaga') return 'Bedolaga'
+  return channel.charAt(0).toUpperCase() + channel.slice(1).replace(/_/g, ' ')
+}
+
+/** Время самого свежего сообщения в диалоге — для seen_at. */
+function lastMessageTime(messages: SupportMessage[]): string | undefined {
+  let latest: SupportMessage | undefined
+  for (const message of messages) {
+    if (!latest || new Date(message.created_at).getTime() > new Date(latest.created_at).getTime()) {
+      latest = message
+    }
+  }
+  return latest?.created_at
+}
+
+function PollerRow({ channel, status }: { channel: string; status?: PollerStatus }) {
+  const label = channelLabel(channel)
 
   if (!status) {
     return (
@@ -84,14 +105,22 @@ function PollerRow({ channel, status }: { channel: 'telegram' | 'bedolaga'; stat
 
 function PollerStatusPanel({
   pollers,
+  config,
   isLoading,
   isError,
 }: {
   pollers?: Record<string, PollerStatus>
+  config?: SupportConfigStatus
   isLoading: boolean
   isError: boolean
 }) {
-  const telegram = pollers?.telegram
+  // Объединяем каналы из конфига и из ответа поллеров — без хардкода.
+  const channels = useMemo(() => {
+    const set = new Set<string>()
+    for (const channel of config?.channels ?? []) set.add(channel)
+    for (const channel of Object.keys(pollers ?? {})) set.add(channel)
+    return Array.from(set).sort()
+  }, [config, pollers])
 
   return (
     <Card className="p-4 md:p-5">
@@ -102,20 +131,24 @@ function PollerStatusPanel({
         {isError && <Badge variant="warning">статус недоступен</Badge>}
       </div>
 
+      {config && (
+        <p className="mb-3 text-[11px] text-dark-300">
+          Интервал опроса: {config.poll_interval_seconds} с · Окно ответа: {config.reply_window_hours} ч
+          {channels.length > 0 && <> · Включены: {channels.map(channelLabel).join(', ')}</>}
+        </p>
+      )}
+
       {!pollers && isLoading ? (
         <p className="text-xs text-dark-300">Проверка статуса поллеров…</p>
       ) : !pollers && isError ? (
         <p className="text-xs text-yellow-400">Не удалось получить статус поллеров</p>
+      ) : channels.length === 0 ? (
+        <p className="text-xs text-dark-300">Каналы поддержки не настроены.</p>
       ) : (
         <div className="space-y-3">
-          <PollerRow channel="telegram" status={telegram} />
-          <PollerRow channel="bedolaga" status={pollers?.bedolaga} />
-          {!isError && !telegram && (
-            <p className="text-xs text-yellow-400">
-              Telegram-канал не запущен: проверьте токен и support_tg_enabled в Настройки →
-              Интеграции
-            </p>
-          )}
+          {channels.map((channel) => (
+            <PollerRow key={channel} channel={channel} status={pollers?.[channel]} />
+          ))}
         </div>
       )}
     </Card>
@@ -127,9 +160,19 @@ export default function SupportQueue() {
   const user = useAuthStore((s) => s.user)
   const [activeId, setActiveId] = useState<number | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
+  const [channelFilter, setChannelFilter] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('')
+  const [unreadOnly, setUnreadOnly] = useState(false)
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const listRefreshTimer = useRef<number | null>(null)
+  /** Попытка отправки — нужна, чтобы повторить с тем же client_msg_id (идемпотентность). */
+  const pendingReplyRef = useRef<{
+    id: number
+    text: string
+    attachment_ids: string[]
+    client_msg_id: string
+  } | null>(null)
 
   // Дебаунс поиска
   useEffect(() => {
@@ -168,10 +211,13 @@ export default function SupportQueue() {
 
   // ── Запросы ───────────────────────────────────────────────────
   const listQuery = useInfiniteQuery({
-    queryKey: ['support-conversations', statusFilter, debouncedSearch],
+    queryKey: ['support-conversations', statusFilter, channelFilter, priorityFilter, unreadOnly, debouncedSearch],
     queryFn: ({ pageParam }) =>
       supportApi.listConversations({
         status: statusFilter || undefined,
+        channel: channelFilter || undefined,
+        priority: priorityFilter || undefined,
+        unread_only: unreadOnly || undefined,
         q: debouncedSearch || undefined,
         page: pageParam,
         per_page: PAGE_SIZE,
@@ -203,6 +249,13 @@ export default function SupportQueue() {
     refetchOnWindowFocus: true,
   })
 
+  const configQuery = useQuery({
+    queryKey: ['support-config-status'],
+    queryFn: supportApi.getConfigStatus,
+    staleTime: 60_000,
+    refetchOnWindowFocus: true,
+  })
+
   // ── Мутации ──────────────────────────────────────────────────
   const readMutation = useMutation({
     mutationFn: (id: number) => supportApi.readConversation(id),
@@ -214,39 +267,90 @@ export default function SupportQueue() {
   })
 
   const replyMutation = useMutation({
-    mutationFn: ({ id, text, attachment_ids = [] }: { id: number; text: string; attachment_ids?: string[] }) =>
-      supportApi.replyConversation(id, { text, attachment_ids }),
+    mutationFn: (vars: {
+      id: number
+      text: string
+      attachment_ids: string[]
+      client_msg_id: string
+      force?: boolean
+    }) =>
+      supportApi.replyConversation(vars.id, {
+        text: vars.text,
+        attachment_ids: vars.attachment_ids,
+        client_msg_id: vars.client_msg_id,
+        force: vars.force,
+      }),
     onSuccess: (data) => {
+      pendingReplyRef.current = null
       queryClient.invalidateQueries({ queryKey: ['support-conversation', data.conversation_id] })
       scheduleListRefresh()
-      toast.success('Ответ отправлен')
+      toast.success(data.repeated ? 'Сообщение уже было отправлено' : 'Ответ отправлен')
     },
-    onError: (err) => toastMutationError(err, 'Не удалось отправить ответ'),
+    onError: (err) => {
+      const code = getSupportErrorCode(err)
+      if (code === 'CLIENT_WROTE') {
+        // Клиент написал после seen_at — статус не закрыт, надо перечитать диалог.
+        toast.error('Клиент написал после прочтения — проверьте новые сообщения')
+        if (activeId != null) {
+          queryClient.invalidateQueries({ queryKey: ['support-conversation', activeId] })
+        }
+        queryClient.invalidateQueries({ queryKey: ['support-conversations'] })
+        return
+      }
+      if (code === 'LOCKED_BY_OTHER') {
+        const pending = pendingReplyRef.current
+        toast.error('Диалог ведёт другой оператор', {
+          action: pending
+            ? {
+                label: 'Всё равно отправить',
+                onClick: () => replyMutation.mutate({ ...pending, force: true }),
+              }
+            : undefined,
+        })
+        return
+      }
+      // REPLY_WINDOW_CLOSED и прочее — прежнее поведение.
+      toastMutationError(err, 'Не удалось отправить ответ')
+    },
   })
 
   const stateMutation = useMutation({
     mutationFn: ({
       id,
-      patch,
+      status,
+      priority,
+      seen_at,
     }: {
       id: number
-      patch: { status?: ConversationStatus; priority?: ConversationPriority }
-    }) => supportApi.setState(id, { status: patch.status as ConversationStatus, priority: patch.priority }),
+      status: ConversationStatus
+      priority?: ConversationPriority
+      seen_at?: string
+    }) => supportApi.setState(id, { status, priority, seen_at }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['support-conversation', data.conversation_id] })
       scheduleListRefresh()
       toast.success('Статус обновлён')
     },
-    onError: (err) => toastMutationError(err, 'Не удалось обновить статус'),
+    onError: (err) => {
+      if (getSupportErrorCode(err) === 'CLIENT_WROTE') {
+        toast.error('Клиент написал после прочтения — диалог не закрыт')
+        if (activeId != null) {
+          queryClient.invalidateQueries({ queryKey: ['support-conversation', activeId] })
+        }
+        queryClient.invalidateQueries({ queryKey: ['support-conversations'] })
+        return
+      }
+      toastMutationError(err, 'Не удалось обновить статус')
+    },
   })
 
   const assignMutation = useMutation({
-    mutationFn: ({ id, assignee_id }: { id: number; assignee_id: number }) =>
+    mutationFn: ({ id, assignee_id }: { id: number; assignee_id: number | null }) =>
       supportApi.setAssignee(id, { assignee_id }),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       scheduleListRefresh()
-      queryClient.invalidateQueries({ queryKey: ['support-conversation', activeId] })
-      toast.success('Диалог взят в работу')
+      queryClient.invalidateQueries({ queryKey: ['support-conversation', variables.id] })
+      toast.success(variables.assignee_id == null ? 'Диалог освобождён' : 'Диалог взят в работу')
     },
     onError: (err) => toastMutationError(err, 'Не удалось назначить оператора'),
   })
@@ -267,22 +371,38 @@ export default function SupportQueue() {
 
   const handleReply = (text: string, attachmentIds: string[]) => {
     if (activeId == null) return
-    replyMutation.mutate({ id: activeId, text, attachment_ids: attachmentIds })
+    const pending = {
+      id: activeId,
+      text,
+      attachment_ids: attachmentIds,
+      // Один id на попытку: повтор (в т.ч. force) не создаст дубль.
+      client_msg_id: crypto.randomUUID(),
+    }
+    pendingReplyRef.current = pending
+    replyMutation.mutate(pending)
   }
 
   const handleState = (patch: { status?: ConversationStatus; priority?: ConversationPriority }) => {
     if (activeId == null) return
-    stateMutation.mutate({ id: activeId, patch })
+    const conversation = detailQuery.data?.conversation
+    const status = patch.status ?? conversation?.status
+    if (!status) return
+    // seen_at нужен только при фактическом закрытии/решении.
+    const closing =
+      (status === 'resolved' || status === 'closed') && status !== conversation?.status
+    const seen_at =
+      closing && detailQuery.data ? lastMessageTime(detailQuery.data.messages) : undefined
+    stateMutation.mutate({ id: activeId, status, priority: patch.priority, seen_at })
   }
 
-  const handleAssign = () => {
-    if (activeId == null || user?.id == null) return
-    assignMutation.mutate({ id: activeId, assignee_id: user.id })
+  const handleAssign = (assigneeId: number | null) => {
+    if (activeId == null) return
+    assignMutation.mutate({ id: activeId, assignee_id: assigneeId })
   }
 
   const handleResolve = () => {
     if (activeId == null) return
-    stateMutation.mutate({ id: activeId, patch: { status: 'resolved' } })
+    handleState({ status: 'resolved' })
   }
 
   const handleMarkRead = (id: number) => readMutation.mutate(id)
@@ -307,6 +427,7 @@ export default function SupportQueue() {
 
       <PollerStatusPanel
         pollers={pollersQuery.data?.pollers}
+        config={configQuery.data}
         isLoading={pollersQuery.isLoading}
         isError={pollersQuery.isError}
       />
@@ -316,13 +437,20 @@ export default function SupportQueue() {
         <div className="xl:h-[calc(100vh-190px)]">
           <ConversationList
             items={conversations}
+            total={listQuery.data?.pages[0]?.total ?? conversations.length}
             activeId={activeId}
             isLoading={listQuery.isLoading}
             hasNextPage={listQuery.hasNextPage || false}
             isFetchingNextPage={listQuery.isFetchingNextPage}
             statusFilter={statusFilter}
+            channelFilter={channelFilter}
+            priorityFilter={priorityFilter}
+            unreadOnly={unreadOnly}
             search={search}
             onStatusFilter={setStatusFilter}
+            onChannelFilter={setChannelFilter}
+            onPriorityFilter={setPriorityFilter}
+            onUnreadOnly={setUnreadOnly}
             onSearch={setSearch}
             onSelect={handleSelect}
             onLoadMore={() => listQuery.fetchNextPage()}
@@ -336,6 +464,7 @@ export default function SupportQueue() {
             conversation={activeId != null ? detailQuery.data?.conversation : undefined}
             messages={activeId != null ? detailQuery.data?.messages ?? [] : []}
             isLoading={activeId != null && detailQuery.isLoading}
+            currentUserId={user?.id ?? null}
             assigneePending={assignMutation.isPending}
             statePending={stateMutation.isPending}
             sending={replyMutation.isPending}

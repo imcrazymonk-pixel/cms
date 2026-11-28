@@ -4,6 +4,7 @@ All endpoints are behind get_current_admin and answer in {success, data}.
 Store/outbox access goes through the SupportService from app.state.
 """
 import logging
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -11,7 +12,7 @@ from httpx import HTTPStatusError
 from pydantic import BaseModel, Field
 
 from web.backend.api.deps import AdminUser, get_current_admin
-from web.backend.api.v1.support.attachments import resolve_upload_token
+from web.backend.api.v1.support.attachments import UPLOAD_TOKEN_TTL_HOURS, resolve_upload_token
 from web.backend.core.errors import E
 from web.backend.core.support import SupportService
 from web.backend.core.support.deps import get_support_service
@@ -24,8 +25,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 _STATUS_RE = "^(open|pending|resolved|closed)$"
+_CHANNEL_RE = "^[a-z0-9_]{1,32}$"
 _PRIORITY_RE = "^(low|normal|high|urgent)$"
 _MAX_ATTACHMENTS = 10
+_LEASE_MINUTES = 15
+_CLOSING_STATUSES = ("resolved", "closed")
+
 
 
 class ReplyIn(BaseModel):
@@ -40,6 +45,12 @@ class ReplyIn(BaseModel):
         max_length=_MAX_ATTACHMENTS,
         description="Токены файлов из POST /attachments",
     )
+    client_msg_id: str | None = Field(
+        None,
+        pattern="^[A-Za-z0-9_-]{8,64}$",
+        description="Клиентский ключ идемпотентности текстового ответа",
+    )
+    force: bool = Field(False, description="Перехватить диалог у другого оператора (lease)")
 
 
 class StateIn(BaseModel):
@@ -47,6 +58,11 @@ class StateIn(BaseModel):
 
     status: str = Field(..., pattern=_STATUS_RE)
     priority: str | None = Field(None, pattern=_PRIORITY_RE)
+    seen_at: datetime | None = Field(
+        None,
+        description="ISO-8601: время последнего сообщения, которое видел оператор",
+    )
+
 
 
 class AssigneeIn(BaseModel):
@@ -66,13 +82,13 @@ def _not_found() -> HTTPException:
 
 @router.get("/conversations")
 async def list_support_conversations(
-    status: str | None = Query(None),
-    channel: str | None = Query(None),
-    priority: str | None = Query(None),
+    status: str | None = Query(None, pattern=_STATUS_RE),
+    channel: str | None = Query(None, pattern=_CHANNEL_RE),
+    priority: str | None = Query(None, pattern=_PRIORITY_RE),
     assignee_id: int | None = Query(None),
     customer_id: int | None = Query(None),
     unread_only: bool = Query(False),
-    q: str | None = Query(None),
+    q: str | None = Query(None, max_length=200),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
     admin: AdminUser = Depends(get_current_admin),
@@ -100,7 +116,15 @@ async def get_support_conversation(
     conv = result["conversation"]
     if conv.get("customer_profile_id"):
         customer = await service.store.get_customer_profile(customer_id=int(conv["customer_profile_id"]))
-    return {"success": True, "data": {**result, "customer": customer}}
+    # Pending AI draft (shadow included — the frontend hides shadow itself).
+    suggestion = None
+    pending = getattr(service.store, "get_pending_suggestion", None)
+    if callable(pending):
+        try:
+            suggestion = await pending(conversation_id)
+        except Exception as e:  # noqa: BLE001 — деталь диалога не должна падать
+            logger.debug("Pending AI suggestion read failed: %s", type(e).__name__)
+    return {"success": True, "data": {**result, "customer": customer, "suggestion": suggestion}}
 
 
 # ── Reply ──────────────────────────────────────────────────────────────────
@@ -116,6 +140,20 @@ async def reply_to_conversation(
     conv = await service.store.get_conversation(conversation_id)
     if conv is None:
         raise _not_found()
+
+    # Идемпотентность — только для текстовых ответов (не для батча вложений).
+    reply_key = body.client_msg_id if (body.client_msg_id and not body.attachment_ids) else None
+    if reply_key:
+        existing_id = await service.store.get_reply_key(
+            actor_id=admin.id, conversation_id=conversation_id, client_msg_id=reply_key
+        )
+        if existing_id is not None:
+            return {
+                "success": True,
+                "data": {"message_id": existing_id, "conversation_id": conversation_id, "repeated": True},
+            }
+
+    await _guard_lease(service, conv, conversation_id, admin, force=body.force)
 
     if body.attachment_ids:
         return await _reply_with_attachments(service, conv, conversation_id, body)
@@ -159,10 +197,20 @@ async def reply_to_conversation(
             detail={"success": False, "error": "Telegram API error при отправке", "code": "UPSTREAM_ERROR"},
         )
 
-    message_id = await service.store.record_outbound(
-        conversation_id=conversation_id, text_value=body.text, author="agent",
-        external_msg_id=external_msg_id,
-    )
+    if reply_key:
+        message_id = await service.store.record_outbound_with_key(
+            actor_id=admin.id,
+            client_msg_id=reply_key,
+            conversation_id=conversation_id,
+            text_value=body.text,
+            author="agent",
+            external_msg_id=external_msg_id,
+        )
+    else:
+        message_id = await service.store.record_outbound(
+            conversation_id=conversation_id, text_value=body.text, author="agent",
+            external_msg_id=external_msg_id,
+        )
     service.event_bus.publish(
         EventKind.MESSAGE_CREATED,
         {"message_id": message_id, "direction": "out", "text": body.text, "external_msg_id": external_msg_id},
@@ -170,10 +218,62 @@ async def reply_to_conversation(
     )
     service.event_bus.publish(EventKind.CONVERSATION_CHANGED, {"status": conv.get("status")}, conversation_id=conversation_id)
     await _mirror_text_to_forum(service, conv, body.text)
-    return {
-        "success": True,
-        "data": {"message_id": message_id, "conversation_id": conversation_id, "external_msg_id": external_msg_id},
+    data: dict[str, Any] = {
+        "message_id": message_id,
+        "conversation_id": conversation_id,
+        "external_msg_id": external_msg_id,
     }
+    if reply_key:
+        data["repeated"] = False
+    return {"success": True, "data": data}
+
+
+
+async def _guard_lease(
+    service: SupportService,
+    conv: dict[str, Any],
+    conversation_id: int,
+    admin: AdminUser,
+    *,
+    force: bool,
+) -> None:
+    """Lease-захват: другой оператор держит диалог ≤15 мин → 409 (или force-перехват).
+
+    Без assignee — без блокировки; `claimed_at` отсутствует/старше 15 минут —
+    lease истёк, отправка разрешена. `force` обрабатывается до проверки:
+    диалог перехватывается на текущего оператора.
+    """
+    assignee_id = conv.get("assignee_id")
+    if not assignee_id or int(assignee_id) == int(admin.id):
+        return
+    if force:
+        await service.store.set_assignee(conversation_id, admin.id)
+        service.event_bus.publish(
+            EventKind.CONVERSATION_CHANGED, {"assignee_id": admin.id}, conversation_id=conversation_id
+        )
+        return
+    if not _lease_active(conv.get("claimed_at")):
+        return
+    raise HTTPException(
+        status_code=409,
+        detail={"success": False, "error": "Диалог ведёт другой оператор", "code": E.LOCKED_BY_OTHER.value},
+    )
+
+
+def _lease_active(claimed_at: Any) -> bool:
+    """True when `claimed_at` is a timestamp younger than the 15-minute lease."""
+    if claimed_at is None:
+        return False
+    if isinstance(claimed_at, str):
+        try:
+            claimed_at = datetime.fromisoformat(claimed_at.replace("Z", "+00:00"))
+        except ValueError:
+            return False
+    if not isinstance(claimed_at, datetime):
+        return False
+    if claimed_at.tzinfo is None:
+        claimed_at = claimed_at.replace(tzinfo=timezone.utc)
+    return datetime.now(timezone.utc) - claimed_at <= timedelta(minutes=_LEASE_MINUTES)
 
 
 async def _reply_with_attachments(service: SupportService, conv: dict[str, Any], conversation_id: int, body: ReplyIn) -> dict:
@@ -187,7 +287,11 @@ async def _reply_with_attachments(service: SupportService, conv: dict[str, Any],
         if att is None:
             raise HTTPException(
                 status_code=400,
-                detail={"success": False, "error": "Вложение не найдено или истекло", "code": E.INVALID_INPUT.value},
+                detail={
+                    "success": False,
+                    "error": f"Вложение не найдено или устарело ({UPLOAD_TOKEN_TTL_HOURS} ч)",
+                    "code": E.INVALID_INPUT.value,
+                },
             )
         attachments.append(att)
 
@@ -314,17 +418,37 @@ async def update_conversation_state(
     if conv is None:
         raise _not_found()
 
+    # seen/409: клиент написал после прочитанного — закрывать нельзя.
+    if body.status in _CLOSING_STATUSES and body.seen_at is not None:
+        if await service.store.has_inbound_after(conversation_id, body.seen_at):
+            raise HTTPException(
+                status_code=409,
+                detail={
+                    "success": False,
+                    "error": "Клиент написал после того, как вы прочитали диалог",
+                    "code": E.CLIENT_WROTE.value,
+                },
+            )
+
     if body.priority:
         await service.store.set_priority(conversation_id, body.priority)
     await service.store.set_status(conversation_id, body.status)
 
     synced = "skipped"
+    priority_synced = "skipped"
     if conv.get("channel") == "bedolaga":
         synced = await _sync_bedolaga_status(service, conv, body.status)
+        if body.priority:
+            priority_synced = await _sync_bedolaga_priority(service, conv, body.priority)
 
     service.event_bus.publish(
         EventKind.CONVERSATION_CHANGED,
-        {"status": body.status, "priority": body.priority, "synced": synced},
+        {
+            "status": body.status,
+            "priority": body.priority,
+            "synced": synced,
+            "priority_synced": priority_synced,
+        },
         conversation_id=conversation_id,
     )
     return {
@@ -334,8 +458,10 @@ async def update_conversation_state(
             "status": body.status,
             "priority": body.priority,
             "synced": synced,
+            "priority_synced": priority_synced,
         },
     }
+
 
 
 async def _sync_bedolaga_status(service: SupportService, conv: dict[str, Any], target_status: str) -> str:
@@ -362,6 +488,32 @@ async def _sync_bedolaga_status(service: SupportService, conv: dict[str, Any], t
     except Exception as e:  # noqa: BLE001 — локальный статус уже сохранён
         logger.warning("Bedolaga status sync failed for conversation %s: %s", conv.get("id"), e)
         return "error"
+
+
+async def _sync_bedolaga_priority(service: SupportService, conv: dict[str, Any], target_priority: str) -> str:
+    """Push our priority to Bedolaga only when the remote one differs.
+
+    Returns 'synced' | 'unchanged' | 'skipped' | 'error'. An upstream error
+    never rolls back the local priority (same policy as status sync).
+    """
+    poller = service.pollers.get("bedolaga") if service.pollers else None
+    client = getattr(poller, "client", None)
+    if client is None:
+        return "skipped"
+    remote_target = str(target_priority or "").strip().lower()
+    if not remote_target:
+        return "skipped"
+    try:
+        ticket = await client.get_ticket(_ticket_id(conv))
+        remote_priority = str(ticket.get("priority") or "").strip().lower()
+        if remote_priority == remote_target:
+            return "unchanged"
+        await client.set_ticket_priority(_ticket_id(conv), remote_target)
+        return "synced"
+    except Exception as e:  # noqa: BLE001 — локальный приоритет уже сохранён
+        logger.warning("Bedolaga priority sync failed for conversation %s: %s", conv.get("id"), e)
+        return "error"
+
 
 
 def _ticket_id(conv: dict[str, Any]) -> int:

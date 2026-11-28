@@ -17,6 +17,7 @@ class EventKind(str, Enum):
     MESSAGE_UPDATED = "message_updated"
     CONVERSATION_CHANGED = "conversation_changed"
     POLLER_STATUS = "poller_status"
+    AI_SUGGESTION = "ai_suggestion"
 
 
 @dataclass

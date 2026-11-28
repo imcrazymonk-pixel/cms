@@ -19,14 +19,34 @@ ARCHIVE_INTERVAL_SECONDS = 3600
 
 
 def start_support_workers(service: SupportService) -> list[asyncio.Task]:
-    """Start health beat + every enabled channel poller; returns the tasks."""
+    """Start health beat, every enabled poller and the AI worker; returns the tasks."""
     tasks = [asyncio.create_task(_health_loop(service), name="support-health-loop")]
     for channel, poller in service.pollers.items():
         if getattr(poller, "enabled", False):
             tasks.append(asyncio.create_task(poller.run_loop(), name=f"support-poller-{channel}"))
     if service.forum_bridge is not None:
         tasks.append(asyncio.create_task(_forum_archive_loop(service), name="support-forum-archive"))
+
+    ai_task = _start_ai_worker(service)
+    if ai_task is not None:
+        tasks.append(ai_task)
     return tasks
+
+
+def _start_ai_worker(service: SupportService) -> asyncio.Task | None:
+    """AI worker только при включённом режиме: в `off` никаких задач и клиентов."""
+    runtime = getattr(service, "ai", None)
+    config = getattr(runtime, "config", None)
+    mode = getattr(config, "effective_mode", "off")
+    service.ai_worker = None
+    if runtime is None or mode == "off":
+        return None
+
+    from web.backend.core.support.ai.worker import AiWorker
+
+    worker = AiWorker(service)
+    service.ai_worker = worker
+    return asyncio.create_task(worker.run_loop(), name="support-ai-worker")
 
 
 async def stop_support_workers(tasks: Iterable[asyncio.Task]) -> None:

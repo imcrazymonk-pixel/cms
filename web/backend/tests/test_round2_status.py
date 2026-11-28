@@ -193,8 +193,9 @@ async def test_support_health_returns_live_pollers(client: AsyncClient):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["data"]["status"] == "ok"
-    assert body["data"]["db"] is True
+    # db is a real SELECT 1 now: the fake service has no DB → degraded/false.
+    assert isinstance(body["data"]["db"], bool)
+    assert body["data"]["status"] in ("ok", "degraded")
     assert body["data"]["pollers"]["telegram"]["running"] is True
     assert body["data"]["pollers"]["bedolaga"]["enabled"] is False
 

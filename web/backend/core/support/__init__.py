@@ -52,6 +52,11 @@ class SupportService:
     upload_dir: Path | None = field(default=None)
     upload_max_size: int | None = field(default=None)
     forum_bridge: ForumBridge | None = field(default=None)
+    # ИИ-ассистент (Этап B): runtime хранит immutable-снимок + ленивый провайдер.
+    ai: Any = field(default=None)
+    ai_worker: Any = field(default=None)
+    # Активные фоновые импорты (B2c); задачи снимаются по завершении.
+    import_tasks: set = field(default_factory=set)
 
 
 def _flag_enabled(raw: str | None) -> bool | None:
@@ -208,6 +213,45 @@ async def _wire_telegram(service: SupportService, runtime: dict[str, str]) -> bo
     return True
 
 
+def _build_ai_runtime(settings: SupportSettings, store: Any = None) -> Any:
+    """Собрать ИИ-runtime; провайдер ленивый — в `off` соединений не открывает.
+
+    `kb_search` и `examples` привязываются к store: responder получит
+    опубликованные статьи и похожие пары операторов через тот же facade, что
+    и остальной саппорт.
+    """
+    from web.backend.core.support.ai.examples import store_examples
+    from web.backend.core.support.ai.responder import AiRuntime
+
+    kb_search = getattr(store, "get_published_context", None) if store is not None else None
+    if not callable(kb_search):
+        kb_search = None
+    examples = store_examples(store) if store is not None else None
+    return AiRuntime.from_settings(settings, kb_search=kb_search, examples=examples)
+
+
+def _reload_ai_runtime(service: SupportService, settings: SupportSettings) -> None:
+    """Обновить runtime на месте: тот же объект видят responder и воркер."""
+    runtime = getattr(service, "ai", None)
+    if runtime is None:
+        service.ai = _build_ai_runtime(settings, service.store)
+        return
+    reload = getattr(runtime, "reload", None)
+    if callable(reload):
+        reload(settings)
+    else:
+        service.ai = _build_ai_runtime(settings, service.store)
+        runtime = service.ai
+    if getattr(runtime, "kb_search", None) is None:
+        kb_search = getattr(service.store, "get_published_context", None)
+        if callable(kb_search):
+            runtime.kb_search = kb_search
+    if getattr(runtime, "examples", None) is None:
+        from web.backend.core.support.ai.examples import store_examples
+
+        runtime.examples = store_examples(service.store)
+
+
 async def init_support(
     existing: "SupportService | None" = None,
     db: Any = None,
@@ -246,11 +290,13 @@ async def init_support(
         service.outbox.window_hours = settings.window_hours
         service.pollers.clear()
         service.forum_bridge = None
+        _reload_ai_runtime(service, settings)
     else:
         service = SupportService(
             settings=settings,
             outbox=Outbox(registry=registry, window_hours=settings.window_hours),
         )
+        service.ai = _build_ai_runtime(settings, service.store)
 
     if await _bedolaga_enabled(runtime):
         poller = BedolagaPoller(

@@ -232,14 +232,19 @@ async def set_priority(db: AsyncSession, conversation_id: int, priority: str) ->
 
 
 async def set_assignee(db: AsyncSession, conversation_id: int, assignee_id: int | None) -> bool:
-    """Assign (or free) the conversation; claimed_at is set on the first assignment."""
+    """Assign (or free) the conversation.
+
+    `claimed_at` is set on the first assignment, refreshed when the owner
+    changes and cleared on release (NULL assignee) — the lease anchor.
+    """
     res = await db.execute(
         text("""
             UPDATE support_conversation
                SET assignee_id = :assignee_id,
                    claimed_at = CASE
-                       WHEN :assignee_id IS NOT NULL THEN COALESCE(claimed_at, now())
-                       ELSE claimed_at
+                       WHEN :assignee_id IS NULL THEN NULL
+                       WHEN assignee_id IS DISTINCT FROM :assignee_id THEN now()
+                       ELSE COALESCE(claimed_at, now())
                    END
              WHERE id = :id
         """),
@@ -286,3 +291,53 @@ async def touch_last_message(
         {"ts": ts, "direction": direction, "id": conversation_id},
     )
     return res.rowcount > 0
+
+
+# ── Idempotent replies (support_reply_key, миграция 005) ────────────────────
+
+async def get_reply_key(
+    db: AsyncSession,
+    *,
+    actor_id: int,
+    conversation_id: int,
+    client_msg_id: str,
+) -> int | None:
+    """Stored message id for (actor, conversation, client_msg_id), or None."""
+    row = (
+        await db.execute(
+            text(
+                "SELECT message_id FROM support_reply_key "
+                "WHERE actor_id = :actor_id AND conversation_id = :conversation_id "
+                "AND client_msg_id = :client_msg_id"
+            ),
+            {"actor_id": actor_id, "conversation_id": conversation_id, "client_msg_id": client_msg_id},
+        )
+    ).fetchone()
+    return int(row.message_id) if row is not None else None
+
+
+async def save_reply_key(
+    db: AsyncSession,
+    *,
+    actor_id: int,
+    conversation_id: int,
+    client_msg_id: str,
+    message_id: int,
+) -> None:
+    """Remember an outbound reply key (idempotent: first writer wins)."""
+    await db.execute(
+        text("""
+            INSERT INTO support_reply_key
+                (actor_id, conversation_id, client_msg_id, message_id)
+            VALUES
+                (:actor_id, :conversation_id, :client_msg_id, :message_id)
+            ON CONFLICT (actor_id, conversation_id, client_msg_id) DO NOTHING
+        """),
+        {
+            "actor_id": actor_id,
+            "conversation_id": conversation_id,
+            "client_msg_id": client_msg_id,
+            "message_id": message_id,
+        },
+    )
+

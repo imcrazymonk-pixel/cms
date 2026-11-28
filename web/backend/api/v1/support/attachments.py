@@ -9,7 +9,9 @@ import asyncio
 import hashlib
 import json
 import logging
+import os
 import secrets
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -31,6 +33,8 @@ ALLOWED_EXTENSIONS = frozenset({
     ".pdf", ".doc", ".docx", ".txt",
 })
 DEFAULT_MAX_UPLOAD_SIZE = 8 * 1024 * 1024
+# Upload tokens live 24h by default; override with SUPPORT_UPLOAD_TOKEN_TTL_HOURS.
+UPLOAD_TOKEN_TTL_HOURS = int(os.getenv("SUPPORT_UPLOAD_TOKEN_TTL_HOURS", "24") or 24)
 _BLOCKED_MIMES = frozenset({"image/svg+xml", "text/html", "application/xhtml+xml"})
 _BLOCKED_EXTS = frozenset({".svg", ".html", ".htm"})
 
@@ -44,8 +48,36 @@ def _upload_dir(service: SupportService) -> Path:
     return (Path(getattr(cms, "upload_dir", "/var/www/html/public/uploads")) / "support").resolve()
 
 
+def _meta_created_at(meta: dict[str, Any]) -> datetime | None:
+    """Parse meta `created_at` (UTC ISO); None for legacy/broken metas (no TTL)."""
+    raw = meta.get("created_at")
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+def _is_expired(meta: dict[str, Any]) -> bool:
+    created_at = _meta_created_at(meta)
+    if created_at is None:
+        return False
+    return datetime.now(timezone.utc) - created_at > timedelta(hours=UPLOAD_TOKEN_TTL_HOURS)
+
+
+def _drop_expired(meta_path: Path, file_path: Path) -> None:
+    """Best-effort removal of an expired token's file and meta."""
+    for path in (file_path, meta_path):
+        try:
+            path.unlink(missing_ok=True)
+        except OSError as e:  # noqa: BLE001 — TTL-уборка не должна ронять запрос
+            logger.debug("support upload cleanup failed for %s: %s", path, e)
+
+
 def resolve_upload_token(service: SupportService, token: str) -> dict[str, Any] | None:
-    """Метаданные загруженного ранее файла по токену (None — нет/сломалось)."""
+    """Метаданные загруженного ранее файла по токену (None — нет/сломалось/устарело)."""
     if not token or token != token.strip() or "/" in token or "\\" in token or ".." in token:
         return None
     upload_dir = _upload_dir(service)
@@ -59,11 +91,15 @@ def resolve_upload_token(service: SupportService, token: str) -> dict[str, Any] 
     if not isinstance(meta, dict):
         return None
     file_path = upload_dir / f"up_{token}{meta.get('ext', '')}"
+    if _is_expired(meta):
+        _drop_expired(meta_path, file_path)
+        return None
     if not file_path.is_file():
         return None
     meta["token"] = token
     meta["local_path"] = str(file_path)
     return meta
+
 
 
 def _write_meta(path: Path, meta: dict[str, Any]) -> None:
@@ -117,6 +153,7 @@ async def upload_attachment(
         "sha256": hashlib.sha256(data).hexdigest(),
         "bytes": len(data),
         "media_type": guess_kind(mime, filename),
+        "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await asyncio.to_thread((upload_dir / f"up_{token}{ext}").write_bytes, data)
     await asyncio.to_thread(_write_meta, upload_dir / f"up_{token}.json", meta)
@@ -140,16 +177,24 @@ async def upload_attachment(
 async def download_attachment(
     attachment_id: int,
     download: bool = Query(False),
+    conversation_id: int | None = Query(None),
     admin: AdminUser = Depends(get_current_admin),
     service: SupportService = Depends(get_support_service),
 ):
-    """Отдать файл записи support_attachment (инлайн для просмотра, ?download=1 — скачать)."""
-    att = await service.store.get_attachment(attachment_id)
+    """Отдать файл записи support_attachment (инлайн для просмотра, ?download=1 — скачать).
+
+    ACL: attachment → support_message → support_conversation (INNER JOIN);
+    битая связка и чужой `conversation_id` дают 404, не 403.
+    """
+    att = await service.store.get_attachment_with_conversation(
+        attachment_id, conversation_id=conversation_id
+    )
     if att is None:
         raise HTTPException(
             status_code=404,
             detail={"success": False, "error": "Attachment not found", "code": E.NOT_FOUND.value},
         )
+
     local_path = att.get("local_path")
     path = Path(local_path) if local_path else None
     if path is None or not path.is_file():

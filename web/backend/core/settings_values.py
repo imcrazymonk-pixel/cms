@@ -15,13 +15,13 @@ pass optional keys before the registry knows about them.
 No FastAPI/API imports here — this module must stay free of import cycles.
 """
 import logging
-from typing import Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple
 
 from sqlalchemy import text
 from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from web.backend.core.crypto import decrypt
+from web.backend.core.crypto import decrypt, encrypt
 from web.backend.core.settings_registry import REGISTRY_BY_KEY, SettingDef, env_value
 
 logger = logging.getLogger(__name__)
@@ -72,6 +72,35 @@ async def stored_merged(db: AsyncSession) -> Dict[str, str]:
         for row in rows:
             merged.setdefault(row.setting_key, row.setting_value or "")
     return merged
+
+
+def table_for(key: str) -> str:
+    """Target table for a registry key (`settings` for unknown keys)."""
+    defn = REGISTRY_BY_KEY.get(key)
+    return defn.store if defn else "settings"
+
+
+def store_value(key: str, value: Any) -> str:
+    """Encrypt secrets, stringify everything else (same rule as settings API)."""
+    defn = REGISTRY_BY_KEY.get(key)
+    raw = str(value)
+    return encrypt(raw) if (defn and defn.is_secret) else raw
+
+
+async def upsert_value(db: AsyncSession, key: str, value: Any) -> None:
+    """Persist one setting value (secrets encrypted) into its registry table.
+
+    The caller owns the transaction: `commit()` is not performed here. This is
+    the single write path shared by `api/v1/settings.py` and support endpoints;
+    direct SQL against the settings tables from feature code is forbidden.
+    """
+    await db.execute(
+        text(
+            f"INSERT INTO {table_for(key)} (setting_key, setting_value) VALUES (:k, :v) "
+            "ON CONFLICT (setting_key) DO UPDATE SET setting_value = EXCLUDED.setting_value"
+        ),
+        {"k": key, "v": store_value(key, value)},
+    )
 
 
 def resolve_with_source(defn: SettingDef, db_value: Optional[str]) -> Tuple[str, str]:

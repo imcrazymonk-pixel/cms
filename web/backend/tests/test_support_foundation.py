@@ -193,16 +193,23 @@ def test_support_settings_defaults(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_support_health_envelope(client: AsyncClient):
-    """Open health returns the {success, data} PHP-compatible envelope."""
+async def test_support_health_envelope(client: AsyncClient, monkeypatch):
+    """Open health returns the {success, data} PHP-compatible envelope.
+
+    Without `app.state.support` no DB session is opened: db=false, degraded.
+    """
+    from web.backend.main import app
+
+    monkeypatch.setattr(app.state, "support", None, raising=False)
     response = await client.get("/api/support/health")
     assert response.status_code == 200
     body = response.json()
     assert body["success"] is True
     data = body["data"]
-    assert data["status"] == "ok"
-    assert data["db"] is True
+    assert data["status"] == "degraded"
+    assert data["db"] is False
     assert data["pollers"] == {}
+
 
 
 # ── get_conversation_with_messages: вложения (LEFT JOIN по message_id) ──────

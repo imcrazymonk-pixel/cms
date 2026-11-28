@@ -11,7 +11,11 @@ from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
-_MIGRATION_FILENAME = "004-support-foundation.sql"
+_MIGRATION_FILENAMES = (
+    "004-support-foundation.sql",
+    "005-support-reply-idempotency.sql",
+    "006-support-ai-kb.sql",
+)
 # Inline CHECK in 004 allows only client|agent|system. `/start` records the
 # greeting with author='bot', so widen the existing constraint in place
 # (idempotent: skipped once the definition already mentions 'bot').
@@ -52,13 +56,32 @@ _MIGRATIONS_DIR_CANDIDATES = [
 ]
 
 
+def migration_paths() -> list[Path]:
+    """Locate support migrations in order (repo first, then prod fallback).
+
+    A missing later migration (e.g. 005 not deployed yet) is logged and
+    skipped; the foundation 004 is mandatory.
+    """
+    paths: list[Path] = []
+    for filename in _MIGRATION_FILENAMES:
+        for directory in _MIGRATIONS_DIR_CANDIDATES:
+            candidate = directory / filename
+            if candidate.exists():
+                paths.append(candidate)
+                break
+        else:
+            logger.warning("Support migration %s not found — skipped", filename)
+    if not paths:
+        raise FileNotFoundError(
+            f"Support migrations not found: {', '.join(_MIGRATION_FILENAMES)}"
+        )
+    return paths
+
+
 def migration_path() -> Path:
-    """Locate the support migration file (repo first, then prod fallback)."""
-    for directory in _MIGRATIONS_DIR_CANDIDATES:
-        candidate = directory / _MIGRATION_FILENAME
-        if candidate.exists():
-            return candidate
-    raise FileNotFoundError(f"Support migration {_MIGRATION_FILENAME} not found")
+    """First support migration (foundation) — kept for backward compatibility."""
+    return migration_paths()[0]
+
 
 
 def _split_statements(sql: str) -> list[str]:
@@ -141,14 +164,21 @@ def _split_statements(sql: str) -> list[str]:
 
 
 async def ensure_support_schema() -> None:
-    """Create support tables if missing — idempotent, mirrors ensure_changelog_table."""
+    """Create support tables if missing — idempotent, mirrors ensure_changelog_table.
+
+    Applies 004 (foundation), 005 (reply idempotency) and 006 (AI/KB) in
+    order, then the
+    in-place author CHECK widening.
+    """
     from web.backend.core.database import get_session_factory
 
-    path = migration_path()
-    sql = await asyncio.to_thread(path.read_text, encoding="utf-8")
-    statements = _split_statements(sql)
+    paths = migration_paths()
+    statements: list[str] = []
+    for path in paths:
+        sql = await asyncio.to_thread(path.read_text, encoding="utf-8")
+        statements.extend(_split_statements(sql))
     if not statements:
-        logger.warning("Support migration %s has no statements", path)
+        logger.warning("Support migrations %s have no statements", paths)
         return
 
     factory = await get_session_factory()
@@ -157,4 +187,9 @@ async def ensure_support_schema() -> None:
             await session.execute(text(statement))
         await session.execute(text(_AUTHOR_CHECK_SQL))
         await session.commit()
-    logger.info("Support schema applied (%d statements, %s)", len(statements), path)
+    logger.info(
+        "Support schema applied (%d statements, %d files, %s)",
+        len(statements),
+        len(paths),
+        ", ".join(p.name for p in paths),
+    )

@@ -78,6 +78,33 @@ async def get_attachment(db: AsyncSession, attachment_id: int) -> dict[str, Any]
     return _row_to_dict(row)
 
 
+async def get_attachment_with_conversation(
+    db: AsyncSession,
+    attachment_id: int,
+    conversation_id: int | None = None,
+) -> dict[str, Any] | None:
+    """Attachment only when its message and conversation still exist (ACL).
+
+    INNER JOINs make a dangling attachment invisible (same 404 as missing).
+    When `conversation_id` is passed the link is additionally verified.
+    """
+    columns = ", ".join(f"a.{c.strip()}" for c in _ATTACHMENT_COLUMNS.split(","))
+    row = (
+        await db.execute(
+            text(
+                f"SELECT {columns} FROM support_attachment a "
+                "JOIN support_message m ON m.id = a.message_id "
+                "JOIN support_conversation c ON c.id = m.conversation_id "
+                "WHERE a.id = :id "
+                "AND (:conversation_id IS NULL OR c.id = :conversation_id)"
+            ),
+            {"id": attachment_id, "conversation_id": conversation_id},
+        )
+    ).fetchone()
+    return _row_to_dict(row)
+
+
+
 async def claim_for_message(db: AsyncSession, attachment_id: int, message_id: int) -> bool:
     """Перепривязать attachment к сообщению (идемпотентный pin)."""
     res = await db.execute(

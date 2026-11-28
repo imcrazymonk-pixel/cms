@@ -768,6 +768,15 @@ SUPPORT_TRIGGER_KEYS = {
     "support_bedolaga_enabled", "support_proxy_mode", "support_proxy_url",
     "support_proxy_no_proxy", "bedolaga_enabled",
     "outbound_proxy_url", "outbound_proxy_no_proxy",
+    # ИИ-ассистент: любое изменение перезагружает runtime без рестарта.
+    "support_ai_mode", "support_ai_base_url", "support_ai_model",
+    "support_ai_fallback_model", "support_ai_api_key",
+    "support_ai_min_confidence", "support_ai_require_kb",
+    "support_ai_auto_per_hour", "support_ai_human_hold_minutes",
+    "support_ai_max_tokens", "support_ai_temperature",
+    "support_ai_timeout_seconds", "support_ai_debounce_seconds",
+    "support_ai_kb_budget_chars", "support_ai_allowed_domains",
+    "support_ai_language", "support_ai_brand", "support_ai_proxy",
 }
 
 BOT_DB_TRIGGER_KEYS = {

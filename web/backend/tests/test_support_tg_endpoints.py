@@ -70,6 +70,8 @@ class FakeStore:
                 "priority": "normal", "unread": 0, "customer_profile_id": None, "last_inbound_at": _now_iso()},
         }
         self.attachments: dict[int, dict] = {}
+        # message_id → conversation_id (минимальная карта для ACL вложений)
+        self.message_conversations: dict[int, int] = {1: 1}
         self.recorded_outbound: list[dict] = []
         self.inserted_attachments: list[dict] = []
         self.claimed: list[tuple] = []
@@ -82,6 +84,18 @@ class FakeStore:
     async def get_attachment(self, attachment_id):
         att = self.attachments.get(int(attachment_id))
         return dict(att) if att else None
+
+    async def get_attachment_with_conversation(self, attachment_id, conversation_id=None):
+        """ACL-контракт: вложение есть и связано с сообщением/диалогом."""
+        att = self.attachments.get(int(attachment_id))
+        if att is None:
+            return None
+        linked_conv = self.message_conversations.get(int(att.get("message_id") or 0))
+        if linked_conv is None:
+            return None
+        if conversation_id is not None and int(conversation_id) != linked_conv:
+            return None
+        return dict(att)
 
     async def record_outbound(self, **kwargs):
         mid = self._next_msg

@@ -13,6 +13,21 @@ const STATUS_OPTIONS = [
   { value: 'open', label: 'Открытые' },
   { value: 'pending', label: 'Ожидают' },
   { value: 'resolved', label: 'Решённые' },
+  { value: 'closed', label: 'Закрытые' },
+]
+
+const CHANNEL_OPTIONS = [
+  { value: '', label: 'Все каналы' },
+  { value: 'telegram', label: 'Telegram' },
+  { value: 'bedolaga', label: 'Bedolaga' },
+]
+
+const PRIORITY_OPTIONS = [
+  { value: '', label: 'Любой приоритет' },
+  { value: 'low', label: 'Низкий' },
+  { value: 'normal', label: 'Обычный' },
+  { value: 'high', label: 'Высокий' },
+  { value: 'urgent', label: 'Срочный' },
 ]
 
 const statusBadge: Record<string, string> = {
@@ -48,28 +63,71 @@ function getInitialColor(id: number): string {
 
 interface ConversationListProps {
   items: SupportConversation[]
+  /** Общее количество обращений по фильтрам (из ответа API). */
+  total: number
   activeId: number | null
   isLoading: boolean
   hasNextPage: boolean
   isFetchingNextPage: boolean
   statusFilter: string
+  channelFilter: string
+  priorityFilter: string
+  unreadOnly: boolean
   search: string
   onStatusFilter: (value: string) => void
+  onChannelFilter: (value: string) => void
+  onPriorityFilter: (value: string) => void
+  onUnreadOnly: (value: boolean) => void
   onSearch: (value: string) => void
   onSelect: (id: number) => void
   onLoadMore: () => void
   onRefresh: () => void
 }
 
+function FilterSelect({
+  value,
+  onChange,
+  options,
+  ariaLabel,
+}: {
+  value: string
+  onChange: (value: string) => void
+  options: Array<{ value: string; label: string }>
+  ariaLabel: string
+}) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={ariaLabel}
+        className="h-9 w-full appearance-none rounded-lg border border-[var(--glass-border)] bg-[var(--glass-bg)] px-2.5 pr-7 text-xs text-white focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+      >
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>{o.label}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-dark-400" />
+    </div>
+  )
+}
+
 export function ConversationList({
   items,
+  total,
   activeId,
   isLoading,
   hasNextPage,
   isFetchingNextPage,
   statusFilter,
+  channelFilter,
+  priorityFilter,
+  unreadOnly,
   search,
   onStatusFilter,
+  onChannelFilter,
+  onPriorityFilter,
+  onUnreadOnly,
   onSearch,
   onSelect,
   onLoadMore,
@@ -117,6 +175,36 @@ export function ConversationList({
             <RefreshCw className={cn('h-4 w-4', isLoading && 'animate-spin')} />
           </Button>
         </div>
+        <div className="grid grid-cols-2 gap-2">
+          <FilterSelect
+            value={channelFilter}
+            onChange={onChannelFilter}
+            options={CHANNEL_OPTIONS}
+            ariaLabel="Фильтр по каналу"
+          />
+          <FilterSelect
+            value={priorityFilter}
+            onChange={onPriorityFilter}
+            options={PRIORITY_OPTIONS}
+            ariaLabel="Фильтр по приоритету"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={() => onUnreadOnly(!unreadOnly)}
+          aria-pressed={unreadOnly}
+          className={cn(
+            'flex h-8 w-full items-center justify-center gap-1.5 rounded-lg border px-3 text-xs font-medium transition-colors',
+            unreadOnly
+              ? 'border-primary-500/50 bg-primary-500/15 text-primary-200'
+              : 'border-[var(--glass-border)] bg-[var(--glass-bg)] text-dark-200 hover:text-white',
+          )}
+        >
+          Только непрочитанные
+          {unreadTotal > 0 && (
+            <span className="rounded-full bg-primary-500 px-1.5 text-[10px] font-bold text-white">{unreadTotal}</span>
+          )}
+        </button>
       </div>
 
       {/* List */}
@@ -190,7 +278,9 @@ export function ConversationList({
           </Button>
         ) : (
           <p className="py-1 text-center text-[11px] text-dark-400">
-            {items.length > 0 ? `${items.length} из ${items.length}${unreadTotal > 0 ? ` · ${unreadTotal} непрочитанных` : ''}` : ' '}
+            {items.length > 0
+              ? `${items.length} из ${total}${unreadTotal > 0 ? ` · ${unreadTotal} непрочитанных` : ''}`
+              : ' '}
           </p>
         )}
       </div>
