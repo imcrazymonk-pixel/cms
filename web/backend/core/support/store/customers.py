@@ -58,7 +58,7 @@ async def update_customer_meta(db: AsyncSession, customer_id: int, meta: dict[st
     """Replace the profile meta blob (card cache, etc.). Returns False when missing."""
     meta_json = json.dumps(meta, ensure_ascii=False) if meta is not None else "{}"
     res = await db.execute(
-        text("UPDATE support_customer_profile SET meta = :meta::jsonb WHERE id = :id"),
+        text("UPDATE support_customer_profile SET meta = CAST(:meta AS jsonb) WHERE id = :id"),
         {"meta": meta_json, "id": customer_id},
     )
     return res.rowcount > 0
