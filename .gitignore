@@ -84,3 +84,6 @@ __pycache__/
 # Telegram Desktop exports (client data)
 ChatExport_*/
 _tgexport_normalized.json
+_marker_counts.json
+_prefixes.json
+_service_msgs.json
