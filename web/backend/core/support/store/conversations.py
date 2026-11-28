@@ -150,15 +150,16 @@ async def record_inbound(
         await db.execute(
             sql_text("""
                 UPDATE support_conversation SET
-                    first_inbound_at = COALESCE(first_inbound_at, :ts),
-                    last_inbound_at = CASE WHEN :is_backfill THEN last_inbound_at ELSE :ts END,
-                    last_message_at = :ts,
-                    unread          = unread + CASE WHEN :is_backfill THEN 0 ELSE 1 END,
-                    subject         = COALESCE(subject, :subject),
-                    priority        = CASE WHEN :priority IS NOT NULL THEN :priority ELSE priority END,
-                    tg_user_id      = COALESCE(tg_user_id, :tg_user_id),
-                    source_id       = COALESCE(source_id, :source_id),
-                    customer_profile_id = COALESCE(customer_profile_id, :customer_profile_id)
+                    first_inbound_at = COALESCE(first_inbound_at, CAST(:ts AS timestamptz)),
+                    last_inbound_at = CASE WHEN CAST(:is_backfill AS boolean)
+                                           THEN last_inbound_at ELSE CAST(:ts AS timestamptz) END,
+                    last_message_at = CAST(:ts AS timestamptz),
+                    unread          = unread + CASE WHEN CAST(:is_backfill AS boolean) THEN 0 ELSE 1 END,
+                    subject         = COALESCE(subject, CAST(:subject AS text)),
+                    priority        = COALESCE(CAST(:priority AS text), priority),
+                    tg_user_id      = COALESCE(tg_user_id, CAST(:tg_user_id AS bigint)),
+                    source_id       = COALESCE(source_id, CAST(:source_id AS text)),
+                    customer_profile_id = COALESCE(customer_profile_id, CAST(:customer_profile_id AS integer))
                  WHERE id = :id
             """),
             {

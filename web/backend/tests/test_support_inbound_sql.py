@@ -60,3 +60,9 @@ async def test_record_inbound_accepts_text_without_shadowing_sql_text():
     message_insert = next(params for sql, params in session.calls if "INSERT INTO support_message" in sql)
     assert message_insert is not None
     assert message_insert["text"] == "привет"
+
+    update_sql = next(sql for sql, _ in session.calls if "UPDATE support_conversation" in sql)
+    # asyncpg refuses to infer types for NULL parameters used only in CASE/COALESCE.
+    assert "CAST(:priority AS text)" in update_sql
+    assert "CAST(:tg_user_id AS bigint)" in update_sql
+    assert "CAST(:customer_profile_id AS integer)" in update_sql
